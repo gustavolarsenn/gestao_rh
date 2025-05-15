@@ -153,13 +153,13 @@ Essa escolha foi feita visando a simplicidade de desenvolvimento, facilidade de 
 
 #### Componentes principais:
 
-* Frontend: Desenvolvido com React e Next.js, as páginas dinâmicas serão renderizadas no lado do servidor para otimização de SEO e desempenho. O gerenciamento de estado será feito utilizando React.
+* Frontend: Desenvolvido com React e Nest.js, as páginas dinâmicas serão renderizadas no lado do servidor para otimização de SEO e desempenho. O gerenciamento de estado será feito utilizando React.
 
-* Backend: As API Routes do Next.js servirão como endpoints para CRUD das entidades de RH, incluindo funcionários, equipes, KPIs e avaliações de desempenho.
+* Backend: As API Routes do Nest.js servirão como endpoints para CRUD das entidades de RH, incluindo funcionários, equipes, KPIs e avaliações de desempenho.
 
 * Banco de Dados: O PostgreSQL será usado para armazenar dados estruturados como funcionários, salários, desempenho e metas, hospedado em uma solução como Railway ou Neon (para garantir um banco gratuito e fácil de usar).
 
-* Integração com Frontend: O Next.js consumirá as APIs diretamente, com uso de SSR (Server Side Rendering) ou SSG (Static Site Generation) para gerar as páginas de maneira eficiente.
+* Integração com Frontend: O Nest.js consumirá as APIs diretamente, com uso de SSR (Server Side Rendering) ou SSG (Static Site Generation) para gerar as páginas de maneira eficiente.
 
 Fluxo básico: Usuário → Frontend → Backend → Banco de Dados
 
@@ -199,9 +199,9 @@ O frontend e o backend coexistem no mesmo projeto, utilizando o Next.js para ren
 
 #### Contêineres:
 
-Frontend (Next.js): Responsável pela interface do usuário, acessando os dados através de APIs internas.
+Frontend (React): Responsável pela interface do usuário, acessando os dados através de APIs internas.
 
-Backend (Next.js): Exposição de rotas de API para manipulação de dados de RH (funcionários, desempenho, salários, KPIs, etc.).
+Backend (Nest.js): Exposição de rotas de API para manipulação de dados de RH (funcionários, desempenho, salários, KPIs, etc.).
 
 Banco de Dados: PostgreSQL hospedado em Railway ou Neon.
 
@@ -235,9 +235,9 @@ Justificativa: O JavaScript é a linguagem de programação padrão para desenvo
 
 ### Frameworks e Bibliotecas
 
-#### Next.js (Frontend e Backend):
+#### Nest.js (Backend):
 
-Justificativa: O Next.js é um framework baseado em React que permite a criação de aplicações completas, suportando tanto o frontend (renderização de páginas e componentes) quanto o backend (API Routes para manipulação de dados e interação com o banco de dados). Ele oferece recursos como Server-Side Rendering (SSR) e Static Site Generation (SSG), o que proporciona benefícios de desempenho e SEO.
+Justificativa: O NestJS é um framework Node.js para construção de aplicações backend escaláveis, eficientes e de fácil manutenção Também promove uma estrutura organizada com suporte nativo a injeção de dependências, criação de módulos, controladores e serviços. Ele facilita a implementação de APIs REST e GraphQL, integra-se facilmente com bibliotecas como Prisma.
 
 #### React.js (Frontend):
 
@@ -293,7 +293,7 @@ Justificativa: O Postman será utilizado para testar as APIs desenvolvidas no Ne
 
 Justificativa: O Figma será utilizado para criar protótipos da interface de usuário (UI), garantindo que o design da aplicação seja bem planejado e alinhado com as necessidades do usuário. Ele permite colaboração em tempo real, o que é útil para equipes de desenvolvimento e design.
 
-#### Railway/Neon para Deploy (Hospedagem do Banco de Dados):
+#### Railway/Neon para Deploy (Hospedagem):
 
 Justificativa: Como solução de banco de dados online gratuito, o Railway ou o Neon será utilizado para hospedar o banco de dados PostgreSQL. Essas plataformas fornecem escalabilidade e são adequadas para projetos de pequeno porte.
 
