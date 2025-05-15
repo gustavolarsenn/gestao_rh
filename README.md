@@ -45,9 +45,9 @@ O sistema proposto será um software em nuvem para gestão de recursos humanos, 
 
 ---
 
-###3.1. Requisitos de Software
+## 3.1. Requisitos de Software
 
-## Requisitos Funcionais (RF)
+### Requisitos Funcionais (RF)
 
 * RF01: Permitir o cadastro e gestão de funcionários.
 
@@ -69,7 +69,7 @@ O sistema proposto será um software em nuvem para gestão de recursos humanos, 
 
 * RF10: Permitir que líderes de equipe avaliem diretamente seus subordinados.
 
-## Requisitos Não Funcionais (RNF)
+### Requisitos Não Funcionais (RNF)
 
 * RNF01: O sistema deve ser disponibilizado como SaaS, acessível via navegador web sem necessidade de instalação local.
 
