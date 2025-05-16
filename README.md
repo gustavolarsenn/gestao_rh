@@ -38,7 +38,7 @@ O sistema proposto será um software em nuvem para gestão de recursos humanos, 
 ### Problemas a Resolver
 - Dificuldade na gestão hierárquica de equipes;
 - Falta de um sistema unificado para controle de desempenho e crescimento profissional;
-- Dificuldade na extração de relatórios organizacionais;
+- Permitir a extração de relatórios organizacionais;
 - Ausência de um meio eficiente para administrar unidades organizacionais separadas;
 - Falta de ferramentas para definir e monitorar KPIs;
 - Dificuldade na geração de dashboards e relatórios de análise de performance.
