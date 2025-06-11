@@ -1,26 +1,26 @@
-# Sistema de Gestão de Recursos Humanos (SaaS)
+# Sistema de Análise de Performance Organizacional (SaaS)
 
 ## Capa
-* Título do Projeto: Sistema de Gestão de Recursos Humanos.
+* Título do Projeto: Sistema de Análise de Performance.
 * Nome do Estudante: Gustavo William Larsen.
 * Curso: Engenharia de Software.
 * Data de Entrega: A definir.
   
 ## Resumo
-O presente trabalho propõe o desenvolvimento de um Sistema de Gestão de Recursos Humanos (RH) baseado no modelo SaaS (Software as a Service), visando a otimização da administração de funcionários, equipes e desempenho organizacional. O sistema permitirá o controle hierárquico das equipes em uma estrutura de árvore, a gestão de desempenho individual e coletivo, a administração de salários e planos de carreira, bem como a geração de métricas de avaliação. Além disso, incluirá a funcionalidade de exportação da estrutura organizacional e a separação por filiais. O sistema contará com um módulo avançado de gestão de performance, onde será possível definir e acompanhar KPIs, avaliar desempenho em níveis individuais, de equipe e organizacional, além de gerar dashboards dinâmicos para análise de resultados.
+O presente trabalho propõe o desenvolvimento de um Sistema de Análise de Performance Organizacional baseado no modelo SaaS (Software as a Service), visando a otimização da administração de funcionários, equipes e desempenho organizacional. O sistema permitirá o controle hierárquico das equipes em uma estrutura de árvore, a gestão de desempenho individual e coletivo, a administração de salários e planos de carreira, bem como a geração de métricas de avaliação. Além disso, incluirá a funcionalidade de exportação da estrutura organizacional e a separação por filiais. O sistema contará com um módulo avançado de gestão de performance, onde será possível definir e acompanhar KPIs, avaliar desempenho em níveis individuais, de equipe e organizacional, além de gerar dashboards dinâmicos para análise de resultados.
 
 ---
 
 ## 1. Introdução
 
 ### Contexto
-A gestão de recursos humanos em grandes empresas pode ser complexa, especialmente no que se refere ao controle de hierarquias, desempenho e crescimento profissional dos colaboradores. A tecnologia SaaS tem se tornado uma solução viável para empresas que buscam digitalizar e otimizar processos administrativos.
+A gestão de recursos humanos em grandes empresas pode ser complexa, especialmente no que se refere ao controle de hierarquias, desempenho e crescimento profissional dos colaboradores. A tecnologia SaaS se tornará uma solução viável para empresas que buscam digitalizar e otimizar processos administrativos.
 
 ### Justificativa
-A criação de um sistema SaaS para gestão de RH possibilita maior eficiência, acessibilidade e integração de dados organizacionais. Empresas de diferentes portes podem se beneficiar da flexibilidade e da centralização das informações em um único ambiente. Além disso, um sistema robusto de gestão de performance permite a otimização dos processos de avaliação de colaboradores, facilitando tomadas de decisão estratégicas baseadas em dados.
+A criação de um sistema SaaS para análise de performance organizacional possibilita maior eficiência, acessibilidade e integração de dados organizacionais. Empresas de diferentes portes podem se beneficiar da flexibilidade e da centralização das informações em um único ambiente. Além disso, um sistema robusto de gestão de performance permite a otimização dos processos de avaliação de colaboradores, facilitando tomadas de decisão estratégicas baseadas em dados.
 
 ### Objetivos
-- Desenvolver um sistema de gestão de RH em modelo SaaS;
+- Desenvolver um sistema de análise de performance organizacional em modelo SaaS;
 - Criar uma gestão estruturada de funcionários e equipes em forma de árvore;
 - Implementar funcionalidades para avaliação de desempenho e gestão de salários;
 - Definir e monitorar KPIs personalizados por colaborador, equipe e empresa;
@@ -85,51 +85,9 @@ O sistema proposto será um software em nuvem para gestão de recursos humanos, 
 
 ---
 
-```mermaid
- flowchart TD
-  Admin[Administrador]
-  Gestor[Gestor de Equipe]
-  Colaborador[Colaborador]
+### Diagrama de Caso de Uso
 
-  CadastrarFuncionario(Cadastrar Funcionário)
-  GerenciarFuncionarios(Gerenciar Funcionários)
-  CriarEquipes(Criar Estrutura de Equipes)
-  GerenciarSalarios(Gerenciar Salários e Carreiras)
-  DefinirKPIsOrg(Definir KPIs Organizacionais)
-  ExportarEstrutura(Exportar Estrutura Organizacional)
-  GerenciarFiliais(Gerenciar Filiais)
-  AvaliarEquipe(Avaliar Desempenho da Equipe)
-  DefinirKPIsEquipe(Definir KPIs da Equipe)
-  VisualizarDashboardsEquipe(Visualizar Dashboards da Equipe)
-  VisualizarAvaliacao(Visualizar sua Avaliação)
-  VisualizarKPIs(Visualizar seus KPIs)
-  AtualizarDadosPessoais(Atualizar Informações Pessoais)
-  VisualizaInformacoesColaborador(Visuaizar informações do Colaborador)
-  VisualizarDashboardsColaborador(Visualizar Dashboards do Colaborador)
-
-  Admin --> CadastrarFuncionario
-  Admin --> GerenciarFuncionarios
-  Admin --> CriarEquipes
-  Admin --> GerenciarSalarios
-  Admin --> DefinirKPIsOrg
-  Admin --> ExportarEstrutura
-  Admin --> GerenciarFiliais
-  
-  Gestor --> AvaliarEquipe
-  Gestor --> DefinirKPIsEquipe
-  Gestor --> VisualizarDashboardsEquipe
-
-  Colaborador --> VisualizarAvaliacao
-  Colaborador --> VisualizarKPIs
-  Colaborador --> AtualizarDadosPessoais
-  Colaborador --> VisualizaInformacoesColaborador
-  Colaborador --> VisualizarDashboardsColaborador
-
-  GerenciarFiliais --> SepararFiliais(Separar Dados por Filial)
-  VisualizarDashboardsEquipe --> GerarRelatoriosEquipe(Gerar Relatórios da Equipe)
-  VisualizarDashboardsColaborador --> GerarRelatoriosColaborador(Gerar Relatórios do Colaborador)
-
-```
+![Caso de uso - Análise de Performance Organizacional](https://github.com/user-attachments/assets/c6b53bd9-9d5c-4d98-ac63-fa75f84c432f)
 
 ## 3.2. Considerações de Design
 
@@ -190,6 +148,9 @@ RESTful APIs: Para comunicação frontend-backend.
 Repositórios de Dados: Implementação de acesso ao banco de dados separada da lógica de negócio.
 
 ### Modelos C4
+
+
+
 
 #### Contexto:
 
