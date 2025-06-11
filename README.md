@@ -1,7 +1,7 @@
 # Sistema de Análise de Performance Organizacional (SaaS)
 
 ## Capa
-* Título do Projeto: Sistema de Análise de Performance.
+* Título do Projeto: Sistema de Análise de Performance Organizacional.
 * Nome do Estudante: Gustavo William Larsen.
 * Curso: Engenharia de Software.
 * Data de Entrega: A definir.
