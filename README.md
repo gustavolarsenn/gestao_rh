@@ -87,7 +87,7 @@ O sistema proposto será um software em nuvem para gestão de recursos humanos, 
 
 ### Diagrama de Caso de Uso
 
-![Caso de uso - Análise de Performance Organizacional](https://github.com/user-attachments/assets/c6b53bd9-9d5c-4d98-ac63-fa75f84c432f)
+![Caso de uso - Análise de Performance Organizacional](https://github.com/user-attachments/assets/46387541-1709-4fd1-94e1-a9550b028b46)
 
 ## 3.2. Considerações de Design
 
@@ -154,35 +154,11 @@ Repositórios de Dados: Implementação de acesso ao banco de dados separada da 
 
 #### Contexto:
 
-A aplicação será um sistema de gestão de RH em que as interações entre usuários (admin e funcionários) e o sistema de backend serão feitas via APIs REST.
-
-O frontend e o backend coexistem no mesmo projeto, utilizando o Next.js para renderizar páginas e para expor endpoints de API.
-
-#### Contêineres:
-
-Frontend (React): Responsável pela interface do usuário, acessando os dados através de APIs internas.
-
-Backend (Nest.js): Exposição de rotas de API para manipulação de dados de RH (funcionários, desempenho, salários, KPIs, etc.).
-
-Banco de Dados: PostgreSQL hospedado em Railway ou Neon.
+![Modelo C4 Contexto - Sistema de Análise de Performance Organizacional](https://github.com/user-attachments/assets/ce39ef4f-0157-48ba-b6db-4c40480f4f4d)
 
 #### Componentes:
 
-Componente de CRUD de Funcionários: Responsável por gerenciar a inserção, edição, listagem e exclusão de dados de funcionários.
-
-Componente de Gestão de Equipes e Hierarquia: Organiza os funcionários em estrutura hierárquica (árvore de equipes).
-
-Componente de Avaliação de Desempenho e KPIs: Permite avaliar o desempenho de funcionários e equipes, definindo e monitorando KPIs.
-
-Componente de Dashboards: Apresenta métricas visuais baseadas nos dados de desempenho (gráficos e tabelas).
-
-#### Código:
-
-API Routes para CRUD de dados, utilizando métodos HTTP para interagir com o banco de dados.
-
-ORM Prisma para abstração do acesso ao banco de dados PostgreSQL.
-
-React (Frontend) renderizando páginas dinâmicas baseadas nas interações com as APIs.
+![Modelo C4 Componentes - Sistema de Análise de Performance Organizacional](https://github.com/user-attachments/assets/4b7512e6-232c-479d-a6e2-2d22087abd0e)
 
 ---
 
