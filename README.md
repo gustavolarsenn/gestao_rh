@@ -20,28 +20,56 @@ A gestão de recursos humanos em grandes empresas pode ser complexa, especialmen
 A criação de um sistema SaaS para análise de performance organizacional possibilita maior eficiência, acessibilidade e integração de dados organizacionais. Empresas de diferentes portes podem se beneficiar da flexibilidade e da centralização das informações em um único ambiente. Além disso, um sistema robusto de gestão de performance permite a otimização dos processos de avaliação de colaboradores, facilitando tomadas de decisão estratégicas baseadas em dados.
 
 ### Objetivos
-- Desenvolver um sistema de análise de performance organizacional em modelo SaaS;
-- Criar uma gestão estruturada de funcionários e equipes em forma de árvore;
-- Implementar funcionalidades para avaliação de desempenho e gestão de salários;
-- Definir e monitorar KPIs personalizados por colaborador, equipe e empresa;
-- Gerar dashboards interativos para análise de performance;
-- Permitir a exportação da estrutura organizacional;
-- Implementar a separação de unidades organizacionais por filiais.
+
+#### Objetivo Geral
+Desenvolver um sistema SaaS que otimize o processo de análise de performance organizacional com base em KPIs personalizados, permitindo avaliações eficazes em múltiplos níveis (individual, equipe e empresa), para subsidiar decisões estratégicas e promover a evolução profissional dentro das organizações.
+
+#### Objetivos Específicos
+1. Estruturar a gestão de funcionários e equipes por meio de uma representação hierárquica em árvore;
+2. Implementar funcionalidades para avaliação de desempenho individual e coletivo, associadas à gestão salarial e evolução de carreira;
+3. Permitir a definição, acompanhamento e personalização de KPIs para cada colaborador, equipe e unidade organizacional;
+4. Desenvolver dashboards interativos com gráficos e relatórios dinâmicos para a análise da performance em tempo real;
+5. Implementar recursos de exportação da estrutura organizacional e separação por filiais para empresas com múltiplas unidades.
 
 ---
 
-## 2. Descrição do Projeto
+## 2.1. Descrição do Projeto
 
 ### Tema do Projeto
 O sistema proposto será um software em nuvem para gestão de recursos humanos, permitindo o gerenciamento de funcionários e equipes de maneira eficiente e estruturada.
 
 ### Problemas a Resolver
-- Dificuldade na gestão hierárquica de equipes;
 - Falta de um sistema unificado para controle de desempenho e crescimento profissional;
 - Permitir a extração de relatórios organizacionais;
 - Ausência de um meio eficiente para administrar unidades organizacionais separadas;
 - Falta de ferramentas para definir e monitorar KPIs;
 - Dificuldade na geração de dashboards e relatórios de análise de performance.
+
+## 2.2. Modelo de KPIs
+
+Para garantir um sistema robusto e adaptável à realidade de diferentes organizações, a solução proposta permite a definição e o acompanhamento de KPIs de forma flexível, considerando:
+
+### Tipos distintos de avaliação:
+
+* Quanto maior, melhor (ex.: bugs corrigidos, funcionalidades entregues, cobertura de testes, contribuição para documentação);
+
+* Quanto menor, melhor (ex.: bugs encontrados pós entrega, velocidade para resolução de problemas);
+
+* Binário (sim/não) (ex.: cursos relacionados a área, certificados).
+
+### Origem da população dos KPIs:
+
+* Preenchidos manualmente por gestores (ex.: relacionados ao sistema, como bugs, horas dedicadas);
+
+* Preenchidos pelos próprios colaboradores, sujeitos a aprovação (ex.: cursos realizados, certificados);
+
+### Aplicação hierárquica:
+
+* KPIs individuais (por colaborador);
+
+* KPIs de equipe (controlados pelo gestor);
+
+* KPIs do gestor (pessoais através de feedbacks de liderados, e baseados na performance da equipe).
 
 ---
 
@@ -49,25 +77,38 @@ O sistema proposto será um software em nuvem para gestão de recursos humanos, 
 
 ### Requisitos Funcionais (RF)
 
-* RF01: Permitir o cadastro e gestão de funcionários.
+* RF01: Permitir a gestão de funcionários.
 
 * RF02: Permitir a criação e gestão de equipes em estrutura hierárquica de árvore.
 
 * RF03: Registrar avaliações de desempenho para funcionários e equipes.
 
-* RF04: Gerenciar salários, promoções e planos de carreira dos colaboradores.
-
+* RF04: Gerenciar planos de carreira dos colaboradores.
+  
 * RF05: Permitir a definição e acompanhamento de KPIs individuais, de equipe e organizacionais.
 
-* RF06: Gerar dashboards interativos de performance, com gráficos e relatórios.
+* RF06: Exportação da árvore hierárquica.
 
-* RF07: Exportar a estrutura organizacional da empresa em diferentes formatos (.pdf, .csv, .xlsx).
+* RF07: Gerenciar múltiplas filiais.
 
-* RF08: Gerenciar múltiplas filiais e permitir a separação dos dados por unidade organizacional.
+* RF08: Definição de KPIs personalizados para cada colaborador e equipe.
 
-* RF09: Disponibilizar acesso via autenticação segura (login e senha, suporte a OAuth).
+* RF09: Geração de dashboards dinâmicos para análise de desempenho.
 
-* RF10: Permitir que líderes de equipe avaliem diretamente seus subordinados.
+* RF10: Cadastro de tipos de avaliação de KPIs (maior melhor, menor melhor, binário).
+
+* RF11: Definição da origem do preenchimento dos KPIs (gestor, colaborador).
+
+* RF12: Criação de workflow de aprovação para KPIs preenchidos por colaboradores.
+
+* RF13: Possibilidade de definir KPIs específicos para gestores, tanto individuais quanto da equipe sob sua responsabilidade.
+
+* RF14: Interface para acompanhamento histórico dos KPIs por período.
+
+* RF15: Visualização por filtros (colaborador, equipe, gestor, filial, período, tipo de KPI).
+  
+* RF16: Avaliação do gestor
+
 
 ### Requisitos Não Funcionais (RNF)
 
@@ -83,11 +124,13 @@ O sistema proposto será um software em nuvem para gestão de recursos humanos, 
 
 * RNF06: Realizar backups automáticos do banco de dados ao menos uma vez ao dia.
 
+* RNF07: O sistema deve disponibilizar acesso via autenticação segura (login e senha, suporte a OAuth).
+
 ---
 
 ### Diagrama de Caso de Uso
 
-![Caso de uso - Análise de Performance Organizacional](https://github.com/user-attachments/assets/46387541-1709-4fd1-94e1-a9550b028b46)
+![Caso de uso - Análise de Performance Organizacional](https://github.com/user-attachments/assets/7d744b60-0443-458c-8d2f-61fd43ecd371)
 
 ## 3.2. Considerações de Design
 
@@ -133,19 +176,19 @@ Fluxo básico: Usuário → Frontend → Backend → Banco de Dados
 
 ### Padrões de Arquitetura
 
-Monolito Modularizado: Código organizado em módulos/layers lógicas (Controller, Service, Repository).
+* Monolito Modularizado: Código organizado em módulos/layers lógicas (Controller, Service, Repository).
 
-MVC (Model-View-Controller): Organização da aplicação backend em três camadas:
+* MVC (Model-View-Controller): Organização da aplicação backend em três camadas:
 
-Model: Representação dos dados (Entidades)
+* Model: Representação dos dados (Entidades)
 
-View: APIs e respostas JSON
+* View: APIs e respostas JSON
 
-Controller: Intermediação entre View e Model
+* Controller: Intermediação entre View e Model
 
-RESTful APIs: Para comunicação frontend-backend.
+* RESTful APIs: Para comunicação frontend-backend.
 
-Repositórios de Dados: Implementação de acesso ao banco de dados separada da lógica de negócio.
+* Repositórios de Dados: Implementação de acesso ao banco de dados separada da lógica de negócio.
 
 ### Modelos C4
 
