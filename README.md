@@ -61,7 +61,7 @@ Para garantir um sistema robusto e adaptável à realidade de diferentes organiz
 
 * Preenchidos manualmente por gestores (ex.: relacionados ao sistema, como bugs, horas dedicadas);
 
-* Preenchidos pelos próprios colaboradores, sujeitos a aprovação (ex.: cursos realizados, certificados);
+* Preenchidos pelos próprios colaboradores, sujeitos a aprovação (ex.: cursos realizados, certificados).
 
 ### Aplicação hierárquica:
 
@@ -73,41 +73,43 @@ Para garantir um sistema robusto e adaptável à realidade de diferentes organiz
 
 ---
 
+## 3 Especificações Técnicas
+
+Esta seção apresenta os detalhes técnicos envolvidos no desenvolvimento do Sistema de Análise de Performance Organizacional. São descritos os requisitos funcionais e não funcionais do sistema, as decisões de design adotadas, a arquitetura proposta e a stack tecnológica utilizada. O objetivo é documentar de forma clara os fundamentos técnicos que orientarão a implementação da solução, garantindo alinhamento com os objetivos do projeto e viabilidade de desenvolvimento.
+
 ## 3.1. Requisitos de Software
 
 ### Requisitos Funcionais (RF)
 
-* RF01: Permitir a gestão de funcionários.
+* RF01: O sistema deve permitir a gestão de funcionários.
 
-* RF02: Permitir a criação e gestão de equipes em estrutura hierárquica de árvore.
+* RF02: O sistema deve permitir a criação e gestão de equipes em estrutura hierárquica de árvore.
 
-* RF03: Registrar avaliações de desempenho para funcionários e equipes.
+* RF03: O sistema deve registrar avaliações de desempenho para funcionários e equipes.
 
-* RF04: Gerenciar planos de carreira dos colaboradores.
+* RF04: O sistema deve permitir gerenciar planos de carreira dos colaboradores.
   
-* RF05: Permitir a definição e acompanhamento de KPIs individuais, de equipe e organizacionais.
+* RF05: O sistema deve permitir a definição e acompanhamento de KPIs individuais, de equipe e organizacionais.
 
-* RF06: Exportação da árvore hierárquica.
+* RF06: O sistema deve permitir a exportação da árvore hierárquica.
 
-* RF07: Gerenciar múltiplas filiais.
+* RF07: O sistema deve permitir gerenciar múltiplas filiais.
 
-* RF08: Definição de KPIs personalizados para cada colaborador e equipe.
+* RF08: O sistema deve permitir a definição de KPIs personalizados para cada colaborador e equipe.
 
-* RF09: Geração de dashboards dinâmicos para análise de desempenho.
+* RF09: O sistema deve permitir a geração de dashboards dinâmicos para análise de desempenho.
 
-* RF10: Cadastro de tipos de avaliação de KPIs (maior melhor, menor melhor, binário).
+* RF10: O sistema deve permitir o cadastro de tipos de avaliação de KPIs (maior melhor, menor melhor, binário).
 
-* RF11: Definição da origem do preenchimento dos KPIs (gestor, colaborador).
+* RF11: O sistema deve permitir a definição da origem do preenchimento dos KPIs (gestor, colaborador).
 
-* RF12: Criação de workflow de aprovação para KPIs preenchidos por colaboradores.
+* RF12: O sistema deve permitir a criação de workflow de aprovação para KPIs preenchidos por colaboradores.
 
-* RF13: Possibilidade de definir KPIs específicos para gestores, tanto individuais quanto da equipe sob sua responsabilidade.
+* RF13: O sistema deve permitir a definição KPIs específicos para gestores, tanto individuais quanto da equipe sob sua responsabilidade.
 
-* RF14: Interface para acompanhamento histórico dos KPIs por período.
-
-* RF15: Visualização por filtros (colaborador, equipe, gestor, filial, período, tipo de KPI).
+* RF14: O sistema deve gerar uma interface para acompanhamento histórico dos KPIs por período.
   
-* RF16: Avaliação do gestor
+* RF16: O sistema deve permitir a avaliação do gestor por parte dos colaboradores
 
 
 ### Requisitos Não Funcionais (RNF)
@@ -122,7 +124,7 @@ Para garantir um sistema robusto e adaptável à realidade de diferentes organiz
 
 * RNF05: A plataforma deve ter alta disponibilidade (uptime superior a 99,5%).
 
-* RNF06: Realizar backups automáticos do banco de dados ao menos uma vez ao dia.
+* RNF06: O sistema deve realizar backups automáticos do banco de dados ao menos uma vez ao dia.
 
 * RNF07: O sistema deve disponibilizar acesso via autenticação segura (login e senha, suporte a OAuth).
 
@@ -130,7 +132,29 @@ Para garantir um sistema robusto e adaptável à realidade de diferentes organiz
 
 ### Diagrama de Caso de Uso
 
-![Caso de uso - Análise de Performance Organizacional](https://github.com/user-attachments/assets/7d744b60-0443-458c-8d2f-61fd43ecd371)
+#### Gerenciar funcionários (RH)
+
+![image](https://github.com/user-attachments/assets/27dd9ee0-4634-4ad8-b9f2-090aa276898d)
+
+#### Gerenciar carreiras (RH)
+
+![image](https://github.com/user-attachments/assets/1f28f7d9-849d-49e2-8cf5-e0e15cf368a7)
+
+#### Gerenciar estrutura organizacional (RH)
+
+![image](https://github.com/user-attachments/assets/6ff3792e-67e4-471d-a547-c61fa38fe031)
+
+#### Definir KPIs de colaborador (Gestor de Equipe)
+
+![image](https://github.com/user-attachments/assets/6f90dfd5-0c0d-426e-adb3-f6cb4412018c)
+
+#### Avaliar preenchimento de KPI feito pelo colaborador (Gestor de Equipe)
+
+![image](https://github.com/user-attachments/assets/8ac86cd7-06dd-4ae1-8af8-1d114d54a14b)
+
+#### Preencher KPI (Colaborador)
+
+![image](https://github.com/user-attachments/assets/8fae9f99-da8f-42c6-91df-f40a5a9c500a)
 
 ## 3.2. Considerações de Design
 
