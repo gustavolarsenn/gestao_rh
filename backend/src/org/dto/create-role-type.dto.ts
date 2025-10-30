@@ -2,5 +2,6 @@ import { IsUUID, IsString } from 'class-validator';
 
 export class CreateRoleTypeDto {
   @IsUUID() companyId!: string;
-  @IsString() name!: string; // CLT, PJ, Horista, etc.
+  @IsUUID() departmentId!: string;
+  @IsString() name!: string;
 }

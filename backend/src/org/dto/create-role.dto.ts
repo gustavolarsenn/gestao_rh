@@ -1,10 +1,11 @@
-import { IsUUID, IsString, IsOptional, IsNumberString } from 'class-validator';
+import { IsUUID, IsString, IsOptional, IsNumber } from 'class-validator';
 
 export class CreateRoleDto {
   @IsUUID() companyId!: string;
   @IsString() name!: string;
+  
+  @IsUUID() roleTypeId!: string;
+  @IsUUID() departmentId!: string;
 
-  @IsOptional() @IsUUID() departmentId?: string;
-
-  @IsOptional() @IsNumberString() defaultWage?: string;
+  @IsOptional() @IsNumber() defaultWage?: string;
 }

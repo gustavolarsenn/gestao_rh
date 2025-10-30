@@ -5,6 +5,8 @@ import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { User } from '../users/entities/user.entity';
+import { CreateUserDto } from '../users/dto/create-user.dto';
 
 @Injectable()
 export class AuthService {
@@ -37,23 +39,23 @@ export class AuthService {
   }
 
   // REGISTER continua pedindo companyId
-  async register(dto: RegisterDto) {
-    const exists = await this.users.findByEmail(dto.companyId, dto.email);
-    if (exists) throw new ConflictException('Email already in use for this company');
+  // async register(dto: CreateUserDto) {
+  //   const exists = await this.users.findByEmail(dto.companyId, dto.email);
+  //   if (exists) throw new ConflictException('Email already in use for this company');
+  //   const created = await this.users.create({
+  //     companyId: dto.companyId,
+  //     name: dto.name,
+  //     email: dto.email,
+  //     password: dto.password,
+  //     person: { id: dto.personId },
+  //     userRoleId:  dto.userRoleId ,
+  //   } as Partial<User>);
 
-    const created = await this.users.create({
-      companyId: dto.companyId,
-      name: dto.name,
-      email: dto.email,
-      password: dto.password,
-      birthDate: dto.birthDate,
-    });
-
-    const payload = { sub: created.id, companyId: created.companyId, email: created.email };
-    const accessToken = await this.jwt.signAsync(payload);
-    return {
-      accessToken,
-      user: { id: created.id, name: created.name, email: created.email, companyId: created.companyId },
-    };
-  }
+  //   const payload = { sub: created.id, companyId: created.companyId, email: created.email };
+  //   const accessToken = await this.jwt.signAsync(payload);
+  //   return {
+  //     accessToken,
+  //     user: { id: created.id, name: created.name, email: created.email, companyId: created.companyId },
+  //   };
+  // }
 }

@@ -1,27 +1,32 @@
-export const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:3001/api';
+import axios from "axios";
 
-type HttpOptions = {
-  method?: 'GET'|'POST'|'PATCH'|'DELETE';
-  body?: any;
-  token?: string;
-}
+// Cria instância principal do Axios
+export const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:3000",
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
 
-export async function http<T=any>(path: string, opts: HttpOptions = {}): Promise<T> {
-  const headers: Record<string,string> = { 'Content-Type': 'application/json' };
-  if (opts.token) headers['Authorization'] = `Bearer ${opts.token}`;
-
-  const res = await fetch(`${API_BASE}${path}`, {
-    method: opts.method ?? 'GET',
-    headers,
-    body: opts.body ? JSON.stringify(opts.body) : undefined,
-  });
-
-  if (!res.ok) {
-    const text = await res.text().catch(()=>'');
-    let data: any;
-    try { data = JSON.parse(text) } catch { data = { message: text || res.statusText } }
-    throw new Error(data?.message || `HTTP ${res.status}`);
+// Adiciona interceptor para anexar o token JWT automaticamente
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
+  return config;
+});
 
-  return res.json() as Promise<T>;
-}
+// Interceptor para tratar erros globais (ex: expiração de token)
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      console.warn("Sessão expirada. Redirecionando para login...");
+      localStorage.removeItem("token");
+      // Você pode redirecionar manualmente se quiser, por exemplo:
+      window.location.href = "/login";
+    }
+    return Promise.reject(error);
+  }
+);

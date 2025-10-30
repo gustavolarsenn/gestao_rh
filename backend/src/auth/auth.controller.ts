@@ -14,9 +14,9 @@ export class AuthController {
     return this.auth.login(dto);
   }
 
-  @Public()
-  @Post('register')
-  async register(@Body() dto: RegisterDto) {
-    return this.auth.register(dto);
-  }
+  // @Public()
+  // @Post('register')
+  // async register(@Body() dto: RegisterDto) {
+  //   return this.auth.register(dto);
+  // }
 }

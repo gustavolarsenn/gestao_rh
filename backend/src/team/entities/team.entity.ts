@@ -7,12 +7,13 @@ import { Company } from '../../org/entities/company.entity';
 export class Team extends TenantBaseEntity {
   @Column() name!: string;
 
-  @Column('uuid', { nullable: true })
-  departmentId?: string | null;
-
-  @ManyToOne(() => Department, { onDelete: 'SET NULL' })
-  @JoinColumn({ name: 'departmentId' })
-  department?: Department | null;
+  @Column() description!: string;
+  
+  // @Column('uuid', { nullable: true })
+  // departmentId?: string | null;
+  // @ManyToOne(() => Department, { onDelete: 'SET NULL' })
+  // @JoinColumn({ name: 'departmentId' })
+  // department?: Department | null;
 
   @ManyToOne(() => Company, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'companyId' })

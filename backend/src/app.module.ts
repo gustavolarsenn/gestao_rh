@@ -17,6 +17,9 @@ import { KpiModule } from './kpi/kpi.module';
 import { PerformanceReviewsModule } from './reviews/performance-reviews.module';
 import { GeoModule } from './geo/geo.module';
 
+import { DatabaseSeedModule } from './database/database.module';
+import { PersonsModule } from './person/persons.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -31,12 +34,14 @@ import { GeoModule } from './geo/geo.module';
     }),
     AuthModule,
     UsersModule,
+    PersonsModule,
     HrModule,
     OrgModule,
     TeamModule,
     KpiModule,
     PerformanceReviewsModule,
     GeoModule,
+    DatabaseSeedModule
   ],
   controllers: [AppController],
   providers: [

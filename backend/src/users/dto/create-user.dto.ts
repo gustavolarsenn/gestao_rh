@@ -1,13 +1,16 @@
 import { IsUUID, IsString, IsEmail, IsOptional, IsBoolean, MinLength, IsDateString } from 'class-validator';
+import { Person } from '../../person/entities/person.entity';
 
 export class CreateUserDto {
   @IsUUID() companyId!: string;
+  @IsUUID() userRoleId!: string;
+  @IsUUID() personId!: string;
   @IsString() name!: string;
-
-  @IsEmail() email!: string;
+  
+  @IsOptional() @IsEmail() email?: string;
 
   @MinLength(8) password!: string;
 
-  @IsOptional() @IsDateString() birthDate?: string | null;
+  person!: Person;
   @IsOptional() @IsBoolean() isActive?: boolean;
 }

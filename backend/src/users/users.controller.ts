@@ -43,7 +43,7 @@ export class UsersController {
 
   @Patch(':id')
   update(
-    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Query('companyId', ParseUUIDPipe) companyId: string,
     @Body() dto: UpdateUserDto,
   ): Promise<User> {

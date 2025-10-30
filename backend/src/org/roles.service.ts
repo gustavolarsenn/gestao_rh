@@ -16,7 +16,7 @@ export class RolesService {
   }
 
   async findAll(companyId: string): Promise<Role[]> {
-    return this.repo.find({ where: { companyId } });
+    return this.repo.find({ where: { companyId }, relations: ['roleType', 'department'] });
   }
 
   async findOne(companyId: string, id: string): Promise<Role> {

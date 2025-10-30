@@ -6,10 +6,14 @@ import * as bcrypt from 'bcrypt';
 import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { Person } from '../person/entities/person.entity';
 
 @Injectable()
 export class UsersService {
-  constructor(@InjectRepository(User) private readonly repo: Repository<User>) {}
+  constructor(
+    @InjectRepository(User) private readonly repo: Repository<User>,
+    @InjectRepository(Person) private readonly personRepo: Repository<Person>,
+  ) {}
 
   async findByEmail(companyId: string, email: string): Promise<User | null> {
     return this.repo.findOne({ where: { companyId, email } });
@@ -20,23 +24,28 @@ export class UsersService {
   }
 
   async create(dto: CreateUserDto): Promise<User> {
-    const exists = await this.findByEmail(dto.companyId, dto.email);
+    console.log("AAAA", dto)
+    const exists = await this.findByEmail(dto.companyId, dto.email!);
     if (exists) throw new ConflictException('Email already in use for this company');
+    
+    const person = await this.personRepo.findOne({ where: { id: dto.personId } });
+    if (!person) throw new NotFoundException('Person not found');
+
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
     const entity = this.repo.create({
       companyId: dto.companyId,
       name: dto.name,
-      email: dto.email,
+      email: person.email,
       passwordHash,
-      birthDate: dto.birthDate ?? null,
-      isActive: true,
+      person: { id: dto.personId },
+      role: { id: dto.userRoleId },
     } as Partial<User>);
     return this.repo.save(entity);
   }
 
   async findAll(companyId: string): Promise<User[]> {
-    return this.repo.find({ where: { companyId } });
+    return this.repo.find({ where: { companyId }, relations: ['role'] });
   }
 
   async findOne(companyId: string, id: string): Promise<User> {
@@ -57,12 +66,10 @@ export class UsersService {
     if ((dto as any).password) {
       passwordHash = await bcrypt.hash((dto as any).password, 10);
     }
-
     const merged = this.repo.merge(row, {
       name: dto.name ?? row.name,
       email: dto.email ?? row.email,
-      birthDate: dto.birthDate ?? row.birthDate,
-      isActive: dto.isActive ?? row.active,
+      userRoleId: dto.userRoleId ?? row.userRoleId,
       passwordHash,
     } as Partial<User>);
     return this.repo.save(merged);
