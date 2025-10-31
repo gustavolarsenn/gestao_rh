@@ -11,8 +11,6 @@ import { Team } from '../../team/entities/team.entity';
 
 @Entity('employees')
 export class Employee extends TenantBaseEntity {
-  @Column() name!: string;
-
   @Column('uuid', { nullable: true }) roleId?: string | null;
   @ManyToOne(() => Role, { onDelete: 'SET NULL' }) @JoinColumn({ name: 'roleId' }) role?: Role | null;
 

@@ -8,6 +8,7 @@ export type User = {
   password?: string;
   userRoleId: string;
   companyId: string;
+  personId: string;
   role?: { id: string; name: string };
 };
 
@@ -25,6 +26,7 @@ export function useUsers() {
     setLoading(true);
     setError(null);
     try {
+      console.log(user)
       const { data } = await api.post("/users", { ...user, companyId });
       return data;
     } catch (err: any) {

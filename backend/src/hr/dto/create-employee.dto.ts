@@ -2,7 +2,6 @@ import { IsDateString, IsOptional, IsString, IsUUID, IsNumberString } from 'clas
 
 export class CreateEmployeeDto {
   @IsUUID() companyId!: string;
-  @IsString() name!: string;
 
   @IsOptional() @IsUUID() roleId?: string;
   @IsOptional() @IsUUID() roleTypeId?: string;
@@ -14,5 +13,5 @@ export class CreateEmployeeDto {
 
   @IsOptional() @IsNumberString() wage?: string;
   @IsOptional() @IsDateString() hiringDate?: string;
-  @IsOptional() @IsDateString() departureDate?: string;
+  @IsOptional() @IsDateString() departureDate?: string | null;
 }

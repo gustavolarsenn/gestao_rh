@@ -8,6 +8,8 @@ import Departments from "@/pages/admin/Departments";
 import RoleTypes from "@/pages/admin/RoleTypes";
 import Roles from "@/pages/admin/Roles";
 import Teams from "./pages/admin/Teams";
+import Persons from "./pages/admin/Persons";
+import Employees from "./pages/admin/Employees";
 
 export default function App() {
   return (
@@ -18,11 +20,13 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/admin/companies" element={<Company />} />
           <Route path="/admin/branches" element={<Branch />} />
+          <Route path="/admin/persons" element={<Persons />} />
           <Route path="/admin/users" element={<Users />} />
           <Route path="/admin/departments" element={<Departments />} />
           <Route path="/admin/role-types" element={<RoleTypes />} />
           <Route path="/admin/roles" element={<Roles />} />
           <Route path="/admin/teams" element={<Teams />} />
+          <Route path="/admin/employees" element={<Employees />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

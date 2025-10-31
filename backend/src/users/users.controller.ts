@@ -23,6 +23,7 @@ export class UsersController {
 
   @Post()
   create(@Body() dto: CreateUserDto): Promise<User> {
+    console.log("Criando usuario", dto)
     return this.service.create(dto);
   }
 

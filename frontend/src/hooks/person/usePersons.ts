@@ -19,9 +19,10 @@ export type Person = {
 export function usePersons() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const companyId = localStorage.getItem("companyId");
 
   async function listPersons(): Promise<Person[]> {
-    const { data } = await api.get("/persons");
+    const { data } = await api.get(`/persons?companyId=${companyId}`);
     return data;
   }
 
@@ -29,7 +30,7 @@ export function usePersons() {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await api.post("/persons", payload);
+      const { data } = await api.post("/persons", {...payload, companyId});
       return data;
     } catch (err: any) {
       setError(err?.response?.data?.message || "Erro ao criar pessoa.");
@@ -40,12 +41,12 @@ export function usePersons() {
   }
 
   async function updatePerson(id: string, payload: Partial<Person>) {
-    const { data } = await api.patch(`/persons/${id}`, payload);
+    const { data } = await api.patch(`/persons/${id}?companyId=${companyId}`, payload);
     return data;
   }
 
   async function deletePerson(id: string) {
-    await api.delete(`/persons/${id}`);
+    await api.delete(`/persons/${id}?companyId=${companyId}`);
   }
 
   return { listPersons, createPerson, updatePerson, deletePerson, loading, error };

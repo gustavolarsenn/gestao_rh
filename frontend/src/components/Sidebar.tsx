@@ -15,11 +15,13 @@ export default function Sidebar() {
   const items = [
     { to: "/admin/companies", label: "Empresas", Icon: FiBriefcase },
     { to: "/admin/branches", label: "Filiais", Icon: FiBriefcase },
+    { to: "/admin/persons", label: "Pessoas", Icon: FiUsers },
     { to: "/admin/users", label: "Usuários", Icon: FiUsers },
     { to: "/admin/departments", label: "Departamentos", Icon: FiUsers },
     { to: "/admin/role-types", label: "Tipos de Cargo", Icon: FiUsers },
     { to: "/admin/roles", label: "Cargos", Icon: FiUsers },
     { to: "/admin/teams", label: "Times", Icon: FiUsers },
+    { to: "/admin/employees", label: "Funcionários", Icon: FiUsers },
   ];
 
   return (
@@ -63,12 +65,12 @@ export default function Sidebar() {
       </nav>
 
       {/* Rodapé / Configurações */}
-      <div className="mt-auto border-t border-[#3f4755] px-4 py-3">
+      {/* <div className="mt-auto border-t border-[#3f4755] px-4 py-3">
         <div className="flex items-center gap-3 text-[#F2F3D9]/80 hover:text-white cursor-pointer">
           <FiSettings className="text-[18px]" />
           {!collapsed && <span className="text-sm font-medium">Configurações</span>}
         </div>
-      </div>
+      </div> */}
     </aside>
   );
 }
