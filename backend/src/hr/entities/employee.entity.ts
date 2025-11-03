@@ -8,9 +8,16 @@ import { Branch } from '../../org/entities/branch.entity';
 import { Company } from '../../org/entities/company.entity';
 import { Department } from '../../org/entities/department.entity';
 import { Team } from '../../team/entities/team.entity';
+import { Person } from '../../person/entities/person.entity';
 
 @Entity('employees')
 export class Employee extends TenantBaseEntity {
+  @ManyToOne(() => Person, { onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'personId' })
+  person!: Person;
+  @Column()
+  personId!: string;
+  
   @Column('uuid', { nullable: true }) roleId?: string | null;
   @ManyToOne(() => Role, { onDelete: 'SET NULL' }) @JoinColumn({ name: 'roleId' }) role?: Role | null;
 

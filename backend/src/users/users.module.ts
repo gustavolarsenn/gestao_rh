@@ -7,11 +7,15 @@ import { UserRolesController } from './user-roles.controller';
 import { User } from './entities/user.entity';
 import { UserRole } from './entities/user-role.entity';
 import { Person } from '../person/entities/person.entity';
+import { EmployeesService } from '../hr/employees.service';
+import { Employee } from '../hr/entities/employee.entity';
+import { Team } from '../team/entities/team.entity';
+import { TeamMember } from '../team/entities/team-member.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, UserRole, Person])],
+  imports: [TypeOrmModule.forFeature([User, UserRole, Person, Employee, Team, TeamMember])],
   controllers: [UsersController, UserRolesController],
-  providers: [UsersService, UserRolesService],
-  exports: [UsersService, UserRolesService],
+  providers: [UsersService, UserRolesService, EmployeesService],
+  exports: [UsersService, UserRolesService, EmployeesService],
 })
 export class UsersModule {}

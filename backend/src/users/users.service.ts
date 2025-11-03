@@ -24,7 +24,6 @@ export class UsersService {
   }
 
   async create(dto: CreateUserDto): Promise<User> {
-    console.log("AAAA", dto)
     const exists = await this.findByEmail(dto.companyId, dto.email!);
     if (exists) throw new ConflictException('Email already in use for this company');
     
@@ -49,7 +48,7 @@ export class UsersService {
   }
 
   async findOne(companyId: string, id: string): Promise<User> {
-    const row = await this.repo.findOne({ where: { companyId, id } });
+    const row = await this.repo.findOne({ where: { companyId, id }, relations: ['role', 'person'] });
     if (!row) throw new NotFoundException('User not found');
     return row;
   }

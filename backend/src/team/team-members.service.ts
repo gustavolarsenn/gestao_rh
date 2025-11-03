@@ -33,11 +33,11 @@ export class TeamMembersService {
     if (filters.parentTeamId) where.parentTeamId = filters.parentTeamId;
     if (typeof filters.active === 'boolean') where.active = filters.active;
 
-    return this.repo.find({ where });
+    return this.repo.find({ where, relations: ['employee', 'team', 'parentTeam', 'employee.person'] });
   }
 
   async findOne(companyId: string, id: string): Promise<TeamMember> {
-    const row = await this.repo.findOne({ where: { companyId, id } });
+    const row = await this.repo.findOne({ where: { companyId, id }, relations: ['employee', 'team', 'parentTeam', 'employee.person'] });
     if (!row) throw new NotFoundException('Team member not found');
     return row;
   }

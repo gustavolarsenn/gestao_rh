@@ -6,9 +6,10 @@ import { Branch } from '../org/entities/branch.entity';
 import { User } from '../users/entities/user.entity';
 import { SeedService } from './seed/seed.service';
 import { Person } from '../person/entities/person.entity';
+import { Team } from '../team/entities/team.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([UserRole, Company, Branch, User, Person])],
+  imports: [TypeOrmModule.forFeature([UserRole, Company, Branch, User, Person, Team])],
   providers: [SeedService],
 })
 export class DatabaseSeedModule {}

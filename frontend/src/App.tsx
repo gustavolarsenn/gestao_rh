@@ -10,6 +10,10 @@ import Roles from "@/pages/admin/Roles";
 import Teams from "./pages/admin/Teams";
 import Persons from "./pages/admin/Persons";
 import Employees from "./pages/admin/Employees";
+import EvaluationTypes from "./pages/admin/EvaluationTypes";
+import Kpis from "./pages/admin/Kpis";
+import EmployeeKpis from "./pages/admin/EmployeeKpis";
+import EmployeeKpisEvolution from "./pages/employee/EmployeeKpiEvolution";
 
 export default function App() {
   return (
@@ -27,6 +31,10 @@ export default function App() {
           <Route path="/admin/roles" element={<Roles />} />
           <Route path="/admin/teams" element={<Teams />} />
           <Route path="/admin/employees" element={<Employees />} />
+          <Route path="/admin/evaluation-types" element={<EvaluationTypes />} />
+          <Route path="/admin/kpis" element={<Kpis />} />
+          <Route path="/admin/employee-kpis" element={<EmployeeKpis />} />
+          <Route path="/employee/employee-kpis" element={<EmployeeKpisEvolution />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

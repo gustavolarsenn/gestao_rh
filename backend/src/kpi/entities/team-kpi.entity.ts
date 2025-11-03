@@ -4,11 +4,11 @@ import { Team } from '../../team/entities/team.entity';
 import { KPI } from './kpi.entity';
 import { EvaluationType } from './evaluation-type.entity';
 import { User } from '../../users/entities/user.entity';
-import { KpiSource, KpiStatus } from './kpi.enums';
+import { KpiStatus } from './kpi.enums';
 import { Company } from '../../org/entities/company.entity';
 
 @Entity('team_kpis')
-@Unique('uq_team_kpi_period', ['companyId','teamId','kpiId','periodStart','periodEnd','source'])
+@Unique('uq_team_kpi_period', ['companyId','teamId','kpiId','periodStart','periodEnd'])
 export class TeamKPI extends TenantBaseEntity {
   @Column('uuid') teamId!: string;
   @ManyToOne(() => Team, { onDelete: 'CASCADE' }) @JoinColumn({ name: 'teamId' }) team!: Team;
@@ -25,7 +25,6 @@ export class TeamKPI extends TenantBaseEntity {
   @Column({ type: 'numeric', nullable: true }) goal?: string | null;
   @Column({ type: 'numeric', nullable: true }) achievedValue?: string | null;
 
-  @Column({ type: 'enum', enum: KpiSource }) source!: KpiSource;
   @Column({ type: 'enum', enum: KpiStatus, default: KpiStatus.DRAFT }) status!: KpiStatus;
 
   @Column('uuid') submittedBy!: string;

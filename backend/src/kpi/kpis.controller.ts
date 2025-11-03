@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Patch, Delete, Param, Body, Query, ParseUUIDPipe, UsePipes, ValidationPipe } from '@nestjs/common';
 import { KpisService } from './kpis.service';
-import { CreateKpiDto } from './dto/create-kpi.dto';
-import { UpdateKpiDto } from './dto/update-kpi.dto';
+import { CreateKpiDto } from './dto/kpi/create-kpi.dto';
+import { UpdateKpiDto } from './dto/kpi/update-kpi.dto';
 import { KPI } from './entities/kpi.entity';
 
 @Controller('kpi/kpis')

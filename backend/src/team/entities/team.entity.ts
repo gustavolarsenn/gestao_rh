@@ -9,6 +9,8 @@ export class Team extends TenantBaseEntity {
 
   @Column() description!: string;
   
+  @Column('uuid', { nullable: true })
+  parentTeamId?: string | null;
   // @Column('uuid', { nullable: true })
   // departmentId?: string | null;
   // @ManyToOne(() => Department, { onDelete: 'SET NULL' })

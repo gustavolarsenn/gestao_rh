@@ -19,6 +19,7 @@ import { GeoModule } from './geo/geo.module';
 
 import { DatabaseSeedModule } from './database/database.module';
 import { PersonsModule } from './person/persons.module';
+import { EmployeesService } from './hr/employees.service';
 
 @Module({
   imports: [

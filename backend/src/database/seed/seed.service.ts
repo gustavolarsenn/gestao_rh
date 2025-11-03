@@ -10,6 +10,7 @@ import { User } from '../../users/entities/user.entity';
 import { State } from '../../geo/entities/state.entity';
 import { City } from '../../geo/entities/city.entity';
 import { Person } from '../../person/entities/person.entity';
+import { Team } from '../../team/entities/team.entity';
 
 @Injectable()
 export class SeedService implements OnApplicationBootstrap {
@@ -106,7 +107,24 @@ export class SeedService implements OnApplicationBootstrap {
         console.log('✅ Filial "Matriz" criada.');
       }
 
+      // ============================================================
+      // 6️⃣ TIME INICIAL
+      // ============================================================
+      let team = await manager.findOne(Team, {
+        where: { name: 'Time Padrão', company: { id: company.id } },
+        relations: ['company'],
+      });
 
+      if (!team) {
+        team = manager.create(Team, {
+          name: 'Time Padrão',
+          description: 'Time inicial padrão',
+          company,
+        });
+        await manager.save(team);
+        console.log('✅ Time "Time Padrão" criado.');
+      }
+      
       // ============================================================
       // 6️⃣ PESSOA SUPERADMIN INICIAL
       // ============================================================

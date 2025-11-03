@@ -17,16 +17,12 @@ export function useBranches() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const companyId = localStorage.getItem("companyId");
 
   async function createBranch(data: Omit<Branch, "id" | "createdAt">) {
     setLoading(true);
     setError(null);
     try {
-      const companyId = user?.companyId;
-      if (!companyId) {
-        setError("Usuário não autenticado.");
-        throw new Error("User not authenticated.");
-      }
       const response = await api.post<Branch>("/branches", { ...data, companyId });
       return response.data;
     } catch (err: any) {
@@ -38,11 +34,6 @@ export function useBranches() {
   }
 
   async function listBranches(): Promise<Branch[]> {
-    const companyId = user?.companyId;
-      if (!companyId) {
-        setError("Usuário não autenticado.");
-        throw new Error("User not authenticated.");
-      }
     const { data } = await api.get<Branch[]>("/branches", {
       params: { companyId },
     });

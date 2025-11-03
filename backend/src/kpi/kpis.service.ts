@@ -2,8 +2,8 @@ import { Injectable, NotFoundException, ConflictException } from '@nestjs/common
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { KPI } from './entities/kpi.entity';
-import { CreateKpiDto } from './dto/create-kpi.dto';
-import { UpdateKpiDto } from './dto/update-kpi.dto';
+import { CreateKpiDto } from './dto/kpi/create-kpi.dto';
+import { UpdateKpiDto } from './dto/kpi/update-kpi.dto';
 
 @Injectable()
 export class KpisService {

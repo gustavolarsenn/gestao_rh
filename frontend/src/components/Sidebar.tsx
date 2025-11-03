@@ -1,28 +1,43 @@
 import { useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import {
-  FiHome,
   FiBriefcase,
+  FiUser,
   FiUsers,
   FiSettings,
   FiChevronLeft,
   FiChevronRight,
+  FiLogOut,
+  FiBox,
+  FiMinus 
 } from "react-icons/fi";
+import { useAuth } from "@/auth/useAuth";
 
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
+  const navigate = useNavigate();
+  const { logout } = useAuth();
 
   const items = [
-    { to: "/admin/companies", label: "Empresas", Icon: FiBriefcase },
-    { to: "/admin/branches", label: "Filiais", Icon: FiBriefcase },
-    { to: "/admin/persons", label: "Pessoas", Icon: FiUsers },
-    { to: "/admin/users", label: "Usuários", Icon: FiUsers },
-    { to: "/admin/departments", label: "Departamentos", Icon: FiUsers },
-    { to: "/admin/role-types", label: "Tipos de Cargo", Icon: FiUsers },
-    { to: "/admin/roles", label: "Cargos", Icon: FiUsers },
-    { to: "/admin/teams", label: "Times", Icon: FiUsers },
-    { to: "/admin/employees", label: "Funcionários", Icon: FiUsers },
+    { to: "/admin/companies", label: "Empresas", Icon: FiMinus  },
+    { to: "/admin/branches", label: "Filiais", Icon: FiMinus  },
+    { to: "/admin/persons", label: "Pessoas", Icon: FiMinus  },
+    { to: "/admin/users", label: "Usuários", Icon: FiMinus  },
+    { to: "/admin/departments", label: "Departamentos", Icon: FiMinus  },
+    { to: "/admin/role-types", label: "Tipos de Cargo", Icon: FiMinus  },
+    { to: "/admin/roles", label: "Cargos", Icon: FiMinus  },
+    { to: "/admin/teams", label: "Times", Icon: FiMinus  },
+    { to: "/admin/employees", label: "Funcionários", Icon: FiMinus  },
+    { to: "/admin/evaluation-types", label: "Tipos de Avaliação", Icon: FiMinus  },
+    { to: "/admin/kpis", label: "KPIs", Icon: FiMinus  },
+    { to: "/admin/employee-kpis", label: "KPIs de Funcionários", Icon: FiMinus  },
+    { to: "/employee/employee-kpis", label: "KPIs de Funcionários", Icon: FiMinus  },
   ];
+
+  function handleLogout() {
+    logout(); // limpa storage e contexto
+    navigate("/login"); // redireciona para a tela de login
+  }
 
   return (
     <aside
@@ -64,13 +79,16 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      {/* Rodapé / Configurações */}
-      {/* <div className="mt-auto border-t border-[#3f4755] px-4 py-3">
-        <div className="flex items-center gap-3 text-[#F2F3D9]/80 hover:text-white cursor-pointer">
-          <FiSettings className="text-[18px]" />
-          {!collapsed && <span className="text-sm font-medium">Configurações</span>}
+      {/* Rodapé / Logout */}
+      <div
+        className="mt-auto border-t border-[#3f4755] px-4 py-3 cursor-pointer hover:bg-[#3f4755] transition"
+        onClick={handleLogout}
+      >
+        <div className="flex items-center gap-3 text-[#F2F3D9]/80 hover:text-white">
+          <FiLogOut className="text-[18px]" />
+          {!collapsed && <span className="text-sm font-medium">Sair</span>}
         </div>
-      </div> */}
+      </div>
     </aside>
   );
 }

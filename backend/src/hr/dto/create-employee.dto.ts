@@ -3,6 +3,7 @@ import { IsDateString, IsOptional, IsString, IsUUID, IsNumberString } from 'clas
 export class CreateEmployeeDto {
   @IsUUID() companyId!: string;
 
+  @IsOptional() @IsUUID() personId?: string;
   @IsOptional() @IsUUID() roleId?: string;
   @IsOptional() @IsUUID() roleTypeId?: string;
   @IsOptional() @IsUUID() teamId?: string;

@@ -13,28 +13,28 @@ export class AuthService {
   constructor(private users: UsersService, private jwt: JwtService) {}
 
   // LOGIN sem companyId
-  async login({ email, password }: LoginDto) {
-    const candidates = await this.users.findAnyByEmail(email);
-    if (candidates.length === 0) throw new UnauthorizedException('Invalid credentials');
+  async login({ email, password }: { email: string; password: string }) {
+    const user = await this.users.findAnyByEmail(email);
+    const found = user[0]; // ajustar se multiempresa
 
-    // se o mesmo email existir em múltiplas empresas, peça para desambiguar
-    if (candidates.length > 1) {
-      throw new BadRequestException('Email found in multiple companies. Provide a unique email or login by company-specific route.');
-      // Alternativas:
-      // - aceitar um header X-Company-Id para desambiguar
-      // - usar companySlug no corpo (em vez de UUID)
-      // - exigir emails únicos no sistema (constraint global)
-    }
+    if (!found) throw new UnauthorizedException('Credenciais inválidas');
+    const valid = await bcrypt.compare(password, found.passwordHash);
+    if (!valid) throw new UnauthorizedException('Credenciais inválidas');
 
-    const user = candidates[0];
-    const ok = await bcrypt.compare(password, user.passwordHash);
-    if (!ok) throw new UnauthorizedException('Invalid credentials');
+    const payload = {
+      sub: found.id,
+      companyId: found.companyId,
+      email: found.email,
+    };
 
-    const payload = { sub: user.id, companyId: user.companyId, email: user.email };
-    const accessToken = await this.jwt.signAsync(payload);
     return {
-      accessToken,
-      user: { id: user.id, name: user.name, email: user.email, companyId: user.companyId },
+      accessToken: this.jwt.sign(payload),
+      user: {
+        id: found.id,
+        name: found.name,
+        email: found.email,
+        companyId: found.companyId,
+      },
     };
   }
 

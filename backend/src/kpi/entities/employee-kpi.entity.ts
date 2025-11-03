@@ -4,14 +4,18 @@ import { Employee } from '../../hr/entities/employee.entity';
 import { KPI } from './kpi.entity';
 import { EvaluationType } from './evaluation-type.entity';
 import { User } from '../../users/entities/user.entity';
-import { KpiSource, KpiStatus } from './kpi.enums';
+import { KpiStatus } from './kpi.enums';
 import { Company } from '../../org/entities/company.entity';
+import { Team } from '../../team/entities/team.entity';
 
 @Entity('employee_kpis')
-@Unique('uq_emp_kpi_period', ['companyId','employeeId','kpiId','periodStart','periodEnd','source'])
+@Unique('uq_emp_kpi_period', ['companyId','employeeId','kpiId','periodStart','periodEnd'])
 export class EmployeeKPI extends TenantBaseEntity {
   @Column('uuid') employeeId!: string;
   @ManyToOne(() => Employee, { onDelete: 'CASCADE' }) @JoinColumn({ name: 'employeeId' }) employee!: Employee;
+
+  @Column('uuid') teamId!: string;
+  @ManyToOne(() => Team, { onDelete: 'RESTRICT' }) @JoinColumn({ name: 'teamId' }) team!: Team;
 
   @Column('uuid') kpiId!: string;
   @ManyToOne(() => KPI, { onDelete: 'RESTRICT' }) @JoinColumn({ name: 'kpiId' }) kpi!: KPI;
@@ -32,7 +36,6 @@ export class EmployeeKPI extends TenantBaseEntity {
   @ManyToOne(() => Employee, { onDelete: 'SET NULL' }) @JoinColumn({ name: 'raterEmployeeId' }) raterEmployee?: Employee | null;
 
   // workflow
-  @Column({ type: 'enum', enum: KpiSource }) source!: KpiSource;
   @Column({ type: 'enum', enum: KpiStatus, default: KpiStatus.DRAFT }) status!: KpiStatus;
 
   @Column('uuid') submittedBy!: string;
