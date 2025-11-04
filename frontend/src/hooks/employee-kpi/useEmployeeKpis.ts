@@ -28,7 +28,7 @@ export type EmployeeKpi = {
   rejectionReason?: string;
 
   employee?: { id: string; person?: { name: string } };
-  kpi?: { id: string; name: string; unit?: string, evaluationType?: { id: string; name: string } };
+  kpi?: { id: string; name: string; unit?: string, evaluationType?: { id: string; name: string, code: string } };
 };
 
 export function useEmployeeKpis() {

@@ -12,8 +12,7 @@ export class EmployeeKpiEvolutionsService {
 
   async create(dto: CreateEmployeeKpiEvolutionDto, req: any): Promise<EmployeeKPIEvolution> {
     const user = req.user;
-
-    console.log('Creating EmployeeKPIEvolution for user:', user);
+    
     const exists = await this.repo.findOne({
       where: {
         companyId: user.companyId,
@@ -25,6 +24,17 @@ export class EmployeeKpiEvolutionsService {
     });
     if (exists) throw new ConflictException('An EmployeeKPIEvolution for this period already exists.');
 
+    const existsBinary = await this.repo.findOne({
+      where: {
+        companyId: user.companyId,
+        employeeId: user.employeeId,
+        employeeKpiId: dto.employeeKpiId,
+        employeeKpi: { kpi: { evaluationType: { code: 'BINARY' } } }
+      } as any,
+      relations: ['employeeKpi', 'employeeKpi.kpi', 'employeeKpi.kpi.evaluationType'],
+    });
+    if (existsBinary) throw new ConflictException('An EmployeeKPIEvolution for this KPI already exists.');
+    
     const entity = this.repo.create({
       companyId: user.companyId,
       employeeId: user.employeeId,

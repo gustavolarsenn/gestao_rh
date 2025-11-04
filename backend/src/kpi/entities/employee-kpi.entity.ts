@@ -28,8 +28,8 @@ export class EmployeeKPI extends TenantBaseEntity {
   @Index() @Column({ type: 'date' }) periodEnd!: string;
 
   // metas x realizado
-  @Column({ type: 'numeric', nullable: true }) goal?: string | null;
-  @Column({ type: 'numeric', nullable: true }) achievedValue?: string | null;
+  @Column({ nullable: true }) goal?: string;
+  @Column({ nullable: true }) achievedValue?: string;
 
   // avaliação de gestor: quem avaliou
   @Column('uuid', { nullable: true }) raterEmployeeId?: string | null;

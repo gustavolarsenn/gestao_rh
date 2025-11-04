@@ -16,6 +16,7 @@ export default function EmployeeKpiEvolution() {
   const {
     listEmployeeKpiEvolutions,
     createEmployeeKpiEvolution,
+    updateEmployeeKpiEvolution,
     loading,
     error,
   } = useEmployeeKpiEvolutions();
@@ -50,8 +51,6 @@ export default function EmployeeKpiEvolution() {
     fetchData();
   }, []);
 
-
-  console.log(employeeKpis)
   // 🔹 Aplicar filtros
   useEffect(() => {
     let filtered = [...employeeKpis];
@@ -91,7 +90,7 @@ export default function EmployeeKpiEvolution() {
     await createEmployeeKpiEvolution({
       employeeKpiId: selectedKpi.id,
       achievedValueEvolution,
-      status: EmployeeKpiEvolutionStatus.APPROVED,
+      status: EmployeeKpiEvolutionStatus.SUBMITTED,
     });
 
     // 🔄 Atualiza evoluções após salvar
@@ -99,6 +98,19 @@ export default function EmployeeKpiEvolution() {
     setEvolutions(updatedEvols);
 
     setModalOpen(false);
+  };
+
+  const [editEvolution, setEditEvolution] = useState<any | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+
+  const handleSaveEditEvolution = async () => {
+    if (!editEvolution) return;
+    await updateEmployeeKpiEvolution(editEvolution.id, {
+      achievedValueEvolution,
+    });
+    const updatedEvols = await listEmployeeKpiEvolutions();
+    setEvolutions(updatedEvols);
+    setEditModalOpen(false);
   };
 
   // 🔹 Tipos únicos de KPI
@@ -224,27 +236,50 @@ export default function EmployeeKpiEvolution() {
                                   <th className="py-2 px-3">Status</th>
                                   <th className="py-2 px-3">Enviado em</th>
                                   <th className="py-2 px-3">Aprovado em</th>
+                                  <th className="py-2 px-3 text-center">Ações</th>
                                 </tr>
                               </thead>
                               <tbody>
-                                {relatedEvolutions.map((ev) => (
-                                  <tr key={ev.id} className="border-t">
-                                    <td className="py-2 px-3">
-                                      {ev.achievedValueEvolution}
-                                    </td>
-                                    <td className="py-2 px-3">{ev.status}</td>
-                                    <td className="py-2 px-3">
-                                      {ev.submittedDate
-                                        ? new Date(ev.submittedDate).toLocaleDateString()
-                                        : "—"}
-                                    </td>
-                                    <td className="py-2 px-3">
-                                      {ev.approvedDate
-                                        ? new Date(ev.approvedDate).toLocaleDateString()
-                                        : "—"}
-                                    </td>
-                                  </tr>
-                                ))}
+                                {relatedEvolutions.map((ev) => {
+                                  const today = new Date().toISOString().split("T")[0];
+                                  const isToday =
+                                    ev.submittedDate &&
+                                    new Date(ev.submittedDate).toISOString().split("T")[0] === today;
+
+                                  return (
+                                    <tr key={ev.id} className="border-t">
+                                      <td className="py-2 px-3">{ev.achievedValueEvolution}</td>
+                                      <td className="py-2 px-3">{ev.status}</td>
+                                      <td className="py-2 px-3">
+                                        {ev.submittedDate
+                                          ? new Date(ev.submittedDate).toLocaleDateString()
+                                          : "—"}
+                                      </td>
+                                      <td className="py-2 px-3">
+                                        {ev.approvedDate
+                                          ? new Date(ev.approvedDate).toLocaleDateString()
+                                          : "—"}
+                                      </td>
+                                      <td className="py-2 px-3 text-center">
+                                        {isToday && (
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="text-blue-600 border-blue-300"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setEditEvolution(ev);
+                                              setAchievedValueEvolution(ev.achievedValueEvolution);
+                                              setEditModalOpen(true);
+                                            }}
+                                          >
+                                            Editar
+                                          </Button>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
                               </tbody>
                             </table>
                           ) : (
@@ -254,8 +289,8 @@ export default function EmployeeKpiEvolution() {
                           )}
                         </td>
                       </motion.tr>
-                    )}
-                  </React.Fragment>
+                    )}              
+                    </React.Fragment>
                 );
               })}
             </tbody>
@@ -287,16 +322,78 @@ export default function EmployeeKpiEvolution() {
         }
       >
         <div className="flex flex-col gap-4">
-          <label className="text-sm font-medium">Valor Atingido / Observação</label>
-          <Input
-            type="text"
-            placeholder="Ex: 85, concluído, ou 'Atingido'"
-            value={achievedValueEvolution}
-            onChange={(e) => setAchievedValueEvolution(e.target.value)}
-          />
+          <label className="text-sm font-medium">
+            Valor Atingido / Observação
+          </label>
+
+          {/* ✅ Campo condicional baseado no tipo do KPI */}
+          {selectedKpi?.kpi?.evaluationType?.code === "BINARY" ? (
+            <select
+              value={achievedValueEvolution}
+              onChange={(e) => setAchievedValueEvolution(e.target.value)}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+            >
+              <option value="">Selecione</option>
+              <option value="Sim">Sim</option>
+              <option value="Não">Não</option>
+            </select>
+          ) : (
+            <Input
+              type="text"
+              placeholder="Ex: 85, concluído, ou 'Atingido'"
+              value={achievedValueEvolution}
+              onChange={(e) => setAchievedValueEvolution(e.target.value)}
+            />
+          )}
+
           {error && <p className="text-red-600 text-sm">{error}</p>}
         </div>
       </BaseModal>
+
+      {/* MODAL DE EDIÇÃO DE EVOLUÇÃO */}
+      <BaseModal
+        open={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        title="Editar Evolução"
+        description="Atualize o valor ou observação da evolução do dia."
+        footer={
+          <div className="flex justify-end w-full gap-2">
+            <Button variant="outline" onClick={() => setEditModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveEditEvolution} disabled={loading}>
+              {loading ? "Salvando..." : "Salvar Alterações"}
+            </Button>
+          </div>
+        }
+      >
+        <div className="flex flex-col gap-4">
+          <label className="text-sm font-medium">Novo Valor / Observação</label>
+
+          {/* ✅ Campo condicional também na edição */}
+          {selectedKpi?.kpi?.evaluationType?.code === "BINARY" ? (
+            <select
+              value={achievedValueEvolution}
+              onChange={(e) => setAchievedValueEvolution(e.target.value)}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+            >
+              <option value="">Selecione</option>
+              <option value="Sim">Sim</option>
+              <option value="Não">Não</option>
+            </select>
+          ) : (
+            <Input
+              type="text"
+              placeholder="Ex: 90, atingido, concluído..."
+              value={achievedValueEvolution}
+              onChange={(e) => setAchievedValueEvolution(e.target.value)}
+            />
+          )}
+
+          {error && <p className="text-red-600 text-sm">{error}</p>}
+        </div>
+      </BaseModal>
+
     </div>
   );
 }

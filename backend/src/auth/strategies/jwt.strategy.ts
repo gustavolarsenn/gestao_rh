@@ -24,7 +24,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(payload: any) {
       // payload vem do que você colocou no token em auth.service.ts
       const user = await this.usersService.findOne(payload.companyId, payload.sub);
-      const employee = await this.employeesService.findOneByPersonId(user.companyId, user.person.id);
+      let employee;
+      try {
+        employee = await this.employeesService.findOneByPersonId(user.companyId, user.person.id);
+      } catch {
+        employee = null;
+      }
+
       return {
         id: user.id,
         teamId: employee ? employee.teamId : null,

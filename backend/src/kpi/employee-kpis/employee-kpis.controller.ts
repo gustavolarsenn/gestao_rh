@@ -31,12 +31,12 @@ export class EmployeeKpisController {
       return this.service.findByCompany(user.companyId, query);
     }
 
-    if (user.role === 'manager') {
+    if (user.role === 'gestor') {
       return this.service.findByTeam(user.companyId, user.teamId, query);
     }
 
-    if (user.role === 'employee') {
-      return this.service.findByEmployee(user.companyId, user.id, query);
+    if (user.role === 'usuario') {
+      return this.service.findByEmployee(user.companyId, user.employeeId, query);
     }
 
     throw new ForbiddenException('Role não autorizada');    
