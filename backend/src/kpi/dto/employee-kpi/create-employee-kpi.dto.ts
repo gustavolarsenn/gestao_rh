@@ -11,8 +11,8 @@ export class CreateEmployeeKpiDto {
   @IsDateString() periodStart!: string;
   @IsDateString() periodEnd!: string;
 
-  @IsOptional() @IsNumberString() goal?: string;
-  @IsOptional() @IsNumberString() achievedValue?: string;
+  @IsOptional() @IsString() goal?: string;
+  @IsOptional() @IsString() achievedValue?: string;
 
   @IsOptional() @IsUUID() raterEmployeeId?: string;
 

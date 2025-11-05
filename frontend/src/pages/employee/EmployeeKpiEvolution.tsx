@@ -245,7 +245,9 @@ export default function EmployeeKpiEvolution() {
                                   const isToday =
                                     ev.submittedDate &&
                                     new Date(ev.submittedDate).toISOString().split("T")[0] === today;
-
+                                  console.log("today:", today);
+                                  console.log("isToday:", isToday);
+                                  console.log("submittedDate:", ev.submittedDate);
                                   return (
                                     <tr key={ev.id} className="border-t">
                                       <td className="py-2 px-3">{ev.achievedValueEvolution}</td>

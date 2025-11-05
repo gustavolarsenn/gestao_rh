@@ -41,7 +41,7 @@ export class EmployeeKpisService {
       // ou filtrar com query builder se quiser lógica mais precisa
     }
 
-    return this.repo.find({ where, relations: ['employee', 'employee.person', 'kpi'] });
+    return this.repo.find({ where, relations: ['employee', 'employee.person', 'kpi', 'kpi.evaluationType'] });
   }
 
   async findByCompany(companyId: string, query: EmployeeKPIQueryDto): Promise<EmployeeKPI[]> {
@@ -55,7 +55,7 @@ export class EmployeeKpisService {
       where.periodStart = Between(filters.periodStart, filters.periodEnd);
       // ou filtrar com query builder se quiser lógica mais precisa
     }
-    return this.repo.find({ where, relations: ['employee', 'employee.person', 'kpi'] });
+    return this.repo.find({ where, relations: ['employee', 'employee.person', 'kpi', 'kpi.evaluationType'] });
   }
 
   async findByTeam(companyId: string, teamId: string, query: EmployeeKPIQueryDto): Promise<EmployeeKPI[]> {
@@ -69,7 +69,7 @@ export class EmployeeKpisService {
       where.periodStart = Between(filters.periodStart, filters.periodEnd);
       // ou filtrar com query builder se quiser lógica mais precisa
     }
-    return this.repo.find({ where, relations: ['employee', 'employee.person', 'kpi'] });
+    return this.repo.find({ where, relations: ['employee', 'employee.person', 'kpi', 'kpi.evaluationType'] });
   }
 
   async findByEmployee(companyId: string, employeeId: string, query: EmployeeKPIQueryDto): Promise<EmployeeKPI[]> {
@@ -83,7 +83,7 @@ export class EmployeeKpisService {
       where.periodStart = Between(filters.periodStart, filters.periodEnd);
       // ou filtrar com query builder se quiser lógica mais precisa
     }
-    return this.repo.find({ where, relations: ['employee', 'employee.person', 'kpi'] });
+    return this.repo.find({ where, relations: ['employee', 'employee.person', 'kpi', 'kpi.evaluationType'] });
   }
 
   async findOne(companyId: string, id: string): Promise<EmployeeKPI> {

@@ -209,8 +209,8 @@ export default function EmployeeKpis() {
 
             {/* Meta */}
             <Input
-              type="number"
-              step="0.01"
+              // type="number"
+              // step="0.01"
               placeholder="Meta (goal)"
               value={goal}
               onChange={(e) => setGoal(e.target.value)}
