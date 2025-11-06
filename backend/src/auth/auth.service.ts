@@ -34,6 +34,7 @@ export class AuthService {
         name: found.name,
         email: found.email,
         companyId: found.companyId,
+        level: found.role?.level ?? null
       },
     };
   }

@@ -36,18 +36,18 @@ export class EmployeeKpiEvolutionsController {
   }
 
   @Post(':id/approve')
-  approve(@Param('id', ParseUUIDPipe) id: string, @Query('companyId', ParseUUIDPipe) companyId: string, @Query('approverUserId', ParseUUIDPipe) approverUserId: string): Promise<EmployeeKPIEvolution> {
-    return this.service.approve(companyId, id, approverUserId);
+  approve(@Param('id', ParseUUIDPipe) id: string, @Query('companyId', ParseUUIDPipe) companyId: string, @Req() req: any): Promise<EmployeeKPIEvolution> {
+    return this.service.approve(companyId, id, req);
   }
 
   @Post(':id/reject')
   reject(
     @Param('id', ParseUUIDPipe) id: string,
     @Query('companyId', ParseUUIDPipe) companyId: string,
-    @Query('approverUserId', ParseUUIDPipe) approverUserId: string,
+    @Req() req: any,
     @Body('reason') reason?: string,
   ): Promise<EmployeeKPIEvolution> {
-    return this.service.reject(companyId, id, approverUserId, reason);
+    return this.service.reject(companyId, id, req, reason);
   }
 
   @Delete(':id')

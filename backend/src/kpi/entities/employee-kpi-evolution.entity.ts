@@ -26,7 +26,7 @@ export class EmployeeKPIEvolution extends TenantBaseEntity {
 
   @Column('uuid') submittedBy!: string;
   @ManyToOne(() => User, { onDelete: 'RESTRICT' }) @JoinColumn({ name: 'submittedBy' }) submittedByUser!: User;
-  @Column({ type: 'date', default: () => 'CURRENT_DATE' }) submittedDate!: string;
+  @Column({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' }) submittedDate!: Date;
 
   @Column('uuid', { nullable: true }) approvedBy?: string | null;
   @ManyToOne(() => User, { onDelete: 'SET NULL' }) @JoinColumn({ name: 'approvedBy' }) approvedByUser?: User | null;

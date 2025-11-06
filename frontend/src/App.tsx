@@ -14,6 +14,9 @@ import EvaluationTypes from "./pages/admin/EvaluationTypes";
 import Kpis from "./pages/admin/Kpis";
 import EmployeeKpis from "./pages/admin/EmployeeKpis";
 import EmployeeKpisEvolution from "./pages/employee/EmployeeKpiEvolution";
+import KpiReview from "./pages/manager/kpi/KpiReview";
+import TeamKpis from "./pages/manager/TeamKpis";
+import OrgChart from "./pages/admin/OrgChart";
 
 export default function App() {
   return (
@@ -34,7 +37,11 @@ export default function App() {
           <Route path="/admin/evaluation-types" element={<EvaluationTypes />} />
           <Route path="/admin/kpis" element={<Kpis />} />
           <Route path="/admin/employee-kpis" element={<EmployeeKpis />} />
+          <Route path="/admin/org-chart" element={<OrgChart />} />
+
           <Route path="/employee/employee-kpis" element={<EmployeeKpisEvolution />} />
+          <Route path="/manager/team-kpis" element={<TeamKpis />} />
+          <Route path="/manager/kpi-review" element={<KpiReview />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

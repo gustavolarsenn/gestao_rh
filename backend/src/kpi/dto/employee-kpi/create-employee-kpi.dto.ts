@@ -24,5 +24,5 @@ export class CreateEmployeeKpiDto {
   @IsOptional() @IsString() approvedDate?: string; // client pode omitir; server pode setar now()
 
   @IsUUID() submittedBy!: string;
-  @IsOptional() @IsString() submittedDate?: string; // client pode omitir; server pode setar now()
+  @IsOptional() @IsDateString() submittedDate?: string; // client pode omitir; server pode setar now()
 }

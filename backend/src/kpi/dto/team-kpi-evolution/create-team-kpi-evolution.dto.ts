@@ -16,5 +16,5 @@ export class CreateTeamKpiEvolutionDto {
   @IsOptional() @IsDateString() approvedDate?: string; // client pode omitir; server pode setar now()
 
   @IsUUID() submittedBy!: string;
-  @IsOptional() @IsDateString() submittedDate?: string;
+  @IsOptional() @IsDateString() submittedDate?: Date;
 }

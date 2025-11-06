@@ -4,8 +4,10 @@ import { Company } from '../../org/entities/company.entity';
 import { Department } from '../../org/entities/department.entity';
 
 export enum EvaluationCode {
-  HIGHER_BETTER = 'HIGHER_BETTER',
-  LOWER_BETTER = 'LOWER_BETTER',
+  HIGHER_BETTER_SUM = 'HIGHER_BETTER_SUM',
+  LOWER_BETTER_SUM = 'LOWER_BETTER_SUM',
+  HIGHER_BETTER_PCT = 'HIGHER_BETTER_PCT',
+  LOWER_BETTER_PCT = 'LOWER_BETTER_PCT',
   BINARY = 'BINARY',
 }
 

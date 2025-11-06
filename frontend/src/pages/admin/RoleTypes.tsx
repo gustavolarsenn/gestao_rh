@@ -19,8 +19,6 @@ export default function RoleTypePage() {
   const [departmentId, setDepartmentId] = useState("");
   const [message, setMessage] = useState("");
 
-  console.log(departments)
-
   const [selectedRoleType, setSelectedRoleType] = useState<RoleType | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editName, setEditName] = useState("");

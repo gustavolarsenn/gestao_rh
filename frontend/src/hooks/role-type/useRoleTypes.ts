@@ -23,7 +23,6 @@ export function useRoleTypes() {
     setLoading(true);
     setError(null);
     try {
-      console.log(payload)
       const { data } = await api.post("/role-types", {...payload, companyId});
       return data;
     } catch (err: any) {

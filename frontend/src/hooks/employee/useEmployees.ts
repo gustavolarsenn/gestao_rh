@@ -36,7 +36,6 @@ export function useEmployees() {
     setLoading(true);
     setError(null);
     try {
-        console.log(payload)
       const { data } = await api.post("/employees", {...payload, companyId});
       return data;
     } catch (err: any) {

@@ -64,11 +64,11 @@ export class UsersService {
     let passwordHash = row.passwordHash;
     if ((dto as any).password) {
       passwordHash = await bcrypt.hash((dto as any).password, 10);
-    }
+    } 
     const merged = this.repo.merge(row, {
       name: dto.name ?? row.name,
       email: dto.email ?? row.email,
-      userRoleId: dto.userRoleId ?? row.userRoleId,
+      role: { id: dto.userRoleId ?? row.userRoleId },
       passwordHash,
     } as Partial<User>);
     return this.repo.save(merged);

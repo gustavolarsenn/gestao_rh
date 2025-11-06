@@ -20,7 +20,6 @@ export function useCompanies() {
     setLoading(true);
     setError(null);
     try {
-      console.log(data)
       const response = await api.post<Company>("/companies", data);
       return response.data;
     } catch (err: any) {

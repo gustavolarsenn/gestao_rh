@@ -157,8 +157,10 @@ export default function EvaluationTypesPage() {
                 required
                 className="border border-[#232c33] rounded-md px-3 py-2 text-sm w-full"
               >
-                <option value={EvaluationCode.HIGHER_BETTER}>Quanto maior, melhor</option>
-                <option value={EvaluationCode.LOWER_BETTER}>Quanto menor, melhor</option>
+                <option value={EvaluationCode.HIGHER_BETTER_SUM}>Quanto maior, melhor (soma)</option>
+                <option value={EvaluationCode.LOWER_BETTER_SUM}>Quanto menor, melhor (soma)</option>
+                <option value={EvaluationCode.HIGHER_BETTER_PCT}>Quanto maior, melhor (percentual)</option>
+                <option value={EvaluationCode.LOWER_BETTER_PCT}>Quanto menor, melhor (percentual)</option>
                 <option value={EvaluationCode.BINARY}>Binário (Sim/Não)</option>
               </select>
             </div>
@@ -218,9 +220,9 @@ export default function EvaluationTypesPage() {
                       "—"}
                   </td>
                   <td className="py-2 text-slate-700">
-                    {type.code === EvaluationCode.HIGHER_BETTER
+                    {type.code === EvaluationCode.HIGHER_BETTER_PCT || type.code === EvaluationCode.HIGHER_BETTER_SUM
                       ? "Quanto maior, melhor"
-                      : type.code === EvaluationCode.LOWER_BETTER
+                      : type.code === EvaluationCode.LOWER_BETTER_PCT || type.code === EvaluationCode.LOWER_BETTER_SUM
                       ? "Quanto menor, melhor"
                       : "Binário"}
                   </td>
@@ -286,8 +288,10 @@ export default function EvaluationTypesPage() {
               onChange={(e) => setEditCode(e.target.value as EvaluationCode)}
               className="border border-[#232c33] rounded-md px-3 py-2 text-sm w-full"
             >
-              <option value={EvaluationCode.HIGHER_BETTER}>Quanto maior, melhor</option>
-              <option value={EvaluationCode.LOWER_BETTER}>Quanto menor, melhor</option>
+              <option value={EvaluationCode.HIGHER_BETTER_PCT}>Quanto maior, melhor (percentual)</option>
+              <option value={EvaluationCode.HIGHER_BETTER_SUM}>Quanto maior, melhor (soma)</option>
+              <option value={EvaluationCode.LOWER_BETTER_PCT}>Quanto menor, melhor (percentual)</option>
+              <option value={EvaluationCode.LOWER_BETTER_SUM}>Quanto menor, melhor (soma)</option>
               <option value={EvaluationCode.BINARY}>Binário (Sim/Não)</option>
             </select>
           </div>

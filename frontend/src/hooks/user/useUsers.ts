@@ -26,7 +26,6 @@ export function useUsers() {
     setLoading(true);
     setError(null);
     try {
-      console.log(user)
       const { data } = await api.post("/users", { ...user, companyId });
       return data;
     } catch (err: any) {

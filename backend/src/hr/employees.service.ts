@@ -68,20 +68,13 @@ export class EmployeesService {
   }
 
   async update(companyId: string, id: string, dto: UpdateEmployeeDto): Promise<Employee> {
-    console.log("UpdateEmployeeDto:", dto);
     const emp = await this.findOne(companyId, id);
 
     if (dto.userId && dto.userId !== emp.userId) {
       const exists = await this.repo.findOne({ where: { companyId, userId: dto.userId } });
       if (exists) throw new ConflictException('Employee for this user already exists in this company.');
     }
-
-    console.log("employee BEFORE", emp)
-
-
-    console.log("employee AFTER", emp)
     if (dto.teamId && dto.teamId !== emp.teamId) {
-      console.log("Criando novo TeamMember para o funcionário devido à mudança de time.");
       let teamMember = await this.teamMemberRepo.findOne({ where: { employeeId: emp.id, companyId: emp.companyId, active: true } });
       if (teamMember) {
         teamMember.active = false;
@@ -90,7 +83,6 @@ export class EmployeesService {
 
         const team = await this.teamRepo.findOne({ where: { id: dto.teamId, companyId: emp.companyId } });
         if (!team) {
-          console.log("Time não encontrado ao tentar criar novo TeamMember.");
           throw new NotFoundException('Team not found for the given teamId');
         }
 

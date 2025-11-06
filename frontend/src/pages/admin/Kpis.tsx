@@ -166,9 +166,9 @@ export default function Kpis() {
                 {evaluationTypes.map((et) => (
                   <option key={et.id} value={et.id}>
                     {et.name}{" "}
-                    {et.code === EvaluationCode.HIGHER_BETTER
+                    {et.code === EvaluationCode.HIGHER_BETTER_PCT || et.code === EvaluationCode.HIGHER_BETTER_SUM
                       ? "(↑ melhor)"
-                      : et.code === EvaluationCode.LOWER_BETTER
+                      : et.code === EvaluationCode.LOWER_BETTER_PCT || et.code === EvaluationCode.LOWER_BETTER_SUM
                       ? "(↓ melhor)"
                       : "(Binário)"}
                   </option>

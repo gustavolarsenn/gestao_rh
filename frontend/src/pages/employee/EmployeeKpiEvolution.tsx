@@ -10,6 +10,7 @@ import {
   EmployeeKpiEvolutionStatus,
 } from "@/hooks/employee-kpi/useEmployeeKpiEvolutions";
 import React from "react";
+import { rateKPI } from "@/utils/rateKPI";
 
 export default function EmployeeKpiEvolution() {
   const { listEmployeeKpis } = useEmployeeKpis();
@@ -173,12 +174,12 @@ export default function EmployeeKpiEvolution() {
           <table className="w-full border-collapse text-sm">
             <thead>
               <tr className="text-left border-b">
+                <th className="py-2"></th>
                 <th className="py-2">KPI</th>
                 <th className="py-2">Tipo</th>
                 <th className="py-2">Meta</th>
-                <th className="py-2">Valor Atual</th>
-                <th className="py-2">Status</th>
-                <th className="py-2 text-center">Ações</th>
+                <th className="py-2">Atingido</th>
+                <th className="py-2 text-center"></th>
               </tr>
             </thead>
 
@@ -199,11 +200,37 @@ export default function EmployeeKpiEvolution() {
                         setSelectedKpi((prev) => (prev?.id === kpi.id ? null : kpi))
                       }
                     >
+                      <td className="py-2 px-3">
+                        <span
+                          title={
+                            !kpi.achievedValue
+                              ? "Sem valor"
+                              : rateKPI(
+                                  Number(kpi.achievedValue),
+                                  Number(kpi.goal),
+                                  kpi.kpi?.evaluationType?.code || ""
+                                )
+                              ? "Meta atingida"
+                              : "Meta não atingida"
+                          }
+                          className={`inline-block w-3 h-3 rounded-full mr-2 ${
+                            !kpi.achievedValue
+                              ? "bg-gray-300"
+                              : rateKPI(
+                                  Number(kpi.achievedValue),
+                                  Number(kpi.goal),
+                                  kpi.kpi?.evaluationType?.code || ""
+                                )
+                              ? "bg-green-500"
+                              : "bg-red-500"
+                          }`}
+                          aria-hidden="true"
+                        />
+                      </td>
                       <td className="py-2">{kpi.kpi?.name}</td>
                       <td className="py-2">{kpi.kpi?.evaluationType?.name}</td>
                       <td className="py-2">{kpi.goal}</td>
-                      <td className="py-2">{kpi.achievedValue || "—"}</td>
-                      <td className="py-2">{kpi.status}</td>
+                      <td className="py-2">{kpi.achievedValue || ""}</td>
                       <td className="py-2 text-center">
                         <Button
                           variant="outline"
@@ -236,7 +263,7 @@ export default function EmployeeKpiEvolution() {
                                   <th className="py-2 px-3">Status</th>
                                   <th className="py-2 px-3">Enviado em</th>
                                   <th className="py-2 px-3">Aprovado em</th>
-                                  <th className="py-2 px-3 text-center">Ações</th>
+                                  <th className="py-2 px-3 text-center"></th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -245,9 +272,6 @@ export default function EmployeeKpiEvolution() {
                                   const isToday =
                                     ev.submittedDate &&
                                     new Date(ev.submittedDate).toISOString().split("T")[0] === today;
-                                  console.log("today:", today);
-                                  console.log("isToday:", isToday);
-                                  console.log("submittedDate:", ev.submittedDate);
                                   return (
                                     <tr key={ev.id} className="border-t">
                                       <td className="py-2 px-3">{ev.achievedValueEvolution}</td>

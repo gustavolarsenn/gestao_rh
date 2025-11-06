@@ -2,9 +2,11 @@ import { useState } from "react";
 import { api } from "@/lib/api";
 
 export enum EvaluationCode {
-  HIGHER_BETTER = "HIGHER_BETTER",
-  LOWER_BETTER = "LOWER_BETTER",
-  BINARY = "BINARY",
+  HIGHER_BETTER_SUM = 'HIGHER_BETTER_SUM',
+  LOWER_BETTER_SUM = 'LOWER_BETTER_SUM',
+  HIGHER_BETTER_PCT = 'HIGHER_BETTER_PCT',
+  LOWER_BETTER_PCT = 'LOWER_BETTER_PCT',
+  BINARY = 'BINARY',
 }
 
 export type EvaluationType = {

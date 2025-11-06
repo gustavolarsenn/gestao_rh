@@ -5,24 +5,31 @@ import { CreateEmployeeKpiEvolutionDto } from '../dto/employee-kpi-evolution/cre
 import { UpdateEmployeeKpiEvolutionDto } from '../dto/employee-kpi-evolution/update-employee-kpi-evolution.dto';
 import { KpiStatus } from '../entities/kpi.enums';
 import { EmployeeKPIEvolution } from '../entities/employee-kpi-evolution.entity';
+import { EmployeeKPI } from '../entities/employee-kpi.entity';
+import { TeamKPI } from '../entities/team-kpi.entity';
 
 @Injectable()
-export class EmployeeKpiEvolutionsService {
-  constructor(@InjectRepository(EmployeeKPIEvolution) private readonly repo: Repository<EmployeeKPIEvolution>) {}
+    export class EmployeeKpiEvolutionsService {
+      constructor(
+    @InjectRepository(EmployeeKPIEvolution) private readonly repo: Repository<EmployeeKPIEvolution>,
+    @InjectRepository(EmployeeKPI) private readonly employeeKpiRepo: Repository<EmployeeKPI>,
+    @InjectRepository(TeamKPI) private readonly teamKpiRepo: Repository<TeamKPI>,
+
+  ) {}
 
   async create(dto: CreateEmployeeKpiEvolutionDto, req: any): Promise<EmployeeKPIEvolution> {
     const user = req.user;
     
-    const exists = await this.repo.findOne({
-      where: {
-        companyId: user.companyId,
-        employeeId: user.employeeId,
-        employeeKpiId: dto.employeeKpiId,
-        submittedDate: new Date(),
-        submittedBy: user.id,
-      } as any,
-    });
-    if (exists) throw new ConflictException('An EmployeeKPIEvolution for this period already exists.');
+    // const exists = await this.repo.findOne({
+    //   where: {
+    //     companyId: user.companyId,
+    //     employeeId: user.employeeId,
+    //     employeeKpiId: dto.employeeKpiId,
+    //     submittedDate: new Date(),
+    //     submittedBy: user.id,
+    //   } as any,
+    // });
+    // if (exists) throw new ConflictException('An EmployeeKPIEvolution for this period already exists.');
 
     const existsBinary = await this.repo.findOne({
       where: {
@@ -61,7 +68,7 @@ export class EmployeeKpiEvolutionsService {
   }
 
   async findOne(companyId: string, id: string): Promise<EmployeeKPIEvolution> {
-    const row = await this.repo.findOne({ where: { companyId, id }, relations: ['employee', 'employee.person', 'employeeKpi'] });
+    const row = await this.repo.findOne({ where: { companyId, id }, relations: ['employee', 'employee.person', 'employeeKpi', 'employeeKpi.kpi', 'employeeKpi.kpi.evaluationType'] });
     if (!row) throw new NotFoundException('EmployeeKPI not found');
     return row;
   }
@@ -83,34 +90,104 @@ export class EmployeeKpiEvolutionsService {
           employeeKpiId: dto.employeeKpiId ?? row.employeeKpiId,
           submittedDate: dto.submittedDate ?? row.submittedDate,
         } as any,
+        relations: ['evaluationType'],
       });
       if (dup && dup.id !== id) {
         throw new ConflictException('Another EmployeeKPI exists with the same unique keys.');
       }
     }
-
+    
     const merged = this.repo.merge(row, dto as any);
+
     return this.repo.save(merged);
   }
 
-  async approve(companyId: string, id: string, approverUserId: string): Promise<EmployeeKPIEvolution> {
+  async approve(companyId: string, id: string, req: any): Promise<EmployeeKPIEvolution> {
     const row = await this.findOne(companyId, id);
+    const user = req.user;
     if (row.status === KpiStatus.APPROVED) return row;
     if (row.status === KpiStatus.REJECTED) throw new BadRequestException('Cannot approve a rejected KPI.');
 
+    let approvedExists = await this.employeeKpiRepo.findOne({
+      where: {
+        companyId,
+        employeeId: row.employeeId,
+        id: row.employeeKpiId,
+      } as any,
+    });
+
+    if (approvedExists) {
+      approvedExists.rejectionReason = null;
+      
+      if (['BINARY', 'LOWER_BETTER_PCT', 'HIGHER_BETTER_PCT'].includes(row.employeeKpi.kpi.evaluationType.code)) {
+        console.log("approvedExists.achievedValue =", approvedExists.achievedValue);
+        approvedExists.achievedValue = row.achievedValueEvolution;
+      }
+      if (['LOWER_BETTER_SUM', 'HIGHER_BETTER_SUM'].includes(row.employeeKpi.kpi.evaluationType.code)) {
+        const currentValue = parseFloat(approvedExists.achievedValue ?? '0');
+        const evolutionValue = parseFloat(row.achievedValueEvolution ?? '0');
+        approvedExists.achievedValue = (currentValue + evolutionValue).toString();
+      }
+
+      await this.employeeKpiRepo.save(approvedExists);
+    }
+
+    let approvedTeamKpiExists = await this.teamKpiRepo.findOne({
+      where: {
+        companyId,
+        teamId: row.employee.teamId,
+        kpiId: row.employeeKpi.kpiId,
+      } as any,
+    });
+
+    if (approvedTeamKpiExists) {
+      approvedTeamKpiExists.rejectionReason = null;
+
+      if (['BINARY', 'LOWER_BETTER_PCT', 'HIGHER_BETTER_PCT'].includes(row.employeeKpi.kpi.evaluationType.code)) {
+        console.log("approvedTeamKpiExists.achievedValue =", approvedTeamKpiExists.achievedValue);
+        approvedTeamKpiExists.achievedValue = row.achievedValueEvolution;
+      }
+      if (['LOWER_BETTER_SUM', 'HIGHER_BETTER_SUM'].includes(row.employeeKpi.kpi.evaluationType.code)) {
+        const currentValue = parseFloat(approvedTeamKpiExists.achievedValue ?? '0');
+        const evolutionValue = parseFloat(row.achievedValueEvolution ?? '0');
+        approvedTeamKpiExists.achievedValue = (currentValue + evolutionValue).toString();
+      }
+      
+      await this.teamKpiRepo.save(approvedTeamKpiExists);
+    }
+    
     row.status = KpiStatus.APPROVED;
-    row.approvedBy = approverUserId;
+    row.approvedBy = user.id;
     row.approvedDate = new Date();
     return this.repo.save(row);
   }
 
-  async reject(companyId: string, id: string, approverUserId: string, reason?: string): Promise<EmployeeKPIEvolution> {
+  async reject(companyId: string, id: string, req: any, reason?: string): Promise<EmployeeKPIEvolution> {
     const row = await this.findOne(companyId, id);
+    const user = req.user;
     if (row.status === KpiStatus.REJECTED) return row;
     if (row.status === KpiStatus.APPROVED) throw new BadRequestException('Cannot reject an approved KPI.');
 
+        if (row.employeeKpi.kpi.evaluationType.code == 'BINARY') {
+      const approvedExists = await this.employeeKpiRepo.findOne({
+        where: {
+          companyId,
+          employeeId: row.employeeId,
+          id: row.employeeKpiId,
+        } as any,
+      });
+      if (approvedExists) {
+        approvedExists.status = KpiStatus.REJECTED;
+        approvedExists.approvedDate = new Date();
+        approvedExists.approvedBy = user.id;
+        approvedExists.rejectionReason = reason ?? null;
+
+        await this.employeeKpiRepo.save(approvedExists);
+      }
+    }
+
     row.status = KpiStatus.REJECTED;
-    row.approvedBy = approverUserId;
+    row.approvedBy = user.id;
     row.approvedDate = new Date();
     row.rejectionReason = reason ?? null;
     return this.repo.save(row);

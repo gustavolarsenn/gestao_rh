@@ -168,7 +168,6 @@ export default function EmployeesPage() {
     setEmployees((prev) => prev.filter((e) => e.id !== selectedEmployee.id));
     setModalOpen(false);
   };
-  console.log(employees)
   return (
     <div className="flex min-h-screen bg-[#fefefe]">
       <Sidebar />

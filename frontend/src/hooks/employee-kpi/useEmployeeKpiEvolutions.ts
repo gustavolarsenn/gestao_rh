@@ -63,11 +63,28 @@ export function useEmployeeKpiEvolutions() {
     await api.delete(`kpi/employee-kpi-evolutions/${id}?companyId=${companyId}`);
   }
 
+  async function approveEmployeeKpiEvolution(id: string) {
+    const { data } = await api.post(
+      `kpi/employee-kpi-evolutions/${id}/approve?companyId=${companyId}`
+    );
+    return data;
+  }
+
+  async function rejectEmployeeKpiEvolution(id: string, reason?: string) {
+    const { data } = await api.post(
+      `kpi/employee-kpi-evolutions/${id}/reject?companyId=${companyId}`,
+      { reason }
+    );
+    return data;
+  }
+
   return {
     listEmployeeKpiEvolutions,
     createEmployeeKpiEvolution,
     updateEmployeeKpiEvolution,
     deleteEmployeeKpiEvolution,
+    approveEmployeeKpiEvolution,
+    rejectEmployeeKpiEvolution,
     loading,
     error,
   };

@@ -121,7 +121,6 @@ export default function TeamsPage() {
       console.error("Erro ao definir líder:", err);
     }
   };
-  console.log(teams)
   return (
     <div className="flex min-h-screen bg-[#fefefe]">
       <Sidebar />

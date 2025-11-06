@@ -33,7 +33,6 @@ export function useTeamMembers() {
     setLoading(true);
     setError(null);
     try {
-      console.log("Criando TeamMember:", payload);
       const { data } = await api.post("/team-members", {
         ...payload,
         companyId,

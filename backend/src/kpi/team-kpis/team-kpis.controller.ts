@@ -1,9 +1,10 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body, Query, ParseUUIDPipe, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Body, Query, ParseUUIDPipe, UsePipes, ValidationPipe, Req, ForbiddenException } from '@nestjs/common';
 import { TeamKpisService } from './team-kpis.service';
 import { CreateTeamKpiDto } from '../dto/team-kpi/create-team-kpi.dto';
 import { UpdateTeamKpiDto } from '../dto/team-kpi/update-team-kpi.dto';
 import { TeamKPI } from '../entities/team-kpi.entity';
 import { KpiStatus } from '../entities/kpi.enums';
+import { TeamKPIQueryDto } from '../dto/team-kpi/query-team-kpi.dto';
 
 @Controller('kpi/team-kpis')
 @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
@@ -17,14 +18,24 @@ export class TeamKpisController {
 
   @Get()
   findAll(
-    @Query('companyId', ParseUUIDPipe) companyId: string,
-    @Query('teamId') teamId?: string,
-    @Query('kpiId') kpiId?: string,
-    @Query('periodStart') periodStart?: string,
-    @Query('periodEnd') periodEnd?: string,
-    @Query('status') status?: KpiStatus,
+    @Query() query: TeamKPIQueryDto,
+    @Req() req: any,
   ): Promise<TeamKPI[]> {
-    return this.service.findAll(companyId, { teamId, kpiId, periodStart, periodEnd, status });
+const user = req.user;
+
+    if (user.role === 'superAdmin') {
+      return this.service.findAll(query);
+    }
+
+    if (user.role === 'admin') {
+      return this.service.findByCompany(user.companyId, query);
+    }
+
+    if (user.role === 'gestor') {
+      return this.service.findByTeam(user.companyId, user.teamId, query);
+    }
+
+    throw new ForbiddenException('Role não autorizada');  
   }
 
   @Get(':id')

@@ -13,5 +13,5 @@ export class CreateTeamKpiDto {
   @IsOptional() @IsNumberString() achievedValue?: string;
 
   @IsUUID() submittedBy!: string;
-  @IsOptional() @IsString() submittedDate?: string;
+  @IsOptional() @IsDateString() submittedDate?: string;
 }

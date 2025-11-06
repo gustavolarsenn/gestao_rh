@@ -5,6 +5,7 @@ import { TeamKPI } from '../entities/team-kpi.entity';
 import { CreateTeamKpiDto } from '../dto/team-kpi/create-team-kpi.dto';
 import { UpdateTeamKpiDto } from '../dto/team-kpi/update-team-kpi.dto';
 import { KpiStatus } from '../entities/kpi.enums';
+import { TeamKPIQueryDto } from '../dto/team-kpi/query-team-kpi.dto';
 
 @Injectable()
 export class TeamKpisService {
@@ -28,28 +29,47 @@ export class TeamKpisService {
     return this.repo.save(entity);
   }
 
-  async findAll(companyId: string, filters?: {
-    teamId?: string;
-    kpiId?: string;
-    periodStart?: string;
-    periodEnd?: string;
-    status?: KpiStatus;
-  }): Promise<TeamKPI[]> {
-    const where: any = { companyId };
+  async findAll(query: TeamKPIQueryDto): Promise<TeamKPI[]> {
+    const where: any = {};
 
-    if (filters?.teamId) where.teamId = filters.teamId;
-    if (filters?.kpiId) where.kpiId = filters.kpiId;
-    if (filters?.status) where.status = filters.status;
+    if (query?.kpiId) where.kpiId = query.kpiId;
+    if (query?.status) where.status = query.status;
 
-    if (filters?.periodStart && filters?.periodEnd) {
-      where.periodStart = Between(filters.periodStart, filters.periodEnd);
+    if (query?.periodStart && query?.periodEnd) {
+      where.periodStart = Between(query.periodStart, query.periodEnd);
     }
 
-    return this.repo.find({ where });
+    return this.repo.find({ where, relations: ['team', 'kpi'] });
+  }
+
+  async findByCompany(companyId: string, query: TeamKPIQueryDto): Promise<TeamKPI[]> {
+    const where: any = { companyId };
+
+    if (query?.kpiId) where.kpiId = query.kpiId;
+    if (query?.status) where.status = query.status;
+
+    if (query?.periodStart && query?.periodEnd) {
+      where.periodStart = Between(query.periodStart, query.periodEnd);
+    }
+
+    return this.repo.find({ where, relations: ['team', 'kpi'] });
+  }
+
+  async findByTeam(companyId: string, teamId: string, query: TeamKPIQueryDto): Promise<TeamKPI[]> {
+    const where: any = { companyId, teamId };
+
+    if (query?.kpiId) where.kpiId = query.kpiId;
+    if (query?.status) where.status = query.status;
+
+    if (query?.periodStart && query?.periodEnd) {
+      where.periodStart = Between(query.periodStart, query.periodEnd);
+    }
+
+    return this.repo.find({ where, relations: ['team', 'kpi'] });
   }
 
   async findOne(companyId: string, id: string): Promise<TeamKPI> {
-    const row = await this.repo.findOne({ where: { companyId, id } });
+    const row = await this.repo.findOne({ where: { companyId, id }, relations: ['team', 'kpi', 'kpi.evaluationType'] });
     if (!row) throw new NotFoundException('TeamKPI not found');
     return row;
   }
