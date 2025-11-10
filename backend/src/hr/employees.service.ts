@@ -7,6 +7,7 @@ import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { Person } from '../person/entities/person.entity';
 import { TeamMember } from '../team/entities/team-member.entity';
 import { Team } from '../team/entities/team.entity';
+import { applyScope } from '../common/utils/scoped-query.util';
 
 @Injectable()
 export class EmployeesService {
@@ -51,8 +52,10 @@ export class EmployeesService {
     return saved;
   }
 
-  async findAll(companyId: string): Promise<Employee[]> {
-    return this.repo.find({ where: { companyId }, relations: ['person', 'role', 'roleType', 'team', 'department', 'branch'] });
+  async findAll(user: any): Promise<Employee[]> {
+    const where = applyScope(user, {}, { company: true, team: true, employee: true, department: false });
+    
+    return this.repo.find({ where, relations: ['person', 'role', 'roleType', 'team', 'department', 'branch'] });
   }
 
   async findOne(companyId: string, id: string): Promise<Employee> {

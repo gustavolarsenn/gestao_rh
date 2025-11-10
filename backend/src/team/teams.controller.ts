@@ -1,6 +1,7 @@
 import {
   Controller, Get, Post, Patch, Delete, Param, Body, Query,
   ParseUUIDPipe, UsePipes, ValidationPipe,
+  Req,
 } from '@nestjs/common';
 import { TeamsService } from './teams.service';
 import { CreateTeamDto } from './dto/create-team.dto';
@@ -18,8 +19,9 @@ export class TeamsController {
   }
 
   @Get()
-  findAll(@Query('companyId', ParseUUIDPipe) companyId: string): Promise<Team[]> {
-    return this.service.findAll(companyId);
+  findAll(
+    @Req() req: any): Promise<Team[]> {
+    return this.service.findAll(req.user);
   }
 
   @Get(':id')

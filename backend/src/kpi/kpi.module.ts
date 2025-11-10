@@ -21,11 +21,13 @@ import { EmployeeKpisController } from './employee-kpis/employee-kpis.controller
 import { EmployeeKpiEvolutionsController } from './employee-kpi-evolutions/employee-kpi-evolutions.controller';
 import { TeamKpisController } from './team-kpis/team-kpis.controller';
 import { TeamKpiEvolutionsController } from './team-kpi-evolutions/team-kpi-evolutions.controller';
+import { Team } from '../team/entities/team.entity';
+import { TeamsService } from '../team/teams.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([EvaluationType, KPI, EmployeeKPI, TeamKPI, EmployeeKPIEvolution, TeamKPIEvolution])],
-  providers: [EvaluationTypesService, KpisService, EmployeeKpisService, EmployeeKpiEvolutionsService, TeamKpisService, TeamKpiEvolutionsService],
+  imports: [TypeOrmModule.forFeature([EvaluationType, KPI, EmployeeKPI, TeamKPI, EmployeeKPIEvolution, TeamKPIEvolution, Team])],
+  providers: [EvaluationTypesService, KpisService, EmployeeKpisService, EmployeeKpiEvolutionsService, TeamKpisService, TeamKpiEvolutionsService, TeamsService],
   controllers: [EvaluationTypesController, KpisController, EmployeeKpisController, EmployeeKpiEvolutionsController, TeamKpisController, TeamKpiEvolutionsController],
-  exports: [EvaluationTypesService, KpisService, EmployeeKpisService, EmployeeKpiEvolutionsService, TeamKpisService, TeamKpiEvolutionsService],
+  exports: [EvaluationTypesService, KpisService, EmployeeKpisService, EmployeeKpiEvolutionsService, TeamKpisService, TeamKpiEvolutionsService, TeamsService],
 })
 export class KpiModule {}

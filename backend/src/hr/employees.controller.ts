@@ -1,6 +1,7 @@
 import {
   Controller, Get, Post, Patch, Delete, Param, Body, Query,
   ParseUUIDPipe, UsePipes, ValidationPipe,
+  Req,
 } from '@nestjs/common';
 import { EmployeesService } from './employees.service';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
@@ -18,8 +19,10 @@ export class EmployeesController {
   }
 
   @Get()
-  findAll(@Query('companyId', ParseUUIDPipe) companyId: string): Promise<Employee[]> {
-    return this.service.findAll(companyId);
+  findAll(
+    @Req() req: any,
+    ): Promise<Employee[]> {
+    return this.service.findAll(req.user);
   }
 
   @Get(':id')

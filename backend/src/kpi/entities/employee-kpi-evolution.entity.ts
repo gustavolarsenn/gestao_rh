@@ -5,12 +5,16 @@ import { User } from '../../users/entities/user.entity';
 import { KpiStatus } from './kpi.enums';
 import { Company } from '../../org/entities/company.entity';
 import { EmployeeKPI } from './employee-kpi.entity';
+import { Team } from '../../team/entities/team.entity';
 
 @Entity('employee_kpi_evolutions')
 @Unique('uq_emp_kpi_ev_period', ['companyId','employeeId','employeeKpiId','submittedDate'])
 export class EmployeeKPIEvolution extends TenantBaseEntity {
   @Column('uuid') employeeId!: string;
   @ManyToOne(() => Employee, { onDelete: 'CASCADE' }) @JoinColumn({ name: 'employeeId' }) employee!: Employee;
+  
+  @Column('uuid') teamId!: string;
+  @ManyToOne(() => Team, { onDelete: 'CASCADE' }) @JoinColumn({ name: 'teamId' }) team!: Team;
 
   @Column('uuid') employeeKpiId!: string;
   @ManyToOne(() => EmployeeKPI, { onDelete: 'CASCADE' }) @JoinColumn({ name: 'employeeKpiId' }) employeeKpi!: EmployeeKPI;

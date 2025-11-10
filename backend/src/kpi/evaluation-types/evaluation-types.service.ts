@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { EvaluationType } from '../entities/evaluation-type.entity';
 import { CreateEvaluationTypeDto } from '../dto/evaluation-type/create-evaluation-type.dto';
 import { UpdateEvaluationTypeDto } from '../dto/evaluation-type/update-evaluation-type.dto';
+import { applyScope } from '../../common/utils/scoped-query.util';
 
 @Injectable()
 export class EvaluationTypesService {
@@ -20,8 +21,10 @@ export class EvaluationTypesService {
     return this.repo.save(entity);
   }
 
-  async findAll(companyId: string): Promise<EvaluationType[]> {
-    return this.repo.find({ where: { companyId } });
+  async findAll(user: any): Promise<EvaluationType[]> {
+    const where = applyScope(user, {}, { company: true, team: false, employee: false, department: true });
+    
+    return this.repo.find({ where });
   }
 
   async findOne(companyId: string, id: string): Promise<EvaluationType> {

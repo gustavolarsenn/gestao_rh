@@ -7,6 +7,9 @@ import { KpiStatus } from '../entities/kpi.enums';
 import { EmployeeKPIEvolution } from '../entities/employee-kpi-evolution.entity';
 import { EmployeeKPI } from '../entities/employee-kpi.entity';
 import { TeamKPI } from '../entities/team-kpi.entity';
+import { applyScope } from '../../common/utils/scoped-query.util';
+import { TeamsService } from '../../team/teams.service';
+import { Team } from '../../team/entities/team.entity';
 
 @Injectable()
     export class EmployeeKpiEvolutionsService {
@@ -14,7 +17,8 @@ import { TeamKPI } from '../entities/team-kpi.entity';
     @InjectRepository(EmployeeKPIEvolution) private readonly repo: Repository<EmployeeKPIEvolution>,
     @InjectRepository(EmployeeKPI) private readonly employeeKpiRepo: Repository<EmployeeKPI>,
     @InjectRepository(TeamKPI) private readonly teamKpiRepo: Repository<TeamKPI>,
-
+    @InjectRepository(Team) private readonly teamRepo: Repository<Team>,
+    private readonly teamsService: TeamsService,
   ) {}
 
   async create(dto: CreateEmployeeKpiEvolutionDto, req: any): Promise<EmployeeKPIEvolution> {
@@ -30,11 +34,11 @@ import { TeamKPI } from '../entities/team-kpi.entity';
     //   } as any,
     // });
     // if (exists) throw new ConflictException('An EmployeeKPIEvolution for this period already exists.');
-
     const existsBinary = await this.repo.findOne({
       where: {
         companyId: user.companyId,
         employeeId: user.employeeId,
+        teamId: user.teamId,
         employeeKpiId: dto.employeeKpiId,
         employeeKpi: { kpi: { evaluationType: { code: 'BINARY' } } }
       } as any,
@@ -45,6 +49,7 @@ import { TeamKPI } from '../entities/team-kpi.entity';
     const entity = this.repo.create({
       companyId: user.companyId,
       employeeId: user.employeeId,
+      teamId: user.teamId,
       submittedBy: user.id,
       submittedDate: new Date(),
        ...dto
@@ -52,13 +57,13 @@ import { TeamKPI } from '../entities/team-kpi.entity';
     return this.repo.save(entity);
   }
 
-  async findAll(companyId: string, filters?: {
+  async findAll(user: any, filters?: {
     employeeId?: string;
     employeeKpiId?: string;
     submittedDate?: Date;
     status?: KpiStatus;
   }): Promise<EmployeeKPIEvolution[]> {
-    const where: any = { companyId };
+    const where = applyScope(user, {}, { company: true, team: true, employee: true, department: false });
 
     if (filters?.employeeId) where.employeeId = filters.employeeId;
     if (filters?.employeeKpiId) where.employeeKpiId = filters.employeeKpiId;
@@ -102,6 +107,35 @@ import { TeamKPI } from '../entities/team-kpi.entity';
     return this.repo.save(merged);
   }
 
+  private async applyEvolutionUpperTeams(companyId: string, kpiEvolution: EmployeeKPIEvolution): Promise<void> {
+    const team = await this.teamRepo.findOne({ where: { companyId, id: kpiEvolution.teamId } });
+
+    if (!team) {
+      return;
+    }
+    const upperTeams = await this.teamsService.findUpperTeamsRecursive(companyId, team);
+    for (const upperTeam of upperTeams) {
+      const teamKpi = await this.teamKpiRepo.findOne({
+        where: {  companyId, teamId: upperTeam.id, kpiId: kpiEvolution.employeeKpi.kpiId } as any,
+      });
+
+      if (teamKpi) {
+        let newAchievedValue: string;
+        if (['BINARY', 'LOWER_BETTER_PCT', 'HIGHER_BETTER_PCT'].includes(kpiEvolution.employeeKpi.kpi.evaluationType.code)) {
+          newAchievedValue = kpiEvolution.achievedValueEvolution!;
+        }
+        if (['LOWER_BETTER_SUM', 'HIGHER_BETTER_SUM'].includes(kpiEvolution.employeeKpi.kpi.evaluationType.code)) {
+          const currentValue = parseFloat(teamKpi.achievedValue ?? '0');
+          const evolutionValue = parseFloat(kpiEvolution.achievedValueEvolution ?? '0');
+          newAchievedValue = (currentValue + evolutionValue).toString();
+        }
+        teamKpi.achievedValue = newAchievedValue!;
+        await this.teamKpiRepo.save(teamKpi);
+      }
+    }
+    return;
+  }
+
   async approve(companyId: string, id: string, req: any): Promise<EmployeeKPIEvolution> {
     const row = await this.findOne(companyId, id);
     const user = req.user;
@@ -120,7 +154,6 @@ import { TeamKPI } from '../entities/team-kpi.entity';
       approvedExists.rejectionReason = null;
       
       if (['BINARY', 'LOWER_BETTER_PCT', 'HIGHER_BETTER_PCT'].includes(row.employeeKpi.kpi.evaluationType.code)) {
-        console.log("approvedExists.achievedValue =", approvedExists.achievedValue);
         approvedExists.achievedValue = row.achievedValueEvolution;
       }
       if (['LOWER_BETTER_SUM', 'HIGHER_BETTER_SUM'].includes(row.employeeKpi.kpi.evaluationType.code)) {
@@ -144,7 +177,6 @@ import { TeamKPI } from '../entities/team-kpi.entity';
       approvedTeamKpiExists.rejectionReason = null;
 
       if (['BINARY', 'LOWER_BETTER_PCT', 'HIGHER_BETTER_PCT'].includes(row.employeeKpi.kpi.evaluationType.code)) {
-        console.log("approvedTeamKpiExists.achievedValue =", approvedTeamKpiExists.achievedValue);
         approvedTeamKpiExists.achievedValue = row.achievedValueEvolution;
       }
       if (['LOWER_BETTER_SUM', 'HIGHER_BETTER_SUM'].includes(row.employeeKpi.kpi.evaluationType.code)) {
@@ -155,6 +187,8 @@ import { TeamKPI } from '../entities/team-kpi.entity';
       
       await this.teamKpiRepo.save(approvedTeamKpiExists);
     }
+
+    await this.applyEvolutionUpperTeams(companyId, row);
     
     row.status = KpiStatus.APPROVED;
     row.approvedBy = user.id;

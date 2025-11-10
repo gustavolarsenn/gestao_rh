@@ -73,6 +73,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
     setToken(null);
     delete api.defaults.headers.common["Authorization"];
+    setTimeout(() => {
+      window.location.href = "/login";
+  }, 100);
   }
 
   return (

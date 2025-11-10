@@ -56,6 +56,7 @@ export default function EmployeeKpiReviewSection() {
     setRejectionReason("");
   }
 
+  console.log("employeeKpis", employeeKpis);
   return (
     <div className="bg-white rounded-2xl shadow-lg p-6">
       <h2 className="text-2xl font-semibold text-[#151E3F] mb-4">

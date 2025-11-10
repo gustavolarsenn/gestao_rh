@@ -17,12 +17,12 @@ export class EmployeeKpiEvolutionsController {
 
   @Get()
   findAll(
-    @Query('companyId', ParseUUIDPipe) companyId: string,
+    @Req() req: any,
     @Query('employeeId') employeeId?: string,
     @Query('employeeKpiId') employeeKpiId?: string,
     @Query('status') status?: KpiStatus,
   ): Promise<EmployeeKPIEvolution[]> {
-    return this.service.findAll(companyId, { employeeId, employeeKpiId, status });
+    return this.service.findAll(req.user, { employeeId, employeeKpiId, status });
   }
 
   @Get(':id')

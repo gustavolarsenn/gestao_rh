@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { KPI } from './entities/kpi.entity';
 import { CreateKpiDto } from './dto/kpi/create-kpi.dto';
 import { UpdateKpiDto } from './dto/kpi/update-kpi.dto';
+import { applyScope } from '../common/utils/scoped-query.util';
 
 @Injectable()
 export class KpisService {
@@ -18,8 +19,10 @@ export class KpisService {
     return this.repo.save(entity);
   }
 
-  async findAll(companyId: string): Promise<KPI[]> {
-    return this.repo.find({ where: { companyId } });
+  async findAll(user: any): Promise<KPI[]> {
+    const where = applyScope(user, {}, { company: true, team: false, employee: false, department: true });
+    
+    return this.repo.find({ where });
   }
 
   async findOne(companyId: string, id: string): Promise<KPI> {

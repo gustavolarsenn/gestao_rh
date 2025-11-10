@@ -2,6 +2,7 @@
 import {
   Controller, Get, Post, Patch, Delete, Param, Body, Query,
   ParseUUIDPipe, UsePipes, ValidationPipe,
+  Req,
 } from '@nestjs/common';
 import { DepartmentsService } from './departments.service';
 import { CreateDepartmentDto } from './dto/create-department.dto';
@@ -19,8 +20,9 @@ export class DepartmentsController {
   }
 
   @Get()
-  findAll(@Query('companyId', ParseUUIDPipe) companyId: string): Promise<Department[]> {
-    return this.service.findAll(companyId);
+  findAll(
+    @Req() req: any): Promise<Department[]> {
+    return this.service.findAll(req.user);
   }
 
   @Get(':id')

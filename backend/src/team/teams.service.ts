@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Team } from './entities/team.entity';
 import { CreateTeamDto } from './dto/create-team.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
+import { applyScope } from '../common/utils/scoped-query.util';
 
 @Injectable()
 export class TeamsService {
@@ -19,9 +20,36 @@ export class TeamsService {
     return this.repo.save(entity);
   }
 
-  async findAll(companyId: string): Promise<Team[]> {
-    return this.repo.find({ where: { companyId } });
+  async findAll(user: any): Promise<Team[]> {
+    let where;
+    if (user.role != 'gestor'){
+      where = applyScope(user, {}, { company: true, team: true, employee: false, department: false });
+    } 
+    else {
+      where = {parentTeamId: user.teamId, companyId: user.companyId}; 
+    } 
+    return this.repo.find({ where });
   }
+
+  async findUpperTeamsRecursive(
+    companyId: string,
+    team: Team,
+    collected: Team[] = [],
+  ): Promise<Team[]> {
+    if (!team.parentTeamId) {
+      return collected;
+    }
+
+    const parent = await this.findOne(companyId, team.parentTeamId);
+
+    if (parent) {
+      collected.push(parent);
+      return this.findUpperTeamsRecursive(companyId, parent, collected);
+    }
+
+    return collected;
+  }
+
 
   async findOne(companyId: string, id: string): Promise<Team> {
     const row = await this.repo.findOne({ where: { companyId, id } });

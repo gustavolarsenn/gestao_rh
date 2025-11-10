@@ -6,6 +6,7 @@ import { CreateEmployeeKpiDto } from '../dto/employee-kpi/create-employee-kpi.dt
 import { UpdateEmployeeKpiDto } from '../dto/employee-kpi/update-employee-kpi.dto';
 import { EmployeeKPIQueryDto } from '../dto/employee-kpi/query-employee-kpi.dto';
 import { KpiStatus } from '../entities/kpi.enums';
+import { applyScope } from '../../common/utils/scoped-query.util';
 
 @Injectable()
 export class EmployeeKpisService {
@@ -29,61 +30,19 @@ export class EmployeeKpisService {
     return this.repo.save(entity);
   }
 
-  async findAll(query: EmployeeKPIQueryDto): Promise<EmployeeKPI[]> {
-    const { ...filters } = query;
-    const where: any = { };
+  async findAll(user: any, query: EmployeeKPIQueryDto) {
+    const where = applyScope(user, {}, { company: true, team: true, employee: true, department: false });
 
-    if (filters?.kpiId) where.kpiId = filters.kpiId;
-    if (filters?.status) where.status = filters.status;
-
-    if (filters?.periodStart && filters?.periodEnd) {
-      where.periodStart = Between(filters.periodStart, filters.periodEnd);
-      // ou filtrar com query builder se quiser lógica mais precisa
+    if (query.kpiId) where.kpiId = query.kpiId;
+    if (query.status) where.status = query.status;
+    if (query.periodStart && query.periodEnd) {
+      where.periodStart = Between(query.periodStart, query.periodEnd);
     }
 
-    return this.repo.find({ where, relations: ['employee', 'employee.person', 'kpi', 'kpi.evaluationType'] });
-  }
-
-  async findByCompany(companyId: string, query: EmployeeKPIQueryDto): Promise<EmployeeKPI[]> {
-    const { ...filters } = query;
-    const where: any = { companyId };
-
-    if (filters?.kpiId) where.kpiId = filters.kpiId;
-    if (filters?.status) where.status = filters.status;
-
-    if (filters?.periodStart && filters?.periodEnd) {
-      where.periodStart = Between(filters.periodStart, filters.periodEnd);
-      // ou filtrar com query builder se quiser lógica mais precisa
-    }
-    return this.repo.find({ where, relations: ['employee', 'employee.person', 'kpi', 'kpi.evaluationType'] });
-  }
-
-  async findByTeam(companyId: string, teamId: string, query: EmployeeKPIQueryDto): Promise<EmployeeKPI[]> {
-    const { ...filters } = query;
-    const where: any = { companyId, teamId };
-
-    if (filters?.kpiId) where.kpiId = filters.kpiId;
-    if (filters?.status) where.status = filters.status;
-
-    if (filters?.periodStart && filters?.periodEnd) {
-      where.periodStart = Between(filters.periodStart, filters.periodEnd);
-      // ou filtrar com query builder se quiser lógica mais precisa
-    }
-    return this.repo.find({ where, relations: ['employee', 'employee.person', 'kpi', 'kpi.evaluationType'] });
-  }
-
-  async findByEmployee(companyId: string, employeeId: string, query: EmployeeKPIQueryDto): Promise<EmployeeKPI[]> {
-    const { ...filters } = query;
-    const where: any = { companyId, employeeId };
-
-    if (filters?.kpiId) where.kpiId = filters.kpiId;
-    if (filters?.status) where.status = filters.status;
-
-    if (filters?.periodStart && filters?.periodEnd) {
-      where.periodStart = Between(filters.periodStart, filters.periodEnd);
-      // ou filtrar com query builder se quiser lógica mais precisa
-    }
-    return this.repo.find({ where, relations: ['employee', 'employee.person', 'kpi', 'kpi.evaluationType'] });
+    return this.repo.find({
+      where,
+      relations: ['employee', 'employee.person', 'kpi', 'kpi.evaluationType'],
+    });
   }
 
   async findOne(companyId: string, id: string): Promise<EmployeeKPI> {

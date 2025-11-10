@@ -5,6 +5,7 @@ import { Repository } from 'typeorm';
 import { Department } from './entities/department.entity';
 import { CreateDepartmentDto } from './dto/create-department.dto';
 import { UpdateDepartmentDto } from './dto/update-department.dto';
+import { applyScope } from '../common/utils/scoped-query.util';
 
 @Injectable()
 export class DepartmentsService {
@@ -15,8 +16,10 @@ export class DepartmentsService {
     return this.repo.save(entity);
   }
 
-  async findAll(companyId: string): Promise<Department[]> {
-    return this.repo.find({ where: { companyId } });
+  async findAll(user: any): Promise<Department[]> {
+    const where = applyScope(user, {}, { company: true, team: false, employee: true, department: true }, 'department');
+    
+    return this.repo.find({ where  });
   }
 
   async findOne(companyId: string, id: string): Promise<Department> {

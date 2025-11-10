@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body, Query, ParseUUIDPipe, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Body, Query, ParseUUIDPipe, UsePipes, ValidationPipe, Req } from '@nestjs/common';
 import { KpisService } from './kpis.service';
 import { CreateKpiDto } from './dto/kpi/create-kpi.dto';
 import { UpdateKpiDto } from './dto/kpi/update-kpi.dto';
@@ -15,8 +15,9 @@ export class KpisController {
   }
 
   @Get()
-  findAll(@Query('companyId', ParseUUIDPipe) companyId: string): Promise<KPI[]> {
-    return this.service.findAll(companyId);
+  findAll(
+    @Req() req: any): Promise<KPI[]> {
+    return this.service.findAll(req.user);
   }
 
   @Get(':id')

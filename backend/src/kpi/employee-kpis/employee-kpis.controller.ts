@@ -21,25 +21,7 @@ export class EmployeeKpisController {
     @Query() query: EmployeeKPIQueryDto,
     @Req() req: any,
   ): Promise<EmployeeKPI[]> {
-    const user = req.user;
-
-    if (user.role === 'superAdmin') {
-      return this.service.findAll(query);
-    }
-
-    if (user.role === 'admin') {
-      return this.service.findByCompany(user.companyId, query);
-    }
-
-    if (user.role === 'gestor') {
-      return this.service.findByTeam(user.companyId, user.teamId, query);
-    }
-
-    if (user.role === 'usuario') {
-      return this.service.findByEmployee(user.companyId, user.employeeId, query);
-    }
-
-    throw new ForbiddenException('Role não autorizada');    
+    return this.service.findAll(req.user, query);
   }
 
   @Get(':id')

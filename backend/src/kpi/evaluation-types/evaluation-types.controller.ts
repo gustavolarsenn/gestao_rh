@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body, Query, ParseUUIDPipe, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Body, Query, ParseUUIDPipe, UsePipes, ValidationPipe, Req } from '@nestjs/common';
 import { EvaluationTypesService } from './evaluation-types.service';
 import { CreateEvaluationTypeDto } from '../dto/evaluation-type/create-evaluation-type.dto';
 import { UpdateEvaluationTypeDto } from '../dto/evaluation-type/update-evaluation-type.dto';
@@ -15,8 +15,9 @@ export class EvaluationTypesController {
   }
 
   @Get()
-  findAll(@Query('companyId', ParseUUIDPipe) companyId: string): Promise<EvaluationType[]> {
-    return this.service.findAll(companyId);
+  findAll(
+    @Req() req: any): Promise<EvaluationType[]> {
+    return this.service.findAll(req.user);
   }
 
   @Get(':id')
