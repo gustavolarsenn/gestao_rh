@@ -14,8 +14,13 @@ export function useRoleTypes() {
   const [error, setError] = useState<string | null>(null);
   const companyId = localStorage.getItem("companyId");
 
-  async function listRoleTypes(): Promise<RoleType[]> {
-    const { data } = await api.get(`/role-types?companyId=${companyId}`);
+  async function listRoleTypes(params: any): Promise<RoleType[]> {
+    const { data } = await api.get(`/role-types?companyId=${companyId}`, { params });
+    return data;
+  }
+
+  async function listDistinctRoleTypes(): Promise<RoleType[]> {
+    const { data } = await api.get(`/role-types/distinct?companyId=${companyId}`);
     return data;
   }
 
@@ -42,5 +47,5 @@ export function useRoleTypes() {
     await api.delete(`/role-types/${id}?companyId=${companyId}`);
   }
 
-  return { listRoleTypes, createRoleType, updateRoleType, deleteRoleType, loading, error };
+  return { listRoleTypes, listDistinctRoleTypes, createRoleType, updateRoleType, deleteRoleType, loading, error };
 }

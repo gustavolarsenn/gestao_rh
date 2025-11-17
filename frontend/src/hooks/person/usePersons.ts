@@ -21,8 +21,8 @@ export function usePersons() {
   const [error, setError] = useState<string | null>(null);
   const companyId = localStorage.getItem("companyId");
 
-  async function listPersons(): Promise<Person[]> {
-    const { data } = await api.get(`/persons?companyId=${companyId}`);
+  async function listPersons(params: any): Promise<Person[]> {
+    const { data } = await api.get(`/persons?companyId=${companyId}`, { params });
     return data;
   }
 

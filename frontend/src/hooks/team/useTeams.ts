@@ -18,6 +18,11 @@ export function useTeams() {
     return data;
   }
 
+  async function listDistinctTeams(): Promise<Team[]> {
+    const { data } = await api.get(`/teams/distinct?companyId=${companyId}`);
+    return data;
+  }
+
   async function createTeam(payload: Omit<Team, "id">) {
     setLoading(true);
     setError(null);
@@ -41,5 +46,5 @@ export function useTeams() {
     await api.delete(`/teams/${id}?companyId=${companyId}`);
   }
 
-  return { listTeams, createTeam, updateTeam, deleteTeam, loading, error };
+  return { listTeams, listDistinctTeams, createTeam, updateTeam, deleteTeam, loading, error };
 }

@@ -4,6 +4,7 @@ import { FindOptionsWhere, Repository } from 'typeorm';
 import { TeamMember } from './entities/team-member.entity';
 import { CreateTeamMemberDto } from './dto/create-team-member.dto';
 import { UpdateTeamMemberDto } from './dto/update-team-member.dto';
+import { applyScope } from '../common/utils/scoped-query.util';
 
 export type TeamMemberFilters = {
   teamId?: string;
@@ -25,9 +26,10 @@ export class TeamMembersService {
     const entity = this.repo.create(dto as Partial<TeamMember>);
     return this.repo.save(entity);
   }
+  
+  async findAll(user: any, filters: TeamMemberFilters = {}): Promise<TeamMember[]> {
+    const where = applyScope(user, {}, { company: true, team: true, employee: false, department: false });
 
-  async findAll(companyId: string, filters: TeamMemberFilters = {}): Promise<TeamMember[]> {
-    const where: FindOptionsWhere<TeamMember> = { companyId };
     if (filters.teamId) where.teamId = filters.teamId;
     if (filters.employeeId) where.employeeId = filters.employeeId;
     if (filters.parentTeamId) where.parentTeamId = filters.parentTeamId;

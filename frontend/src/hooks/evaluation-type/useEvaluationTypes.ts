@@ -25,8 +25,13 @@ export function useEvaluationTypes() {
   const [error, setError] = useState<string | null>(null);
   const companyId = localStorage.getItem("companyId");
 
-  async function listEvaluationTypes(): Promise<EvaluationType[]> {
-    const { data } = await api.get(`kpi/evaluation-types?companyId=${companyId}`);
+  async function listEvaluationTypes(params: any): Promise<EvaluationType[]> {
+    const { data } = await api.get(`kpi/evaluation-types?companyId=${companyId}`, { params });
+    return data;
+  }
+
+  async function listDistinctEvaluationTypes(): Promise<EvaluationType[]> {
+    const { data } = await api.get(`kpi/evaluation-types/distinct?companyId=${companyId}`);
     return data;
   }
 
@@ -61,6 +66,7 @@ export function useEvaluationTypes() {
 
   return {
     listEvaluationTypes,
+    listDistinctEvaluationTypes,
     createEvaluationType,
     updateEvaluationType,
     deleteEvaluationType,

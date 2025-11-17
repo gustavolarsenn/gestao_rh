@@ -7,6 +7,7 @@ import { TeamsService } from './teams.service';
 import { CreateTeamDto } from './dto/create-team.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
 import { Team } from './entities/team.entity';
+import { TeamQueryDto } from './dto/team-query.dto';
 
 @Controller('teams')
 @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
@@ -20,8 +21,13 @@ export class TeamsController {
 
   @Get()
   findAll(
-    @Req() req: any): Promise<Team[]> {
-    return this.service.findAll(req.user);
+    @Req() req: any, @Query() query: TeamQueryDto) {
+    return this.service.findAll(req.user, query);
+  }
+
+  @Get('/distinct')
+  findDistinctTeams(@Req() req: any) {
+    return this.service.findDistinctTeams(req.user);
   }
 
   @Get(':id')

@@ -1,10 +1,11 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { ILike, Repository } from 'typeorm';
 import { KPI } from './entities/kpi.entity';
 import { CreateKpiDto } from './dto/kpi/create-kpi.dto';
 import { UpdateKpiDto } from './dto/kpi/update-kpi.dto';
 import { applyScope } from '../common/utils/scoped-query.util';
+import { KPIQueryDto } from './dto/kpi/kpi-query.dto';
 
 @Injectable()
 export class KpisService {
@@ -19,10 +20,27 @@ export class KpisService {
     return this.repo.save(entity);
   }
 
-  async findAll(user: any): Promise<KPI[]> {
+  async findAll(user: any, query: KPIQueryDto) {
     const where = applyScope(user, {}, { company: true, team: false, employee: false, department: true });
     
-    return this.repo.find({ where });
+    if (query.evaluationTypeId) {
+      where['evaluationTypeId'] = query.evaluationTypeId;
+    }
+    if (query.name) {
+      where['name'] = ILike(`%${query.name}%`);
+    }
+
+    const page = Math.max(1, Number(query.page ?? 1));
+    const limit = Math.max(1, Number(query.limit ?? 10));
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await this.repo.findAndCount({ where, skip, take: limit });
+    return { page, limit, total, data };
+  }
+
+  async findDistinctKpis(user: any) {
+    const where = applyScope(user, {}, { company: true, team: false, employee: false, department: true });
+    return await this.repo.find({ where });
   }
 
   async findOne(companyId: string, id: string): Promise<KPI> {

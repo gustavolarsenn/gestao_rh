@@ -36,8 +36,8 @@ export function useTeamKpis() {
   const companyId = localStorage.getItem("companyId");
 
   /** 🔹 Listar todos os KPIs de times */
-  async function listTeamKpis(): Promise<TeamKpi[]> {
-    const { data } = await api.get(`/kpi/team-kpis?companyId=${companyId}`);
+  async function listTeamKpis(params: any): Promise<TeamKpi[]> {
+    const { data } = await api.get(`/kpi/team-kpis?companyId=${companyId}`, { params });
     return data;
   }
 

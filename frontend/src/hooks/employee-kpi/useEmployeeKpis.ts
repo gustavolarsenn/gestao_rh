@@ -36,8 +36,8 @@ export function useEmployeeKpis() {
   const [error, setError] = useState<string | null>(null);
   const companyId = localStorage.getItem("companyId");
 
-  async function listEmployeeKpis(): Promise<EmployeeKpi[]> {
-    const { data } = await api.get(`kpi/employee-kpis?companyId=${companyId}`);
+  async function listEmployeeKpis(params: any): Promise<EmployeeKpi[]> {
+    const { data } = await api.get(`kpi/employee-kpis?companyId=${companyId}`, { params });
     return data;
   }
 

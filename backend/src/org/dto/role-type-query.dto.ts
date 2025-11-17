@@ -1,0 +1,15 @@
+import { IsOptional, IsString, IsNumberString, IsEnum } from 'class-validator';
+
+export class RoleTypeQueryDto {
+  @IsOptional()
+  @IsNumberString()
+  page?: string;
+
+  @IsOptional()
+  @IsNumberString()
+  limit?: string;
+
+  @IsOptional()
+  @IsString()
+  name?: string;
+}

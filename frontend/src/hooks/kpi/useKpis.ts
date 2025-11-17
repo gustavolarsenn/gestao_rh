@@ -19,8 +19,13 @@ export function useKpis() {
   const [error, setError] = useState<string | null>(null);
   const companyId = localStorage.getItem("companyId");
 
-  async function listKpis(): Promise<Kpi[]> {
-    const { data } = await api.get(`kpi/kpis?companyId=${companyId}`);
+  async function listKpis(params: any): Promise<Kpi[]> {
+    const { data } = await api.get(`kpi/kpis?companyId=${companyId}`, { params });
+    return data;
+  }
+
+  async function listDistinctKpis(): Promise<Kpi[]> {
+    const { data } = await api.get(`kpi/kpis/distinct?companyId=${companyId}`);
     return data;
   }
 
@@ -50,5 +55,5 @@ export function useKpis() {
     await api.delete(`kpi/kpis/${id}?companyId=${companyId}`);
   }
 
-  return { listKpis, createKpi, updateKpi, deleteKpi, loading, error };
+  return { listKpis, listDistinctKpis, createKpi, updateKpi, deleteKpi, loading, error };
 }

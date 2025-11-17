@@ -5,6 +5,7 @@ import { BaseModal } from "@/components/modals/BaseModal";
 import { useEmployeeKpis } from "@/hooks/employee-kpi/useEmployeeKpis";
 import { useEmployeeKpiEvolutions } from "@/hooks/employee-kpi/useEmployeeKpiEvolutions";
 import { rateKPI } from "@/utils/rateKPI";
+import { Paper, Typography } from "@mui/material";
 
 export default function EmployeeKpiReviewSection() {
   const { listEmployeeKpis } = useEmployeeKpis();
@@ -24,14 +25,17 @@ export default function EmployeeKpiReviewSection() {
 
   useEffect(() => {
     async function fetchData() {
+      // Se o hook agora for paginado, ajuste aqui para usar .data
       const [empKpis, empEvols] = await Promise.all([
         listEmployeeKpis(),
         listEmployeeKpiEvolutions(),
       ]);
-      setEmployeeKpis(empKpis);
-      setEmployeeEvols(empEvols);
+
+      setEmployeeKpis((empKpis as any)?.data || empKpis || []);
+      setEmployeeEvols((empEvols as any)?.data || empEvols || []);
     }
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const employees = Array.from(
@@ -40,7 +44,8 @@ export default function EmployeeKpiReviewSection() {
 
   async function handleApprove(ev: any) {
     await approveEmployeeKpiEvolution(ev.id);
-    setEmployeeEvols(await listEmployeeKpiEvolutions());
+    const updated = await listEmployeeKpiEvolutions();
+    setEmployeeEvols((updated as any)?.data || updated || []);
   }
 
   async function handleReject(ev: any) {
@@ -51,17 +56,30 @@ export default function EmployeeKpiReviewSection() {
   async function handleConfirmRejection() {
     if (!selectedEvolution) return;
     await rejectEmployeeKpiEvolution(selectedEvolution.id, rejectionReason);
-    setEmployeeEvols(await listEmployeeKpiEvolutions());
+    const updated = await listEmployeeKpiEvolutions();
+    setEmployeeEvols((updated as any)?.data || updated || []);
     setModalOpen(false);
     setRejectionReason("");
   }
 
-  console.log("employeeKpis", employeeKpis);
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-6">
-      <h2 className="text-2xl font-semibold text-[#151E3F] mb-4">
+    <Paper
+      elevation={0}
+      sx={{
+        p: 4,
+        borderRadius: 3,
+        backgroundColor: "#ffffff",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+      }}
+    >
+      <Typography
+        variant="h6"
+        fontWeight={600}
+        color="#151E3F"
+        sx={{ mb: 3 }}
+      >
         KPIs de Funcionários
-      </h2>
+      </Typography>
 
       <table className="w-full text-sm border-collapse">
         <thead>
@@ -75,6 +93,7 @@ export default function EmployeeKpiReviewSection() {
           {employees.map((emp) => {
             const empKpis = employeeKpis.filter((k) => k.employeeId === emp.id);
             const isExpanded = expandedEmployeeId === emp.id;
+
             return (
               <React.Fragment key={emp.id}>
                 <tr className="border-b hover:bg-gray-50">
@@ -120,6 +139,7 @@ export default function EmployeeKpiReviewSection() {
                                   (e) => e.employeeKpiId === kpi.id
                                 );
                                 const expanded = expandedKpiId === kpi.id;
+
                                 return (
                                   <React.Fragment key={kpi.id}>
                                     <tr className="border-b">
@@ -140,7 +160,9 @@ export default function EmployeeKpiReviewSection() {
                                       </td>
                                       <td className="p-2">{kpi.kpi?.name}</td>
                                       <td className="p-2">{kpi.goal}</td>
-                                      <td className="p-2">{kpi.achievedValue}</td>
+                                      <td className="p-2">
+                                        {kpi.achievedValue ?? "—"}
+                                      </td>
                                       <td className="p-2 text-center">
                                         <Button
                                           size="sm"
@@ -163,31 +185,54 @@ export default function EmployeeKpiReviewSection() {
                                         exit={{ opacity: 0 }}
                                         transition={{ duration: 0.25 }}
                                       >
-                                        <td colSpan={5} className="p-2 px-4 bg-gray-100">
+                                        <td
+                                          colSpan={5}
+                                          className="p-2 px-4 bg-gray-100"
+                                        >
                                           {evols.length > 0 ? (
                                             <table className="w-full text-xs bg-white rounded shadow-sm">
                                               <thead>
                                                 <tr className="bg-gray-100 text-left">
-                                                  <th className="p-2">Valor / Observação</th>
+                                                  <th className="p-2">
+                                                    Valor / Observação
+                                                  </th>
                                                   <th className="p-2">Status</th>
                                                   <th className="p-2">Data</th>
-                                                  <th className="p-2 text-center">Ações</th>
+                                                  <th className="p-2 text-center">
+                                                    Ações
+                                                  </th>
                                                 </tr>
                                               </thead>
                                               <tbody>
                                                 {evols.map((ev) => (
-                                                  <tr key={ev.id} className="border-t">
-                                                    <td className="p-2">{ev.achievedValueEvolution}</td>
-                                                    <td className="p-2">{ev.status}</td>
+                                                  <tr
+                                                    key={ev.id}
+                                                    className="border-t"
+                                                  >
                                                     <td className="p-2">
-                                                      {new Date(ev.submittedDate).toLocaleDateString()}
+                                                      {
+                                                        ev.achievedValueEvolution
+                                                      }
+                                                    </td>
+                                                    <td className="p-2">
+                                                      {ev.status}
+                                                    </td>
+                                                    <td className="p-2">
+                                                      {ev.submittedDate
+                                                        ? new Date(
+                                                            ev.submittedDate
+                                                          ).toLocaleDateString()
+                                                        : "—"}
                                                     </td>
                                                     <td className="p-2 text-center">
-                                                      {ev.status === "SUBMITTED" && (
+                                                      {ev.status ===
+                                                        "SUBMITTED" && (
                                                         <div className="flex gap-2 justify-center">
                                                           <Button
                                                             size="sm"
-                                                            onClick={() => handleApprove(ev)}
+                                                            onClick={() =>
+                                                              handleApprove(ev)
+                                                            }
                                                             className="bg-emerald-600 hover:bg-emerald-700 text-white"
                                                           >
                                                             Aprovar
@@ -195,7 +240,9 @@ export default function EmployeeKpiReviewSection() {
                                                           <Button
                                                             size="sm"
                                                             variant="destructive"
-                                                            onClick={() => handleReject(ev)}
+                                                            onClick={() =>
+                                                              handleReject(ev)
+                                                            }
                                                           >
                                                             Rejeitar
                                                           </Button>
@@ -256,6 +303,6 @@ export default function EmployeeKpiReviewSection() {
           className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm min-h-[100px]"
         />
       </BaseModal>
-    </div>
+    </Paper>
   );
 }

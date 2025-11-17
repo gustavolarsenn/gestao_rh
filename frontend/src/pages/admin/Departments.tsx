@@ -1,162 +1,315 @@
 // src/pages/admin/Department.tsx
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import Sidebar from "@/components/Sidebar";
+import {
+  Typography,
+  Paper,
+  Box,
+  TextField,
+  Button,
+} from "@mui/material";
 import { BaseModal } from "@/components/modals/BaseModal";
 import { useDepartments, Department } from "@/hooks/department/useDepartments";
 
 export default function DepartmentPage() {
-  const { listDepartments, createDepartment, updateDepartment, deleteDepartment, loading, error } =
-    useDepartments();
+  const {
+    listDepartments,
+    createDepartment,
+    updateDepartment,
+    deleteDepartment,
+  } = useDepartments();
 
   const [departments, setDepartments] = useState<Department[]>([]);
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [message, setMessage] = useState("");
+  const [loadingTable, setLoadingTable] = useState(false);
 
-  const [selectedDept, setSelectedDept] = useState<Department | null>(null);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editName, setEditName] = useState("");
-  const [editDescription, setEditDescription] = useState("");
+  // ================================
+  // PAGINAÇÃO
+  // ================================
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10);
+  const [total, setTotal] = useState(0);
+  const pageCount = Math.ceil(total / limit);
 
-  // Carregar departamentos
+  // ================================
+  // FILTRO
+  // ================================
+  const [filterName, setFilterName] = useState("");
+
+  // ================================
+  // LOAD DEPARTMENTS
+  // ================================
+  async function loadDepartments() {
+    setLoadingTable(true);
+
+    const result = await listDepartments({
+      page,
+      limit,
+      name: filterName || undefined,
+    });
+
+    setDepartments(result.data);
+    setTotal(result.total);
+    setLoadingTable(false);
+  }
+
   useEffect(() => {
-    listDepartments().then(setDepartments);
-  }, []);
+    loadDepartments();
+  }, [page, filterName]);
 
-  // Criar departamento
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setMessage("");
+  // ================================
+  // CREATE MODAL
+  // ================================
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [name, setName] = useState("");
 
-    try {
-      const newDept = await createDepartment({
-        name,
-        companyId: localStorage.getItem("companyId")!,
-      });
-      setDepartments((prev) => [...prev, newDept]);
-      setMessage(`Departamento "${name}" criado com sucesso!`);
-      setName("");
-      setDescription("");
-    } catch {}
+  const handleCreate = async () => {
+    await createDepartment({
+      name,
+      companyId: localStorage.getItem("companyId")!,
+    });
+
+    setCreateModalOpen(false);
+    setName("");
+    setPage(1);
+    loadDepartments();
   };
 
-  // Abrir modal
+  // ================================
+  // EDIT MODAL
+  // ================================
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedDept, setSelectedDept] = useState<Department | null>(null);
+  const [editName, setEditName] = useState("");
+
   const openEditModal = (dept: Department) => {
     setSelectedDept(dept);
     setEditName(dept.name);
-    setModalOpen(true);
+    setEditModalOpen(true);
   };
 
-  // Salvar alterações
   const handleSave = async () => {
     if (!selectedDept) return;
-    const updated = await updateDepartment(selectedDept.id, {
+
+    await updateDepartment(selectedDept.id, {
       name: editName,
     });
-    setDepartments((prev) => prev.map((d) => (d.id === selectedDept.id ? updated : d)));
-    setModalOpen(false);
+
+    setEditModalOpen(false);
+    loadDepartments();
   };
 
-  // Excluir
   const handleDelete = async () => {
     if (!selectedDept) return;
+
     await deleteDepartment(selectedDept.id);
-    setDepartments((prev) => prev.filter((d) => d.id !== selectedDept.id));
-    setModalOpen(false);
+    setEditModalOpen(false);
+    loadDepartments();
   };
 
+  // ================================
+  // UI
+  // ================================
   return (
-    <div className="flex min-h-screen bg-[#fefefe]">
+    <div className="flex min-h-screen bg-[#f7f7f9]">
       <Sidebar />
 
-      <main className="flex-1 p-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* FORMULÁRIO */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="bg-white rounded-2xl shadow-lg p-6 flex flex-col gap-5"
-        >
-          <h1 className="text-3xl font-bold text-[#151E3F] mb-4">Criar novo departamento</h1>
+      <main className="flex-1 p-8">
 
-          <form onSubmit={handleCreate} className="flex flex-col gap-5">
-            <Input
-              type="text"
-              placeholder="Nome do Departamento"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
+        <Typography
+          variant="h4"
+          fontWeight={700}
+          color="#1e293b"
+          sx={{ mb: 4 }}
+        >
+          Departamentos
+        </Typography>
+
+        {/* FILTERS */}
+        <Paper
+          elevation={0}
+          sx={{
+            width: "100%",
+            p: 4,
+            mb: 4,
+            borderRadius: 3,
+            backgroundColor: "#ffffff",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+          }}
+        >
+          <Typography variant="h6" fontWeight={600} mb={3}>
+            Filtros
+          </Typography>
+
+          <Box display="flex" gap={3} alignItems="flex-end">
+            <TextField
+              label="Nome"
+              size="small"
+              value={filterName}
+              onChange={(e) => {
+                setFilterName(e.target.value);
+                setPage(1);
+              }}
+              sx={{ flex: "1 1 200px" }}
             />
 
-            {error && <p className="text-red-600 text-sm">{error}</p>}
-            {message && <p className="text-emerald-700 text-sm font-medium">{message}</p>}
+            <Button
+              size="large"
+              variant="outlined"
+              onClick={() => {
+                setFilterName("");
+                setPage(1);
+              }}
+              sx={{
+                px: 4,
+                borderColor: "#1e293b",
+                color: "#1e293b",
+              }}
+            >
+              Limpar
+            </Button>
 
             <Button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-[#232c33] hover:bg-[#3f4755] text-white font-semibold py-2 rounded-lg transition"
+              size="large"
+              onClick={() => setCreateModalOpen(true)}
+              sx={{
+                px: 4,
+                ml: "auto",
+                backgroundColor: "#1e293b",
+                color: "white",
+              }}
             >
-              {loading ? "Enviando..." : "Criar Departamento"}
+              Criar Departamento
             </Button>
-          </form>
-        </motion.div>
+          </Box>
+        </Paper>
 
         {/* TABELA */}
-        <div className="bg-white rounded-2xl shadow-lg p-6">
-          <h2 className="text-2xl font-semibold mb-4 text-[#151E3F]">Departamentos cadastrados</h2>
+        <Paper sx={{ p: 4, borderRadius: 3 }}>
 
-          <table className="w-full border-collapse text-sm">
+          <table className="w-full text-sm border-collapse">
             <thead>
-              <tr className="text-left border-b">
-                <th className="py-2">Nome</th>
-                <th className="py-2 w-24 text-center">Ações</th>
+              <tr className="bg-gray-50">
+                <th className="text-left px-4 py-3 font-semibold text-gray-700">
+                  Nome
+                </th>
               </tr>
             </thead>
+
             <tbody>
-              {departments.map((dept) => (
-                <tr
-                  key={dept.id}
-                  className="border-b hover:bg-gray-50 cursor-pointer"
-                  onClick={() => openEditModal(dept)}
-                >
-                  <td className="py-2">{dept.name}</td>
-                  <td className="py-2 text-center text-[#C16E70] font-medium">Editar</td>
+              {loadingTable && (
+                <tr>
+                  <td
+                    colSpan={1}
+                    className="py-6 text-center text-gray-500"
+                  >
+                    Carregando...
+                  </td>
                 </tr>
-              ))}
+              )}
+
+              {!loadingTable &&
+                departments.map((d) => (
+                  <tr
+                    key={d.id}
+                    className="border-b hover:bg-gray-100 cursor-pointer transition"
+                    onClick={() => openEditModal(d)}
+                  >
+                    <td className="px-4 py-3">{d.name}</td>
+                  </tr>
+                ))}
             </tbody>
           </table>
-        </div>
+
+          {/* PAGINATION */}
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+            mt={3}
+          >
+            <Typography variant="body2">
+              Página {page} de {pageCount || 1}
+            </Typography>
+
+            <Box display="flex" gap={2}>
+              <Button
+                variant="outlined"
+                size="small"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => p - 1)}
+              >
+                Anterior
+              </Button>
+
+              <Button
+                variant="outlined"
+                size="small"
+                disabled={page >= pageCount}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                Próxima
+              </Button>
+            </Box>
+          </Box>
+        </Paper>
       </main>
 
-      {/* MODAL UNIVERSAL */}
+      {/* CREATE MODAL */}
       <BaseModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        title="Editar Departamento"
-        description="Atualize as informações do departamento ou exclua o registro."
+        open={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        title="Criar Departamento"
+        description="Preencha os dados para cadastrar."
         footer={
-          <div className="flex justify-between w-full">
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Excluir
+          <div className="flex justify-end gap-2">
+            <Button variant="outlined" onClick={() => setCreateModalOpen(false)}>
+              Cancelar
             </Button>
-            <Button onClick={handleSave} disabled={loading}>
-              {loading ? "Salvando..." : "Salvar alterações"}
+            <Button
+              onClick={handleCreate}
+              sx={{ backgroundColor: "#1e293b", color: "white" }}
+            >
+              Criar
             </Button>
           </div>
         }
       >
         <div className="flex flex-col gap-4">
-          <Input
+          <TextField
+            size="small"
+            label="Nome"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </div>
+      </BaseModal>
+
+      {/* EDIT MODAL */}
+      <BaseModal
+        open={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        title="Editar Departamento"
+        description="Atualize ou remova."
+        footer={
+          <div className="flex justify-between w-full">
+            <Button color="error" variant="outlined" onClick={handleDelete}>
+              Excluir
+            </Button>
+            <Button
+              onClick={handleSave}
+              sx={{ backgroundColor: "#1e293b", color: "white" }}
+            >
+              Salvar
+            </Button>
+          </div>
+        }
+      >
+        <div className="flex flex-col gap-4">
+          <TextField
+            size="small"
+            label="Nome"
             value={editName}
             onChange={(e) => setEditName(e.target.value)}
-            placeholder="Nome"
           />
         </div>
       </BaseModal>

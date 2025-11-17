@@ -13,8 +13,13 @@ export function useDepartments() {
   const [error, setError] = useState<string | null>(null);
   const companyId = localStorage.getItem("companyId");
 
-  async function listDepartments(): Promise<Department[]> {
-    const { data } = await api.get(`/departments?companyId=${companyId}`);
+  async function listDepartments(params: any): Promise<Department[]> {
+    const { data } = await api.get(`/departments?companyId=${companyId}`, { params });
+    return data;
+  }
+
+  async function listDistinctDepartments(): Promise<Department[]> {
+    const { data } = await api.get(`/departments/distinct?companyId=${companyId}`);
     return data;
   }
 
@@ -41,5 +46,5 @@ export function useDepartments() {
     await api.delete(`/departments/${id}?companyId=${companyId}`);
   }
 
-  return { listDepartments, createDepartment, updateDepartment, deleteDepartment, loading, error };
+  return { listDepartments, listDistinctDepartments, createDepartment, updateDepartment, deleteDepartment, loading, error };
 }

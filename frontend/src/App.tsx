@@ -20,6 +20,7 @@ import KpiReview from "./pages/manager/kpi/KpiReview";
 import TeamKpis from "./pages/manager/TeamKpis";
 import OrgChart from "./pages/admin/OrgChart";
 import EmployeeDashboard from "./pages/employee/EmployeeDashboard";
+import TeamDashboardTabs from "./pages/manager/TeamDashboardTabs";
 
 export default function App() {
   return (
@@ -51,6 +52,7 @@ export default function App() {
             <Route path="/manager/employee-kpis" element={<EmployeeKpis />} />
             <Route path="/manager/team-kpis" element={<TeamKpis />} />
             <Route path="/manager/kpi-review" element={<KpiReview />} />
+            <Route path="/manager/team-dashboard" element={<TeamDashboardTabs />} />
           </Route>
           
           <Route element={<ProtectedRoute requiredLevel={1} redirectTo="/employee/employee-kpis"/>}>

@@ -4,6 +4,7 @@ import { CreateEmployeeKpiEvolutionDto } from '../dto/employee-kpi-evolution/cre
 import { UpdateEmployeeKpiEvolutionDto } from '../dto/employee-kpi-evolution/update-employee-kpi-evolution.dto';
 import { EmployeeKPIEvolution } from '../entities/employee-kpi-evolution.entity';
 import { KpiStatus } from '../entities/kpi.enums';
+import { EmployeeKpiEvolutionQueryDto } from '../dto/employee-kpi-evolution/employee-kpi-evolution-query.dto';
 
 @Controller('kpi/employee-kpi-evolutions')
 @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
@@ -18,11 +19,9 @@ export class EmployeeKpiEvolutionsController {
   @Get()
   findAll(
     @Req() req: any,
-    @Query('employeeId') employeeId?: string,
-    @Query('employeeKpiId') employeeKpiId?: string,
-    @Query('status') status?: KpiStatus,
-  ): Promise<EmployeeKPIEvolution[]> {
-    return this.service.findAll(req.user, { employeeId, employeeKpiId, status });
+    @Query() query : EmployeeKpiEvolutionQueryDto,
+  ) {
+    return this.service.findAll(req.user, query);
   }
 
   @Get(':id')

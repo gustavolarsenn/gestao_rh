@@ -20,22 +20,8 @@ export class TeamKpisController {
   findAll(
     @Query() query: TeamKPIQueryDto,
     @Req() req: any,
-  ): Promise<TeamKPI[]> {
-const user = req.user;
-
-    if (user.role === 'superAdmin') {
-      return this.service.findAll(query);
-    }
-
-    if (user.role === 'admin') {
-      return this.service.findByCompany(user.companyId, query);
-    }
-
-    if (user.role === 'gestor') {
-      return this.service.findByTeam(user.companyId, user.teamId, query);
-    }
-
-    throw new ForbiddenException('Role não autorizada');  
+  ) {
+    return this.service.findAll(req.user, query);
   }
 
   @Get(':id')

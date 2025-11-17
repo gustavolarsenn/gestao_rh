@@ -5,10 +5,12 @@ import { BaseModal } from "@/components/modals/BaseModal";
 import { useTeamKpis } from "@/hooks/team-kpi/useTeamKpis";
 import { useTeamKpiEvolutions } from "@/hooks/team-kpi/useTeamKpiEvolutions";
 import { rateKPI } from "@/utils/rateKPI";
+import { Paper, Typography } from "@mui/material";
 
 export default function TeamKpiReviewSection() {
   const { listTeamKpis } = useTeamKpis();
-  const { listTeamKpiEvolutions, updateTeamKpiEvolution } = useTeamKpiEvolutions();
+  const { listTeamKpiEvolutions, updateTeamKpiEvolution } =
+    useTeamKpiEvolutions();
 
   const [teamKpis, setTeamKpis] = useState<any[]>([]);
   const [teamEvols, setTeamEvols] = useState<any[]>([]);
@@ -21,18 +23,26 @@ export default function TeamKpiReviewSection() {
 
   useEffect(() => {
     async function fetchData() {
-      const [kpis, evols] = await Promise.all([listTeamKpis(), listTeamKpiEvolutions()]);
-      setTeamKpis(kpis);
-      setTeamEvols(evols);
+      const [kpis, evols] = await Promise.all([
+        listTeamKpis(),
+        listTeamKpiEvolutions(),
+      ]);
+
+      setTeamKpis((kpis as any)?.data || kpis || []);
+      setTeamEvols((evols as any)?.data || evols || []);
     }
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const teams = Array.from(new Map(teamKpis.map((k) => [k.teamId, k.team])).values());
+  const teams = Array.from(
+    new Map(teamKpis.map((k) => [k.teamId, k.team])).values()
+  );
 
   async function handleApprove(ev: any) {
     await updateTeamKpiEvolution(ev.id, { status: "APPROVED" });
-    setTeamEvols(await listTeamKpiEvolutions());
+    const updated = await listTeamKpiEvolutions();
+    setTeamEvols((updated as any)?.data || updated || []);
   }
 
   async function handleReject(ev: any) {
@@ -46,14 +56,30 @@ export default function TeamKpiReviewSection() {
       status: "REJECTED",
       rejectionReason,
     });
-    setTeamEvols(await listTeamKpiEvolutions());
+    const updated = await listTeamKpiEvolutions();
+    setTeamEvols((updated as any)?.data || updated || []);
     setModalOpen(false);
     setRejectionReason("");
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-6">
-      <h2 className="text-2xl font-semibold text-[#151E3F] mb-4">KPIs de Times</h2>
+    <Paper
+      elevation={0}
+      sx={{
+        p: 4,
+        borderRadius: 3,
+        backgroundColor: "#ffffff",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+      }}
+    >
+      <Typography
+        variant="h6"
+        fontWeight={600}
+        color="#151E3F"
+        sx={{ mb: 3 }}
+      >
+        KPIs de Times
+      </Typography>
 
       <table className="w-full text-sm border-collapse">
         <thead>
@@ -67,6 +93,7 @@ export default function TeamKpiReviewSection() {
           {teams.map((team) => {
             const tKpis = teamKpis.filter((k) => k.teamId === team.id);
             const isExpanded = expandedTeamId === team.id;
+
             return (
               <React.Fragment key={team.id}>
                 <tr className="border-b hover:bg-gray-50">
@@ -112,6 +139,7 @@ export default function TeamKpiReviewSection() {
                                   (e) => e.teamKpiId === kpi.id
                                 );
                                 const expanded = expandedKpiId === kpi.id;
+
                                 return (
                                   <React.Fragment key={kpi.id}>
                                     <tr className="border-b">
@@ -130,9 +158,13 @@ export default function TeamKpiReviewSection() {
                                           }`}
                                         />
                                       </td>
-                                      <td className="p-2">{kpi.kpi?.name}</td>
+                                      <td className="p-2">
+                                        {kpi.kpi?.name ?? "—"}
+                                      </td>
                                       <td className="p-2">{kpi.goal}</td>
-                                      <td className="p-2">{kpi.achievedValue}</td>
+                                      <td className="p-2">
+                                        {kpi.achievedValue ?? "—"}
+                                      </td>
                                       <td className="p-2 text-center">
                                         <Button
                                           size="sm"
@@ -155,31 +187,54 @@ export default function TeamKpiReviewSection() {
                                         exit={{ opacity: 0 }}
                                         transition={{ duration: 0.25 }}
                                       >
-                                        <td colSpan={5} className="p-2 px-4 bg-gray-100">
+                                        <td
+                                          colSpan={5}
+                                          className="p-2 px-4 bg-gray-100"
+                                        >
                                           {evols.length > 0 ? (
                                             <table className="w-full text-xs bg-white rounded shadow-sm">
                                               <thead>
                                                 <tr className="bg-gray-100 text-left">
-                                                  <th className="p-2">Valor / Observação</th>
+                                                  <th className="p-2">
+                                                    Valor / Observação
+                                                  </th>
                                                   <th className="p-2">Status</th>
                                                   <th className="p-2">Data</th>
-                                                  <th className="p-2 text-center">Ações</th>
+                                                  <th className="p-2 text-center">
+                                                    Ações
+                                                  </th>
                                                 </tr>
                                               </thead>
                                               <tbody>
                                                 {evols.map((ev) => (
-                                                  <tr key={ev.id} className="border-t">
-                                                    <td className="p-2">{ev.achievedValueEvolution}</td>
-                                                    <td className="p-2">{ev.status}</td>
+                                                  <tr
+                                                    key={ev.id}
+                                                    className="border-t"
+                                                  >
                                                     <td className="p-2">
-                                                      {new Date(ev.submittedDate).toLocaleDateString()}
+                                                      {
+                                                        ev.achievedValueEvolution
+                                                      }
+                                                    </td>
+                                                    <td className="p-2">
+                                                      {ev.status}
+                                                    </td>
+                                                    <td className="p-2">
+                                                      {ev.submittedDate
+                                                        ? new Date(
+                                                            ev.submittedDate
+                                                          ).toLocaleDateString()
+                                                        : "—"}
                                                     </td>
                                                     <td className="p-2 text-center">
-                                                      {ev.status === "SUBMITTED" && (
+                                                      {ev.status ===
+                                                        "SUBMITTED" && (
                                                         <div className="flex gap-2 justify-center">
                                                           <Button
                                                             size="sm"
-                                                            onClick={() => handleApprove(ev)}
+                                                            onClick={() =>
+                                                              handleApprove(ev)
+                                                            }
                                                             className="bg-emerald-600 hover:bg-emerald-700 text-white"
                                                           >
                                                             Aprovar
@@ -187,7 +242,9 @@ export default function TeamKpiReviewSection() {
                                                           <Button
                                                             size="sm"
                                                             variant="destructive"
-                                                            onClick={() => handleReject(ev)}
+                                                            onClick={() =>
+                                                              handleReject(ev)
+                                                            }
                                                           >
                                                             Rejeitar
                                                           </Button>
@@ -213,7 +270,7 @@ export default function TeamKpiReviewSection() {
                           </table>
                         ) : (
                           <p className="text-gray-500 text-sm italic">
-                            Nenhum KPI atribuído.
+                            Nenhum KPI atribuída.
                           </p>
                         )}
                       </td>
@@ -248,6 +305,6 @@ export default function TeamKpiReviewSection() {
           className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm min-h-[100px]"
         />
       </BaseModal>
-    </div>
+    </Paper>
   );
 }

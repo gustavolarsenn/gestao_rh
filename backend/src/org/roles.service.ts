@@ -1,10 +1,12 @@
 // src/org/roles.service.ts
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { ILike, Repository } from 'typeorm';
 import { Role } from './entities/role.entity';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
+import { RoleQueryDto } from './dto/role-query.dto';
+import { applyScope } from '../common/utils/scoped-query.util';
 
 @Injectable()
 export class RolesService {
@@ -15,8 +17,30 @@ export class RolesService {
     return this.repo.save(entity);
   }
 
-  async findAll(companyId: string): Promise<Role[]> {
-    return this.repo.find({ where: { companyId }, relations: ['roleType', 'department'] });
+  async findAll(user: any, query: RoleQueryDto) {
+    const where = applyScope(user, {}, { company: true, team: false, employee: false, department: true });
+    
+    if (query.name) {
+      where['name'] = ILike(`%${query.name}%`);
+    }
+    if (query.roleTypeId) {
+      where['roleTypeId'] = query.roleTypeId;
+    }
+    if (query.departmentId) {
+      where['departmentId'] = query.departmentId;
+    }
+
+    const page = Math.max(1, Number(query.page ?? 1));
+    const limit = Math.max(1, Number(query.limit ?? 10));
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await this.repo.findAndCount({ where, skip, take: limit });
+    return { page, limit, total, data };
+  }
+
+  async findDistinctRoles(user: any) {
+    const where = applyScope(user, {}, { company: true, team: false, employee: false, department: true });
+    return await this.repo.find({ where });
   }
 
   async findOne(companyId: string, id: string): Promise<Role> {

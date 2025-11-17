@@ -33,8 +33,15 @@ export function useBranches() {
     }
   }
 
-  async function listBranches(): Promise<Branch[]> {
+  async function listBranches(params: any): Promise<Branch[]> {
     const { data } = await api.get<Branch[]>("/branches", {
+      params: { companyId, ...params },
+    });
+    return data;
+  }
+
+  async function listDistinctBranches(): Promise<Branch[]> {
+    const { data } = await api.get<Branch[]>("/branches/distinct", {
       params: { companyId },
     });
     return data;
@@ -48,5 +55,5 @@ export function useBranches() {
     await api.delete(`/branches/${id}`);
   }
 
-  return { createBranch, listBranches, updateBranch, deleteBranch, loading, error };
+  return { createBranch, listBranches, listDistinctBranches, updateBranch, deleteBranch, loading, error };
 }

@@ -3,6 +3,7 @@ import { KpisService } from './kpis.service';
 import { CreateKpiDto } from './dto/kpi/create-kpi.dto';
 import { UpdateKpiDto } from './dto/kpi/update-kpi.dto';
 import { KPI } from './entities/kpi.entity';
+import { KPIQueryDto } from './dto/kpi/kpi-query.dto';
 
 @Controller('kpi/kpis')
 @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
@@ -16,8 +17,13 @@ export class KpisController {
 
   @Get()
   findAll(
-    @Req() req: any): Promise<KPI[]> {
-    return this.service.findAll(req.user);
+    @Req() req: any, @Query() query: KPIQueryDto) {
+    return this.service.findAll(req.user, query);
+  }
+
+  @Get('/distinct')
+  findDistinctKpis(@Req() req: any) {
+    return this.service.findDistinctKpis(req.user);
   }
 
   @Get(':id')

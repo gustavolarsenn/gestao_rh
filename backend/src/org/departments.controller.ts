@@ -8,6 +8,7 @@ import { DepartmentsService } from './departments.service';
 import { CreateDepartmentDto } from './dto/create-department.dto';
 import { UpdateDepartmentDto } from './dto/update-department.dto';
 import { Department } from './entities/department.entity';
+import { DepartmentQueryDto } from './dto/department-query.dto';
 
 @Controller('departments')
 @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
@@ -21,8 +22,14 @@ export class DepartmentsController {
 
   @Get()
   findAll(
-    @Req() req: any): Promise<Department[]> {
-    return this.service.findAll(req.user);
+    @Req() req: any, @Query() query: DepartmentQueryDto) {
+    return this.service.findAll(req.user, query);
+  }
+  
+  @Get('/distinct')
+  findDistinct(
+    @Req() req: any) {
+    return this.service.findDistinctDepartments(req.user);
   }
 
   @Get(':id')

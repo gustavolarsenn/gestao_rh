@@ -39,10 +39,12 @@ export class EmployeeKpisService {
       where.periodStart = Between(query.periodStart, query.periodEnd);
     }
 
-    return this.repo.find({
-      where,
-      relations: ['employee', 'employee.person', 'kpi', 'kpi.evaluationType'],
-    });
+    const page = Math.max(1, Number(query.page ?? 1));
+    const limit = Math.max(1, Number(query.limit ?? 10));
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await this.repo.findAndCount({ where, relations: ['employee', 'employee.person', 'kpi', 'kpi.evaluationType'], skip, take: limit });
+    return { page, limit, total, data };
   }
 
   async findOne(companyId: string, id: string): Promise<EmployeeKPI> {

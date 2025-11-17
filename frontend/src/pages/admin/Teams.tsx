@@ -1,8 +1,17 @@
+// src/pages/admin/Teams.tsx
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import Sidebar from "@/components/Sidebar";
+import {
+  Typography,
+  Paper,
+  Box,
+  TextField,
+  Button,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+} from "@mui/material";
 import { BaseModal } from "@/components/modals/BaseModal";
 
 import { useTeams, Team } from "@/hooks/team/useTeams";
@@ -10,42 +19,100 @@ import { useTeamMembers, TeamMember } from "@/hooks/team-member/useTeamMembers";
 import { format } from "date-fns";
 
 export default function TeamsPage() {
-  const { listTeams, createTeam, updateTeam, deleteTeam, loading, error } = useTeams();
+  const {
+    listTeams,
+    listDistinctTeams,
+    createTeam,
+    updateTeam,
+    deleteTeam,
+    loading,
+    error,
+  } = useTeams();
   const { listTeamMembers, updateTeamMember } = useTeamMembers();
 
+  // ======================================================
+  // STATES
+  // ======================================================
   const [teams, setTeams] = useState<Team[]>([]);
+  const [allTeamsOptions, setAllTeamsOptions] = useState<Team[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [filteredMembers, setFilteredMembers] = useState<TeamMember[]>([]);
   const [filterStatus, setFilterStatus] = useState<"ativos" | "inativos" | "todos">("ativos");
 
-  // Formulário
+  // pagination (backend)
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10);
+  const [total, setTotal] = useState(0);
+  const pageCount = Math.ceil(total / limit) || 1;
+
+  // filters (backend)
+  const [filterName, setFilterName] = useState("");
+  const [filterParentTeamId, setFilterParentTeamId] = useState("");
+
+  const [loadingTable, setLoadingTable] = useState(false);
+  const [message, setMessage] = useState("");
+
+  // CREATE MODAL
+  const [createModalOpen, setCreateModalOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [parentTeamId, setParentTeamId] = useState("");
-  const [message, setMessage] = useState("");
 
-  // Modal
+  // EDIT MODAL
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
-  const [modalOpen, setModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
   const [editName, setEditName] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editParentTeamId, setEditParentTeamId] = useState("");
 
-  // 🔹 Carregar dados
+  // ======================================================
+  // LOAD STATIC DATA (distinct teams, members)
+  // ======================================================
   useEffect(() => {
-    async function fetchData() {
-      const [t, tm] = await Promise.all([listTeams(), listTeamMembers()]);
-      setTeams(t);
-      setTeamMembers(tm);
+    async function loadStatic() {
+      const [distinct, members] = await Promise.all([
+        listDistinctTeams(),
+        listTeamMembers(),
+      ]);
+
+      setAllTeamsOptions(distinct || []);
+      setTeamMembers(members || []);
     }
-    fetchData();
+    loadStatic();
   }, []);
 
-  // 🔹 Filtrar membros conforme status
+  // ======================================================
+  // LOAD TEAMS (pagination + backend filters)
+  // ======================================================
+  async function loadTeams() {
+    setLoadingTable(true);
+
+    const result = await listTeams({
+      page,
+      limit,
+      name: filterName || undefined,
+      parentTeamId: filterParentTeamId || undefined,
+    });
+
+    // assumindo mesmo formato de retorno de Roles: { data, total }
+    setTeams(result.data);
+    setTotal(result.total);
+
+    setLoadingTable(false);
+  }
+
+  useEffect(() => {
+    loadTeams();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, filterName, filterParentTeamId]);
+
+  // ======================================================
+  // FILTER MEMBERS BY STATUS (frontend, só dentro do time selecionado)
+  // ======================================================
   useEffect(() => {
     if (!selectedTeam) return;
-    const members = teamMembers.filter((m) => m.teamId === selectedTeam.id);
 
+    const members = teamMembers.filter((m) => m.teamId === selectedTeam.id);
     const now = new Date();
     let filtered = members;
 
@@ -58,9 +125,10 @@ export default function TeamsPage() {
     setFilteredMembers(filtered);
   }, [filterStatus, selectedTeam, teamMembers]);
 
-  // 🔹 Criar time
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // ======================================================
+  // CREATE TEAM
+  // ======================================================
+  const handleCreate = async () => {
     setMessage("");
     try {
       const newTeam = await createTeam({
@@ -68,29 +136,45 @@ export default function TeamsPage() {
         description,
         parentTeamId: parentTeamId || null,
       });
-      setTeams((prev) => [...prev, newTeam]);
+
+      // reload lista paginada (vai respeitar filtros atuais)
+      setPage(1);
+      loadTeams();
+
+      // atualiza opções de time pai
+      setAllTeamsOptions((prev) => {
+        if (prev.some((t) => t.id === newTeam.id)) return prev;
+        return [...prev, newTeam];
+      });
+
       setMessage(`Time "${name}" criado com sucesso!`);
       setName("");
       setDescription("");
       setParentTeamId("");
+      setCreateModalOpen(false);
     } catch (err) {
       console.error(err);
     }
   };
 
-  // 🔹 Abrir modal + carregar membros do time
+  // ======================================================
+  // OPEN EDIT MODAL
+  // ======================================================
   const openEditModal = (team: Team) => {
     setSelectedTeam(team);
     setEditName(team.name);
     setEditDescription(team.description || "");
     setEditParentTeamId(team.parentTeamId || "");
+
     const members = teamMembers.filter((m) => m.teamId === team.id);
     setFilteredMembers(members);
     setFilterStatus("ativos");
-    setModalOpen(true);
+    setEditModalOpen(true);
   };
 
-  // 🔹 Atualizar
+  // ======================================================
+  // UPDATE TEAM
+  // ======================================================
   const handleSave = async () => {
     if (!selectedTeam) return;
     const updated = await updateTeam(selectedTeam.id, {
@@ -98,251 +182,434 @@ export default function TeamsPage() {
       description: editDescription,
       parentTeamId: editParentTeamId || null,
     });
+
     setTeams((prev) => prev.map((t) => (t.id === selectedTeam.id ? updated : t)));
-    setModalOpen(false);
+
+    setAllTeamsOptions((prev) => {
+      const exists = prev.some((t) => t.id === updated.id);
+      if (!exists) return [...prev, updated];
+      return prev.map((t) => (t.id === updated.id ? updated : t));
+    });
+
+    setEditModalOpen(false);
   };
 
-  // 🔹 Excluir
+  // ======================================================
+  // DELETE TEAM
+  // ======================================================
   const handleDelete = async () => {
     if (!selectedTeam) return;
     await deleteTeam(selectedTeam.id);
     setTeams((prev) => prev.filter((t) => t.id !== selectedTeam.id));
-    setModalOpen(false);
+    setEditModalOpen(false);
+    // opcional: recarregar contagem total
+    loadTeams();
   };
 
-  // 🔹 Designar líder
+  // ======================================================
+  // MAKE LEADER
+  // ======================================================
   const handleMakeLeader = async (member: TeamMember) => {
     if (!member) return;
     try {
       await updateTeamMember(member.id, { isLeader: true });
       const updatedMembers = await listTeamMembers(selectedTeam?.id);
-      setTeamMembers(updatedMembers);
+      setTeamMembers(updatedMembers || []);
     } catch (err) {
       console.error("Erro ao definir líder:", err);
     }
   };
+
+  // Helper para pegar nome do time pai
+  const getParentTeamName = (parentId?: string | null) => {
+    if (!parentId) return "—";
+    return allTeamsOptions.find((t) => t.id === parentId)?.name || "—";
+  };
+
+  // ======================================================
+  // UI
+  // ======================================================
   return (
-    <div className="flex min-h-screen bg-[#fefefe]">
+    <div className="flex min-h-screen bg-[#f7f7f9]">
       <Sidebar />
 
-      <main className="flex-1 p-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* FORMULÁRIO */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="bg-white rounded-2xl shadow-lg p-6 flex flex-col gap-5"
-        >
-          <h1 className="text-3xl font-bold text-[#151E3F] mb-4">Criar Time</h1>
+      <main className="flex-1 p-8">
+        {/* TITLE */}
+        <Typography variant="h4" fontWeight={700} color="#1e293b" sx={{ mb: 4 }}>
+          Times
+        </Typography>
 
-          <form onSubmit={handleCreate} className="flex flex-col gap-5">
-            <Input
-              type="text"
-              placeholder="Nome do Time (ex: Equipe de TI)"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
+        {message && (
+          <Typography variant="body2" sx={{ mb: 2 }} color="success.main">
+            {message}
+          </Typography>
+        )}
+
+        {error && (
+          <Typography variant="body2" sx={{ mb: 2 }} color="error.main">
+            {error}
+          </Typography>
+        )}
+
+        {/* FILTER PANEL */}
+        <Paper
+          sx={{
+            width: "100%",
+            p: 4,
+            mb: 4,
+            borderRadius: 3,
+            backgroundColor: "#ffffff",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+          }}
+        >
+          <Typography variant="h6" fontWeight={600} mb={3}>
+            Filtros
+          </Typography>
+
+          <Box display="flex" gap={3} flexWrap="wrap" alignItems="flex-end">
+            <TextField
+              size="small"
+              label="Nome"
+              value={filterName}
+              onChange={(e) => {
+                setFilterName(e.target.value);
+                setPage(1);
+              }}
+              sx={{ flex: "1 1 200px" }}
             />
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Descrição</label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Descreva brevemente o propósito do time..."
-                className="w-full border border-[#232c33] rounded-md px-3 py-2 text-sm focus:ring-[#C16E70] min-h-[80px]"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Time Pai</label>
-              <select
-                value={parentTeamId}
-                onChange={(e) => setParentTeamId(e.target.value)}
-                required
-                className="w-full border border-[#232c33] rounded-md px-3 py-2 text-sm focus:ring-[#C16E70]"
+            <FormControl size="small" sx={{ flex: "1 1 200px" }}>
+              <InputLabel>Time Pai</InputLabel>
+              <Select
+                label="Time Pai"
+                value={filterParentTeamId}
+                onChange={(e) => {
+                  setFilterParentTeamId(e.target.value);
+                  setPage(1);
+                }}
               >
-                <option value="">Selecione</option>
-                {teams.map((t) => (
-                  <option key={t.id} value={t.id}>
+                <MenuItem value="">Todos</MenuItem>
+                {allTeamsOptions.map((t) => (
+                  <MenuItem key={t.id} value={t.id}>
                     {t.name}
-                  </option>
+                  </MenuItem>
                 ))}
-              </select>
-            </div>
-
-            {error && <p className="text-red-600 text-sm">{error}</p>}
-            {message && (
-              <p className="text-emerald-700 text-sm font-medium">{message}</p>
-            )}
+              </Select>
+            </FormControl>
 
             <Button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-[#232c33] hover:bg-[#3f4755] text-white font-semibold py-2 rounded-lg transition"
+              size="large"
+              variant="outlined"
+              sx={{
+                px: 4,
+                borderColor: "#1e293b",
+                color: "#1e293b",
+                textTransform: "none",
+                fontWeight: 600,
+              }}
+              onClick={() => {
+                setFilterName("");
+                setFilterParentTeamId("");
+                setPage(1);
+              }}
             >
-              {loading ? "Enviando..." : "Criar Time"}
+              Limpar
             </Button>
-          </form>
-        </motion.div>
 
-        {/* LISTAGEM */}
-        <div className="bg-white rounded-2xl shadow-lg p-6">
-          <h2 className="text-2xl font-semibold mb-4 text-[#151E3F]">
-            Times Cadastrados
-          </h2>
+            <Button
+              size="large"
+              sx={{
+                px: 4,
+                ml: "auto",
+                backgroundColor: "#1e293b",
+                color: "white",
+                textTransform: "none",
+                fontWeight: 600,
+              }}
+              onClick={() => setCreateModalOpen(true)}
+            >
+              Criar Time
+            </Button>
+          </Box>
+        </Paper>
 
-          <table className="w-full border-collapse text-sm">
+        {/* TABLE */}
+        <Paper sx={{ p: 4, borderRadius: 3 }}>
+          <table className="w-full text-sm border-collapse">
             <thead>
-              <tr className="text-left border-b">
-                <th className="py-2">Nome</th>
-                <th className="py-2">Descrição</th>
-                <th className="py-2">Time Pai</th>
-                <th className="py-2 w-24 text-center">Ações</th>
+              <tr className="bg-gray-50">
+                <th className="text-left px-4 py-3 font-semibold text-gray-700">Nome</th>
+                <th className="text-left px-4 py-3 font-semibold text-gray-700">
+                  Descrição
+                </th>
+                <th className="text-left px-4 py-3 font-semibold text-gray-700">
+                  Time Pai
+                </th>
               </tr>
             </thead>
+
             <tbody>
-              {teams.map((team) => (
-                <tr
-                  key={team.id}
-                  className="border-b hover:bg-gray-50 cursor-pointer"
-                  onClick={() => openEditModal(team)}
-                >
-                  <td className="py-2">{team.name}</td>
-                  <td className="py-2 text-slate-700">{team.description || "—"}</td>
-                  <td className="py-2 text-slate-700">
-                    {teams.find((t) => t.id === team.parentTeamId)?.name || "—"}
-                  </td>
-                  <td className="py-2 text-center text-[#C16E70] font-medium">
-                    Editar
+              {loadingTable ? (
+                <tr>
+                  <td colSpan={3} className="py-6 text-center text-gray-500">
+                    Carregando...
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </main>
-
-      {/* MODAL */}
-      <BaseModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        title="Editar Time"
-        description="Atualize informações ou veja os membros vinculados."
-        footer={
-          <div className="flex justify-between w-full">
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Excluir
-            </Button>
-            <Button onClick={handleSave} disabled={loading}>
-              {loading ? "Salvando..." : "Salvar alterações"}
-            </Button>
-          </div>
-        }
-      >
-        <div className="flex flex-col gap-4">
-          <Input
-            value={editName}
-            onChange={(e) => setEditName(e.target.value)}
-            placeholder="Nome do Time"
-          />
-          <div>
-            <label className="block text-sm font-medium mb-1">Descrição</label>
-            <textarea
-              value={editDescription}
-              onChange={(e) => setEditDescription(e.target.value)}
-              placeholder="Descreva brevemente o propósito do time..."
-              className="w-full border border-[#232c33] rounded-md px-3 py-2 text-sm focus:ring-[#C16E70] min-h-[80px]"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Time Pai</label>
-            <select
-              value={editParentTeamId}
-              onChange={(e) => setEditParentTeamId(e.target.value)}
-              className="w-full border border-[#232c33] rounded-md px-3 py-2 text-sm focus:ring-[#C16E70]"
-            >
-              <option value="">Selecione</option>
-              {teams
-                .filter((t) => t.id !== selectedTeam?.id)
-                .map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name}
-                  </option>
-                ))}
-            </select>
-          </div>
-
-          {/* 🔹 Filtro de membros */}
-          <div className="flex items-center justify-between mt-4">
-            <h3 className="font-semibold text-sm text-[#151E3F]">Membros do Time</h3>
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value as any)}
-              className="border border-[#232c33] rounded-md px-2 py-1 text-sm"
-            >
-              <option value="ativos">Ativos</option>
-              <option value="inativos">Inativos</option>
-              <option value="todos">Todos</option>
-            </select>
-          </div>
-
-          {/* Lista de membros */}
-          {filteredMembers.length === 0 ? (
-            <p className="text-slate-500 text-sm">Nenhum membro encontrado.</p>
-          ) : (
-            <table className="w-full border-collapse text-sm mt-2">
-              <thead>
-                <tr className="border-b text-left">
-                  <th className="py-2">Nome</th>
-                  <th className="py-2">Entrada</th>
-                  <th className="py-2">Saída</th>
-                  <th className="py-2 text-center">Líder</th>
-                  <th className="py-2 text-center">Ações</th>
+              ) : teams.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="py-6 text-center text-gray-500">
+                    Nenhum time encontrado.
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {filteredMembers.map((m) => (
-                  <tr key={m.id} className="border-b">
-                    <td className="py-2">{m.employee?.person?.name || "—"}</td>
-                    <td className="py-2">
-                      {m.startDate
-                        ? format(new Date(m.startDate), "dd/MM/yyyy")
-                        : "—"}
+              ) : (
+                teams.map((team) => (
+                  <tr
+                    key={team.id}
+                    className="border-b hover:bg-gray-100 cursor-pointer transition"
+                    onClick={() => openEditModal(team)}
+                  >
+                    <td className="px-4 py-3">{team.name}</td>
+                    <td className="px-4 py-3 text-slate-700">
+                      {team.description || "—"}
                     </td>
-                    <td className="py-2">
-                      {m.endDate ? format(new Date(m.endDate), "dd/MM/yyyy") : "—"}
-                    </td>
-                    <td className="py-2 text-center">
-                      {m.isLeader ? (
-                        <span className="text-emerald-600 font-semibold">Sim</span>
-                      ) : (
-                        "Não"
-                      )}
-                    </td>
-                    <td className="py-2 text-center">
-                      {!m.isLeader && (
-                        <Button
-                          size="sm"
-                          className="bg-[#232c33] hover:bg-[#3f4755] text-white"
-                          onClick={() => handleMakeLeader(m)}
-                        >
-                          Tornar Líder
-                        </Button>
-                      )}
+                    <td className="px-4 py-3 text-slate-700">
+                      {getParentTeamName(team.parentTeamId)}
                     </td>
                   </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+
+          {/* PAGINATION */}
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+            mt={3}
+          >
+            <Typography variant="body2">
+              Página {page} de {pageCount}
+            </Typography>
+
+            <Box display="flex" gap={2}>
+              <Button
+                variant="outlined"
+                size="small"
+                disabled={page <= 1}
+                onClick={() => setPage((prev) => prev - 1)}
+              >
+                Anterior
+              </Button>
+              <Button
+                variant="outlined"
+                size="small"
+                disabled={page >= pageCount}
+                onClick={() => setPage((prev) => prev + 1)}
+              >
+                Próxima
+              </Button>
+            </Box>
+          </Box>
+        </Paper>
+
+        {/* ===================== CREATE MODAL ===================== */}
+        <BaseModal
+          open={createModalOpen}
+          onClose={() => setCreateModalOpen(false)}
+          title="Criar Time"
+          description="Preencha os dados."
+          footer={
+            <div className="flex justify-end gap-2">
+              <Button variant="outlined" onClick={() => setCreateModalOpen(false)}>
+                Cancelar
+              </Button>
+              <Button
+                sx={{ backgroundColor: "#1e293b", color: "white" }}
+                onClick={handleCreate}
+                disabled={!name}
+              >
+                Criar
+              </Button>
+            </div>
+          }
+        >
+          <div className="flex flex-col gap-4">
+            <TextField
+              size="small"
+              label="Nome do Time"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+
+            <TextField
+              size="small"
+              label="Descrição"
+              multiline
+              minRows={3}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+
+            <FormControl size="small" fullWidth>
+              <InputLabel>Time Pai</InputLabel>
+              <Select
+                label="Time Pai"
+                value={parentTeamId}
+                onChange={(e) => setParentTeamId(e.target.value)}
+              >
+                <MenuItem value="">Nenhum</MenuItem>
+                {allTeamsOptions.map((t) => (
+                  <MenuItem key={t.id} value={t.id}>
+                    {t.name}
+                  </MenuItem>
                 ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </BaseModal>
+              </Select>
+            </FormControl>
+          </div>
+        </BaseModal>
+
+        {/* ===================== EDIT MODAL ===================== */}
+        <BaseModal
+          open={editModalOpen}
+          onClose={() => setEditModalOpen(false)}
+          title="Editar Time"
+          description="Atualize informações ou veja os membros vinculados."
+          footer={
+            <div className="flex justify-between w-full">
+              <Button variant="outlined" color="error" onClick={handleDelete}>
+                Excluir
+              </Button>
+              <Button
+                sx={{ backgroundColor: "#1e293b", color: "white" }}
+                onClick={handleSave}
+                disabled={!editName}
+              >
+                Salvar
+              </Button>
+            </div>
+          }
+        >
+          <div className="flex flex-col gap-4">
+            <TextField
+              size="small"
+              label="Nome do Time"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+            />
+
+            <TextField
+              size="small"
+              label="Descrição"
+              multiline
+              minRows={3}
+              value={editDescription}
+              onChange={(e) => setEditDescription(e.target.value)}
+            />
+
+            <FormControl size="small" fullWidth>
+              <InputLabel>Time Pai</InputLabel>
+              <Select
+                label="Time Pai"
+                value={editParentTeamId}
+                onChange={(e) => setEditParentTeamId(e.target.value)}
+              >
+                <MenuItem value="">Nenhum</MenuItem>
+                {allTeamsOptions
+                  .filter((t) => t.id !== selectedTeam?.id)
+                  .map((t) => (
+                    <MenuItem key={t.id} value={t.id}>
+                      {t.name}
+                    </MenuItem>
+                  ))}
+              </Select>
+            </FormControl>
+
+            {/* Filtro de membros */}
+            <Box
+              display="flex"
+              justifyContent="space-between"
+              alignItems="center"
+              mt={2}
+            >
+              <Typography variant="subtitle2" fontWeight={600}>
+                Membros do Time
+              </Typography>
+
+              <FormControl size="small" sx={{ minWidth: 140 }}>
+                <InputLabel>Status</InputLabel>
+                <Select
+                  label="Status"
+                  value={filterStatus}
+                  onChange={(e) =>
+                    setFilterStatus(e.target.value as "ativos" | "inativos" | "todos")
+                  }
+                >
+                  <MenuItem value="ativos">Ativos</MenuItem>
+                  <MenuItem value="inativos">Inativos</MenuItem>
+                  <MenuItem value="todos">Todos</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+
+            {filteredMembers.length === 0 ? (
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                Nenhum membro encontrado.
+              </Typography>
+            ) : (
+              <table className="w-full border-collapse text-sm mt-2">
+                <thead>
+                  <tr className="border-b text-left">
+                    <th className="py-2 px-2">Nome</th>
+                    <th className="py-2 px-2">Entrada</th>
+                    <th className="py-2 px-2">Saída</th>
+                    <th className="py-2 px-2 text-center">Líder</th>
+                    <th className="py-2 px-2 text-center">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredMembers.map((m) => (
+                    <tr key={m.id} className="border-b">
+                      <td className="py-2 px-2">
+                        {m.employee?.person?.name || "—"}
+                      </td>
+                      <td className="py-2 px-2">
+                        {m.startDate
+                          ? format(new Date(m.startDate), "dd/MM/yyyy")
+                          : "—"}
+                      </td>
+                      <td className="py-2 px-2">
+                        {m.endDate
+                          ? format(new Date(m.endDate), "dd/MM/yyyy")
+                          : "—"}
+                      </td>
+                      <td className="py-2 px-2 text-center">
+                        {m.isLeader ? (
+                          <span className="text-emerald-600 font-semibold">Sim</span>
+                        ) : (
+                          "Não"
+                        )}
+                      </td>
+                      <td className="py-2 px-2 text-center">
+                        {!m.isLeader && (
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            sx={{ textTransform: "none" }}
+                            onClick={() => handleMakeLeader(m)}
+                          >
+                            Tornar Líder
+                          </Button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </BaseModal>
+      </main>
     </div>
   );
 }

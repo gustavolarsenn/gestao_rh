@@ -1,9 +1,18 @@
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import Sidebar from "@/components/Sidebar";
+import {
+  Typography,
+  Paper,
+  Box,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Button,
+} from "@mui/material";
 import { BaseModal } from "@/components/modals/BaseModal";
+
 import {
   useEvaluationTypes,
   EvaluationType,
@@ -22,289 +31,525 @@ export default function EvaluationTypesPage() {
   } = useEvaluationTypes();
   const { listDepartments } = useDepartments();
 
+  // ======================================================
+  // DATA
+  // ======================================================
   const [types, setTypes] = useState<EvaluationType[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
-  const [departmentId, setDepartmentId] = useState("");
-
-  const [name, setName] = useState("");
-  const [code, setCode] = useState<EvaluationCode>(EvaluationCode.HIGHER_BETTER);
-  const [description, setDescription] = useState("");
   const [message, setMessage] = useState("");
 
-  // Modal
-  const [selectedType, setSelectedType] = useState<EvaluationType | null>(null);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editName, setEditName] = useState("");
-  const [editCode, setEditCode] = useState<EvaluationCode>(EvaluationCode.HIGHER_BETTER);
-  const [editDescription, setEditDescription] = useState("");
-  const [editDepartmentId, setEditDepartmentId] = useState("");
+  // ======================================================
+  // PAGINATION + FILTERS (backend)
+  // ======================================================
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10);
+  const [total, setTotal] = useState(0);
+  const pageCount = Math.ceil(total / limit) || 1;
 
-  // Carregar lista
+  const [filterName, setFilterName] = useState("");
+  const [filterDepartmentId, setFilterDepartmentId] = useState("");
+  const [filterCode, setFilterCode] = useState("");
+  const [loadingTable, setLoadingTable] = useState(false);
+
+  async function loadEvaluationTypes() {
+    setLoadingTable(true);
+
+    const result = await listEvaluationTypes({
+      page,
+      limit,
+      name: filterName || undefined,
+      departmentId: filterDepartmentId || undefined,
+      code: filterCode || undefined,
+    });
+
+    setTypes(result.data);
+    setTotal(result.total);
+
+    setLoadingTable(false);
+  }
+
   useEffect(() => {
-    async function fetchAll() {
-      const [types, depts] = await Promise.all([
-        listEvaluationTypes(),
-        listDepartments(),
-      ]);
-      setTypes(types);
-      setDepartments(depts);
+    async function loadStatic() {
+      // departments vem paginado
+      const deptResult = await listDepartments({ page: 1, limit: 999 });
+      setDepartments(deptResult.data || []);
     }
-    fetchAll();
-  }, []);
+    loadStatic();
+  }, [listDepartments]);
 
-  // Criar tipo de métrica
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
+  useEffect(() => {
+    loadEvaluationTypes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, filterName, filterDepartmentId, filterCode]);
+
+  // ======================================================
+  // CREATE MODAL
+  // ======================================================
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+
+  const [name, setName] = useState("");
+  const [departmentId, setDepartmentId] = useState("");
+  const [code, setCode] = useState<EvaluationCode>(
+    EvaluationCode.HIGHER_BETTER_SUM
+  );
+  const [description, setDescription] = useState("");
+
+  const handleCreate = async () => {
     setMessage("");
-    try {
-      const newType = await createEvaluationType({
-        name,
-        code,
-        description,
-        departmentId,
-        companyId: localStorage.getItem("companyId")!,
-      });
-      setTypes((prev) => [...prev, newType]);
-      setMessage("Tipo de métrica criado com sucesso!");
-      setName("");
-      setDescription("");
-      setCode(EvaluationCode.HIGHER_BETTER);
-      setDepartmentId("");
-    } catch (err) {
-      console.error(err);
-    }
+
+    await createEvaluationType({
+      name,
+      code,
+      description,
+      departmentId,
+      companyId: localStorage.getItem("companyId")!,
+    });
+
+    setCreateModalOpen(false);
+    setPage(1);
+    loadEvaluationTypes();
+
+    setMessage("Tipo de métrica criado com sucesso!");
+    setName("");
+    setDepartmentId("");
+    setCode(EvaluationCode.HIGHER_BETTER_SUM);
+    setDescription("");
   };
 
-  // Abrir modal
+  // ======================================================
+  // EDIT MODAL
+  // ======================================================
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedType, setSelectedType] = useState<EvaluationType | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editDepartmentId, setEditDepartmentId] = useState("");
+  const [editCode, setEditCode] = useState<EvaluationCode>(
+    EvaluationCode.HIGHER_BETTER_SUM
+  );
+  const [editDescription, setEditDescription] = useState("");
+
   const openEditModal = (type: EvaluationType) => {
     setSelectedType(type);
     setEditName(type.name);
+    setEditDepartmentId(type.departmentId || "");
     setEditCode(type.code);
     setEditDescription(type.description || "");
-    setEditDepartmentId(type.departmentId || "");
-    setModalOpen(true);
+    setEditModalOpen(true);
   };
 
-  // Atualizar tipo
   const handleSave = async () => {
     if (!selectedType) return;
-    const updated = await updateEvaluationType(selectedType.id, {
+
+    await updateEvaluationType(selectedType.id, {
       name: editName,
       code: editCode,
       description: editDescription,
       departmentId: editDepartmentId,
     });
-    setTypes((prev) => prev.map((t) => (t.id === selectedType.id ? updated : t)));
-    setModalOpen(false);
+
+    setEditModalOpen(false);
+    loadEvaluationTypes();
   };
 
-  // Excluir tipo
   const handleDelete = async () => {
     if (!selectedType) return;
+
     await deleteEvaluationType(selectedType.id);
-    setTypes((prev) => prev.filter((t) => t.id !== selectedType.id));
-    setModalOpen(false);
+    setEditModalOpen(false);
+    loadEvaluationTypes();
   };
 
+  // helper para exibir o tipo em texto
+  const getCodeLabel = (c: EvaluationCode) => {
+    if (
+      c === EvaluationCode.HIGHER_BETTER_SUM ||
+      c === EvaluationCode.HIGHER_BETTER_PCT
+    ) {
+      return "Quanto maior, melhor";
+    }
+    if (
+      c === EvaluationCode.LOWER_BETTER_SUM ||
+      c === EvaluationCode.LOWER_BETTER_PCT
+    ) {
+      return "Quanto menor, melhor";
+    }
+    return "Binário";
+  };
+
+  // lista de códigos para usar em filtros/selects
+  const codeOptions: { value: EvaluationCode; label: string }[] = [
+    {
+      value: EvaluationCode.HIGHER_BETTER_SUM,
+      label: "Quanto maior, melhor (soma)",
+    },
+    {
+      value: EvaluationCode.LOWER_BETTER_SUM,
+      label: "Quanto menor, melhor (soma)",
+    },
+    {
+      value: EvaluationCode.HIGHER_BETTER_PCT,
+      label: "Quanto maior, melhor (percentual)",
+    },
+    {
+      value: EvaluationCode.LOWER_BETTER_PCT,
+      label: "Quanto menor, melhor (percentual)",
+    },
+    { value: EvaluationCode.BINARY, label: "Binário (Sim/Não)" },
+  ];
+
+  // ======================================================
+  // UI
+  // ======================================================
   return (
-    <div className="flex min-h-screen bg-[#fefefe]">
+    <div className="flex min-h-screen bg-[#f7f7f9]">
       <Sidebar />
 
-      <main className="flex-1 p-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* FORMULÁRIO */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="bg-white rounded-2xl shadow-lg p-6 flex flex-col gap-5"
-        >
-          <h1 className="text-3xl font-bold text-[#151E3F] mb-4">
-            Criar Tipo de Métrica
-          </h1>
+      <main className="flex-1 p-8">
+        {/* TITLE */}
+        <Typography variant="h4" fontWeight={700} color="#1e293b" sx={{ mb: 4 }}>
+          Tipos de Métrica
+        </Typography>
 
-          <form onSubmit={handleCreate} className="flex flex-col gap-5">
-            <Input
-              type="text"
-              placeholder="Nome (ex: Produtividade)"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
+        {message && (
+          <Typography variant="body2" sx={{ mb: 2 }} color="success.main">
+            {message}
+          </Typography>
+        )}
+
+        {error && (
+          <Typography variant="body2" sx={{ mb: 2 }} color="error.main">
+            {error}
+          </Typography>
+        )}
+
+        {/* FILTERS */}
+        <Paper
+          elevation={0}
+          sx={{
+            width: "100%",
+            p: 4,
+            mb: 4,
+            borderRadius: 3,
+            backgroundColor: "#ffffff",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+          }}
+        >
+          <Typography variant="h6" fontWeight={600} mb={3}>
+            Filtros
+          </Typography>
+
+          <Box display="flex" gap={3} flexWrap="wrap" alignItems="flex-end">
+            <TextField
+              size="small"
+              label="Nome"
+              value={filterName}
+              onChange={(e) => {
+                setFilterName(e.target.value);
+                setPage(1);
+              }}
+              sx={{ flex: "1 1 200px" }}
             />
 
-            {/* Departamento */}
-            <div>
-              <label className="block text-sm font-medium mb-1">Departamento</label>
-              <select
-                value={departmentId}
-                onChange={(e) => setDepartmentId(e.target.value)}
-                required
-                className="border border-[#232c33] rounded-md px-3 py-2 text-sm w-full"
+            <FormControl size="small" sx={{ flex: "1 1 200px" }}>
+              <InputLabel>Departamento</InputLabel>
+              <Select
+                label="Departamento"
+                value={filterDepartmentId}
+                onChange={(e) => {
+                  setFilterDepartmentId(e.target.value);
+                  setPage(1);
+                }}
               >
-                <option value="">Selecione</option>
+                <MenuItem value="">Todos</MenuItem>
                 {departments.map((d) => (
-                  <option key={d.id} value={d.id}>
+                  <MenuItem key={d.id} value={d.id}>
                     {d.name}
-                  </option>
+                  </MenuItem>
                 ))}
-              </select>
-            </div>
+              </Select>
+            </FormControl>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Tipo de Avaliação</label>
-              <select
-                value={code}
-                onChange={(e) => setCode(e.target.value as EvaluationCode)}
-                required
-                className="border border-[#232c33] rounded-md px-3 py-2 text-sm w-full"
+            <FormControl size="small" sx={{ flex: "1 1 220px" }}>
+              <InputLabel>Tipo de Avaliação</InputLabel>
+              <Select
+                label="Tipo de Avaliação"
+                value={filterCode}
+                onChange={(e) => {
+                  setFilterCode(e.target.value);
+                  setPage(1);
+                }}
               >
-                <option value={EvaluationCode.HIGHER_BETTER_SUM}>Quanto maior, melhor (soma)</option>
-                <option value={EvaluationCode.LOWER_BETTER_SUM}>Quanto menor, melhor (soma)</option>
-                <option value={EvaluationCode.HIGHER_BETTER_PCT}>Quanto maior, melhor (percentual)</option>
-                <option value={EvaluationCode.LOWER_BETTER_PCT}>Quanto menor, melhor (percentual)</option>
-                <option value={EvaluationCode.BINARY}>Binário (Sim/Não)</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Descrição</label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Descreva o uso dessa métrica..."
-                className="border border-[#232c33] rounded-md px-3 py-2 text-sm w-full min-h-[80px]"
-              />
-            </div>
-
-            {error && <p className="text-red-600 text-sm">{error}</p>}
-            {message && (
-              <p className="text-emerald-700 text-sm font-medium">{message}</p>
-            )}
+                <MenuItem value="">Todos</MenuItem>
+                {codeOptions.map((opt) => (
+                  <MenuItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
 
             <Button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-[#232c33] hover:bg-[#3f4755] text-white font-semibold py-2 rounded-lg transition"
+              size="large"
+              variant="outlined"
+              sx={{
+                px: 4,
+                borderColor: "#1e293b",
+                color: "#1e293b",
+                textTransform: "none",
+                fontWeight: 600,
+              }}
+              onClick={() => {
+                setFilterName("");
+                setFilterDepartmentId("");
+                setFilterCode("");
+                setPage(1);
+              }}
             >
-              {loading ? "Enviando..." : "Criar Tipo"}
+              Limpar
             </Button>
-          </form>
-        </motion.div>
 
-        {/* LISTAGEM */}
-        <div className="bg-white rounded-2xl shadow-lg p-6">
-          <h2 className="text-2xl font-semibold mb-4 text-[#151E3F]">
-            Tipos de Métrica
-          </h2>
+            <Button
+              size="large"
+              onClick={() => setCreateModalOpen(true)}
+              sx={{
+                px: 4,
+                ml: "auto",
+                backgroundColor: "#1e293b",
+                color: "white",
+                textTransform: "none",
+                fontWeight: 600,
+              }}
+            >
+              Criar Tipo de Métrica
+            </Button>
+          </Box>
+        </Paper>
 
-          <table className="w-full border-collapse text-sm">
+        {/* TABLE */}
+        <Paper sx={{ p: 4, borderRadius: 3 }}>
+          <table className="w-full text-sm border-collapse">
             <thead>
-              <tr className="text-left border-b">
-                <th className="py-2">Nome</th>
-                <th className="py-2">Departamento</th>
-                <th className="py-2">Tipo</th>
-                <th className="py-2">Descrição</th>
-                <th className="py-2 text-center w-24">Ações</th>
+              <tr className="bg-gray-50">
+                <th className="text-left px-4 py-3 font-semibold text-gray-700">
+                  Nome
+                </th>
+                <th className="text-left px-4 py-3 font-semibold text-gray-700">
+                  Departamento
+                </th>
+                <th className="text-left px-4 py-3 font-semibold text-gray-700">
+                  Tipo
+                </th>
+                <th className="text-left px-4 py-3 font-semibold text-gray-700">
+                  Descrição
+                </th>
               </tr>
             </thead>
+
             <tbody>
-              {types.map((type) => (
-                <tr
-                  key={type.id}
-                  className="border-b hover:bg-gray-50 cursor-pointer"
-                  onClick={() => openEditModal(type)}
-                >
-                  <td className="py-2">{type.name}</td>
-                  <td className="py-2 text-slate-700">
-                    {type.department?.name ||
-                      departments.find((d) => d.id === type.departmentId)?.name ||
-                      "—"}
-                  </td>
-                  <td className="py-2 text-slate-700">
-                    {type.code === EvaluationCode.HIGHER_BETTER_PCT || type.code === EvaluationCode.HIGHER_BETTER_SUM
-                      ? "Quanto maior, melhor"
-                      : type.code === EvaluationCode.LOWER_BETTER_PCT || type.code === EvaluationCode.LOWER_BETTER_SUM
-                      ? "Quanto menor, melhor"
-                      : "Binário"}
-                  </td>
-                  <td className="py-2 text-slate-700">{type.description || "—"}</td>
-                  <td className="py-2 text-center text-[#C16E70] font-medium">
-                    Editar
+              {loadingTable ? (
+                <tr>
+                  <td colSpan={4} className="py-6 text-center text-gray-500">
+                    Carregando...
                   </td>
                 </tr>
-              ))}
+              ) : types.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="py-6 text-center text-gray-500">
+                    Nenhum tipo de métrica encontrado.
+                  </td>
+                </tr>
+              ) : (
+                types.map((type) => (
+                  <tr
+                    key={type.id}
+                    className="border-b hover:bg-gray-100 cursor-pointer transition"
+                    onClick={() => openEditModal(type)}
+                  >
+                    <td className="px-4 py-3">{type.name}</td>
+                    <td className="px-4 py-3 text-slate-700">
+                      {type.department?.name ||
+                        departments.find((d) => d.id === type.departmentId)?.name ||
+                        "—"}
+                    </td>
+                    <td className="px-4 py-3 text-slate-700">
+                      {getCodeLabel(type.code)}
+                    </td>
+                    <td className="px-4 py-3 text-slate-700">
+                      {type.description || "—"}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
-        </div>
+
+          {/* PAGINATION */}
+          <Box display="flex" justifyContent="space-between" alignItems="center" mt={3}>
+            <Typography variant="body2">
+              Página {page} de {pageCount}
+            </Typography>
+
+            <Box display="flex" gap={2}>
+              <Button
+                variant="outlined"
+                size="small"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => p - 1)}
+              >
+                Anterior
+              </Button>
+
+              <Button
+                variant="outlined"
+                size="small"
+                disabled={page >= pageCount}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                Próxima
+              </Button>
+            </Box>
+          </Box>
+        </Paper>
       </main>
 
-      {/* MODAL */}
+      {/* CREATE MODAL */}
       <BaseModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        open={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        title="Criar Tipo de Métrica"
+        description="Preencha os dados do tipo de métrica."
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button variant="outlined" onClick={() => setCreateModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleCreate}
+              disabled={!name || !departmentId || !code}
+              sx={{ backgroundColor: "#1e293b", color: "white" }}
+            >
+              Criar
+            </Button>
+          </div>
+        }
+      >
+        <div className="flex flex-col gap-4">
+          <TextField
+            size="small"
+            label="Nome (ex: Produtividade)"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+
+          <FormControl size="small" fullWidth>
+            <InputLabel>Departamento</InputLabel>
+            <Select
+              label="Departamento"
+              value={departmentId}
+              onChange={(e) => setDepartmentId(e.target.value)}
+            >
+              {departments.map((d) => (
+                <MenuItem key={d.id} value={d.id}>
+                  {d.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <FormControl size="small" fullWidth>
+            <InputLabel>Tipo de Avaliação</InputLabel>
+            <Select
+              label="Tipo de Avaliação"
+              value={code}
+              onChange={(e) => setCode(e.target.value as EvaluationCode)}
+            >
+              {codeOptions.map((opt) => (
+                <MenuItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <TextField
+            size="small"
+            label="Descrição"
+            multiline
+            minRows={3}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
+        </div>
+      </BaseModal>
+
+      {/* EDIT MODAL */}
+      <BaseModal
+        open={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
         title="Editar Tipo de Métrica"
         description="Atualize as informações ou exclua o registro."
         footer={
           <div className="flex justify-between w-full">
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              className="bg-red-600 hover:bg-red-700"
-            >
+            <Button color="error" variant="outlined" onClick={handleDelete}>
               Excluir
             </Button>
-            <Button onClick={handleSave} disabled={loading}>
+            <Button
+              onClick={handleSave}
+              disabled={loading}
+              sx={{ backgroundColor: "#1e293b", color: "white" }}
+            >
               {loading ? "Salvando..." : "Salvar alterações"}
             </Button>
           </div>
         }
       >
         <div className="flex flex-col gap-4">
-          <Input
+          <TextField
+            size="small"
+            label="Nome do Tipo"
             value={editName}
             onChange={(e) => setEditName(e.target.value)}
-            placeholder="Nome do Tipo"
           />
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Departamento</label>
-            <select
+          <FormControl size="small" fullWidth>
+            <InputLabel>Departamento</InputLabel>
+            <Select
+              label="Departamento"
               value={editDepartmentId}
               onChange={(e) => setEditDepartmentId(e.target.value)}
-              className="border border-[#232c33] rounded-md px-3 py-2 text-sm w-full"
             >
-              <option value="">Selecione</option>
+              <MenuItem value="">Selecione</MenuItem>
               {departments.map((d) => (
-                <option key={d.id} value={d.id}>
+                <MenuItem key={d.id} value={d.id}>
                   {d.name}
-                </option>
+                </MenuItem>
               ))}
-            </select>
-          </div>
+            </Select>
+          </FormControl>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Tipo de Avaliação</label>
-            <select
+          <FormControl size="small" fullWidth>
+            <InputLabel>Tipo de Avaliação</InputLabel>
+            <Select
+              label="Tipo de Avaliação"
               value={editCode}
               onChange={(e) => setEditCode(e.target.value as EvaluationCode)}
-              className="border border-[#232c33] rounded-md px-3 py-2 text-sm w-full"
             >
-              <option value={EvaluationCode.HIGHER_BETTER_PCT}>Quanto maior, melhor (percentual)</option>
-              <option value={EvaluationCode.HIGHER_BETTER_SUM}>Quanto maior, melhor (soma)</option>
-              <option value={EvaluationCode.LOWER_BETTER_PCT}>Quanto menor, melhor (percentual)</option>
-              <option value={EvaluationCode.LOWER_BETTER_SUM}>Quanto menor, melhor (soma)</option>
-              <option value={EvaluationCode.BINARY}>Binário (Sim/Não)</option>
-            </select>
-          </div>
+              {codeOptions.map((opt) => (
+                <MenuItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Descrição</label>
-            <textarea
-              value={editDescription}
-              onChange={(e) => setEditDescription(e.target.value)}
-              placeholder="Descreva o uso dessa métrica..."
-              className="border border-[#232c33] rounded-md px-3 py-2 text-sm w-full min-h-[80px]"
-            />
-          </div>
+          <TextField
+            size="small"
+            label="Descrição"
+            multiline
+            minRows={3}
+            value={editDescription}
+            onChange={(e) => setEditDescription(e.target.value)}
+          />
         </div>
       </BaseModal>
     </div>

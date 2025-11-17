@@ -1,10 +1,11 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body, ParseUUIDPipe, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Body, ParseUUIDPipe, UsePipes, ValidationPipe, Query } from '@nestjs/common';
 import { CompaniesService } from './companies.service';
 import { CreateCompanyDto } from './dto/create-company.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
 import { Company } from './entities/company.entity';
 
 import { Public } from '../auth/decorators/public.decorator';
+import { CompanyQueryDto } from './dto/company-query.dto';
 
 @Controller('companies')
 @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
@@ -18,8 +19,8 @@ export class CompaniesController {
   }
 
   @Get()
-  findAll(): Promise<Company[]> {
-    return this.service.findAll();
+  findAll(@Query() query: CompanyQueryDto) {
+    return this.service.findAll(query);
   }
 
   @Get(':id')

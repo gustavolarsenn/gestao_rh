@@ -1,15 +1,93 @@
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import Sidebar from "@/components/Sidebar";
+import {
+  Typography,
+  Paper,
+  Box,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Button,
+} from "@mui/material";
+import { BaseModal } from "@/components/modals/BaseModal";
+
 import { useBranches, type Branch } from "@/hooks/branch/useBranches";
 import { useStates } from "@/hooks/geo/useStates";
 import { useCities } from "@/hooks/geo/useCities";
-import { BaseModal } from "@/components/modals/BaseModal";
 
 export default function Branch() {
-  // Campos de criação
+  const { createBranch, listBranches, updateBranch, deleteBranch, loading, error } =
+    useBranches();
+  const { listStates } = useStates();
+  const { listCities } = useCities();
+
+  // ======================================================
+  // DATA
+  // ======================================================
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [states, setStates] = useState<any[]>([]);
+  const [allCities, setAllCities] = useState<any[]>([]);
+
+  const [message, setMessage] = useState("");
+
+  // ======================================================
+  // BACKEND PAGINATION & FILTERS
+  // ======================================================
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10);
+  const [total, setTotal] = useState(0);
+  const pageCount = Math.ceil(total / limit) || 1;
+
+  const [filterName, setFilterName] = useState("");
+  const [filterCnpj, setFilterCnpj] = useState("");
+  const [filterStateId, setFilterStateId] = useState("");
+  const [filterCityId, setFilterCityId] = useState("");
+  const [loadingTable, setLoadingTable] = useState(false);
+
+  async function loadBranches() {
+    setLoadingTable(true);
+
+    const result = await listBranches({
+      page,
+      limit,
+      name: filterName || undefined,
+      cnpj: filterCnpj || undefined,
+      stateId: filterStateId || undefined,
+      cityId: filterCityId || undefined,
+    });
+
+    setBranches(result.data);
+    setTotal(result.total);
+
+    setLoadingTable(false);
+  }
+
+  // cidades derivadas para filtro
+  const filterCities = filterStateId
+    ? allCities.filter((c) => c.stateId === filterStateId)
+    : [];
+
+  useEffect(() => {
+    async function loadStatic() {
+      const [st, ct] = await Promise.all([listStates(), listCities()]);
+      setStates(st || []);
+      setAllCities(ct || []);
+    }
+    loadStatic();
+  }, []);
+
+  useEffect(() => {
+    loadBranches();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, filterName, filterCnpj, filterStateId, filterCityId]);
+
+  // ======================================================
+  // CREATE BRANCH MODAL
+  // ======================================================
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+
   const [branchName, setBranchName] = useState("");
   const [cnpj, setCnpj] = useState("");
   const [zipCode, setZipCode] = useState("");
@@ -17,20 +95,43 @@ export default function Branch() {
   const [addressNumber, setAddressNumber] = useState("");
   const [stateId, setStateId] = useState("");
   const [cityId, setCityId] = useState("");
-  const [message, setMessage] = useState("");
 
-  const { createBranch, listBranches, updateBranch, deleteBranch, loading, error } =
-    useBranches();
-  const { listStates } = useStates();
-  const { listCities } = useCities();
+  const createCities = stateId
+    ? allCities.filter((c) => c.stateId === stateId)
+    : [];
 
-  const [states, setStates] = useState<{ id: string; name: string }[]>([]);
-  const [cities, setCities] = useState<{ id: string; name: string }[]>([]);
-  const [branches, setBranches] = useState<Branch[]>([]);
+  const handleCreateBranch = async () => {
+    setMessage("");
 
-  // Modal
+    const newBranch = await createBranch({
+      name: branchName,
+      cnpj,
+      zipCode,
+      address,
+      addressNumber,
+      cityId,
+    });
+
+    setPage(1);
+    loadBranches();
+
+    setMessage(`Filial "${branchName}" criada com sucesso!`);
+
+    setBranchName("");
+    setCnpj("");
+    setZipCode("");
+    setAddress("");
+    setAddressNumber("");
+    setStateId("");
+    setCityId("");
+    setCreateModalOpen(false);
+  };
+
+  // ======================================================
+  // EDIT BRANCH MODAL
+  // ======================================================
   const [selectedBranch, setSelectedBranch] = useState<Branch | null>(null);
-  const [modalOpen, setModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
 
   const [editName, setEditName] = useState("");
   const [editCnpj, setEditCnpj] = useState("");
@@ -39,56 +140,12 @@ export default function Branch() {
   const [editAddressNumber, setEditAddressNumber] = useState("");
   const [editStateId, setEditStateId] = useState("");
   const [editCityId, setEditCityId] = useState("");
-  const [editCities, setEditCities] = useState<{ id: string; name: string }[]>([]);
 
-  // Carregar estados e filiais
-  useEffect(() => {
-    async function fetchData() {
-      const [st, br] = await Promise.all([listStates(), listBranches()]);
-      setStates(st);
-      setBranches(br);
-    }
-    fetchData();
-  }, []);
+  const editCities = editStateId
+    ? allCities.filter((c) => c.stateId === editStateId)
+    : [];
 
-  // Carregar cidades no formulário
-  useEffect(() => {
-    if (!stateId) return;
-    async function fetchCities() {
-      const data = await listCities();
-      setCities(data.filter((c) => c.stateId === stateId));
-    }
-    fetchCities();
-  }, [stateId]);
-
-  // Criar filial
-  const handleCreateBranch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setMessage("");
-
-    try {
-      const newBranch = await createBranch({
-        name: branchName,
-        cnpj,
-        zipCode,
-        address,
-        addressNumber,
-        cityId,
-      });
-      setBranches((prev) => [...prev, newBranch]);
-      setMessage(`Filial "${branchName}" criada com sucesso!`);
-      setBranchName("");
-      setCnpj("");
-      setZipCode("");
-      setAddress("");
-      setAddressNumber("");
-      setStateId("");
-      setCityId("");
-    } catch {}
-  };
-
-  // Abrir modal de edição
-  const openEditModal = async (branch: Branch) => {
+  const openEditModal = (branch: Branch) => {
     setSelectedBranch(branch);
     setEditName(branch.name);
     setEditCnpj(branch.cnpj);
@@ -96,17 +153,17 @@ export default function Branch() {
     setEditAddress(branch.address);
     setEditAddressNumber(branch.addressNumber);
 
-    const data = await listCities();
-    const branchStateId = data.find((c) => c.id === branch.cityId)?.stateId || "";
+    const city = allCities.find((c) => c.id === branch.cityId);
+    const branchStateId = city?.stateId || "";
     setEditStateId(branchStateId);
-    setEditCities(data.filter((c) => c.stateId === branchStateId));
     setEditCityId(branch.cityId);
-    setModalOpen(true);
+
+    setEditModalOpen(true);
   };
 
-  // Salvar edição
   const handleSaveBranch = async () => {
     if (!selectedBranch) return;
+
     const updated = await updateBranch(selectedBranch.id, {
       name: editName,
       cnpj: editCnpj,
@@ -115,233 +172,425 @@ export default function Branch() {
       addressNumber: editAddressNumber,
       cityId: editCityId,
     });
+
     setBranches((prev) =>
       prev.map((b) => (b.id === selectedBranch.id ? updated : b))
     );
-    setModalOpen(false);
+    setEditModalOpen(false);
   };
 
-  // Excluir
   const handleDeleteBranch = async () => {
     if (!selectedBranch) return;
+
     await deleteBranch(selectedBranch.id);
     setBranches((prev) => prev.filter((b) => b.id !== selectedBranch.id));
-    setModalOpen(false);
+    setEditModalOpen(false);
+    loadBranches();
   };
 
-  // Atualizar cidades no modal
-  useEffect(() => {
-    if (!editStateId || !modalOpen) return;
-    async function fetchCities() {
-      const data = await listCities();
-      setEditCities(data.filter((c) => c.stateId === editStateId));
-    }
-    fetchCities();
-  }, [editStateId, modalOpen]);
-
+  // ======================================================
+  // UI
+  // ======================================================
   return (
-    <div className="flex min-h-screen bg-[#fefefe]">
+    <div className="flex min-h-screen bg-[#f7f7f9]">
       <Sidebar />
 
-      <main className="flex-1 p-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* FORMULÁRIO DE CRIAÇÃO */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="bg-white rounded-2xl shadow-lg p-6 flex flex-col gap-5"
+      <main className="flex-1 p-8">
+        {/* TITLE */}
+        <Typography variant="h4" fontWeight={700} color="#1e293b" sx={{ mb: 4 }}>
+          Filiais
+        </Typography>
+
+        {message && (
+          <Typography variant="body2" sx={{ mb: 2 }} color="success.main">
+            {message}
+          </Typography>
+        )}
+
+        {error && (
+          <Typography variant="body2" sx={{ mb: 2 }} color="error.main">
+            {error}
+          </Typography>
+        )}
+
+        {/* FILTERS */}
+        <Paper
+          elevation={0}
+          sx={{
+            width: "100%",
+            p: 4,
+            mb: 4,
+            borderRadius: 3,
+            backgroundColor: "#ffffff",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+          }}
         >
-          <h1 className="text-3xl font-bold text-[#151E3F] mb-4">
-            Criar nova filial
-          </h1>
+          <Typography variant="h6" fontWeight={600} mb={3}>
+            Filtros
+          </Typography>
 
-          <form onSubmit={handleCreateBranch} className="flex flex-col gap-5">
-            <Input
-              type="text"
-              placeholder="Nome da Filial"
-              value={branchName}
-              onChange={(e) => setBranchName(e.target.value)}
-              required
-            />
-            <Input
-              type="text"
-              placeholder="CNPJ"
-              value={cnpj}
-              onChange={(e) => setCnpj(e.target.value)}
-              required
-            />
-            <Input
-              type="text"
-              placeholder="CEP"
-              value={zipCode}
-              onChange={(e) => setZipCode(e.target.value)}
-              required
-            />
-            <Input
-              type="text"
-              placeholder="Endereço"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              required
-            />
-            <Input
-              type="text"
-              placeholder="Número"
-              value={addressNumber}
-              onChange={(e) => setAddressNumber(e.target.value)}
-              required
+          <Box display="flex" gap={3} flexWrap="wrap" alignItems="flex-end">
+            <TextField
+              size="small"
+              label="Nome"
+              value={filterName}
+              onChange={(e) => {
+                setFilterName(e.target.value);
+                setPage(1);
+              }}
+              sx={{ flex: "1 1 200px" }}
             />
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-[#151E3F]/80 mb-1">
-                  Estado
-                </label>
-                <select
-                  value={stateId}
-                  onChange={(e) => setStateId(e.target.value)}
-                  className="w-full border border-[#232c33] rounded-md px-3 py-2 text-sm focus:ring-[#C16E70]"
-                  required
-                >
-                  <option value="">Selecione</option>
-                  {states.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <TextField
+              size="small"
+              label="CNPJ"
+              value={filterCnpj}
+              onChange={(e) => {
+                setFilterCnpj(e.target.value);
+                setPage(1);
+              }}
+              sx={{ flex: "1 1 200px" }}
+            />
 
-              <div>
-                <label className="block text-sm font-medium text-[#151E3F]/80 mb-1">
-                  Cidade
-                </label>
-                <select
-                  value={cityId}
-                  onChange={(e) => setCityId(e.target.value)}
-                  disabled={!stateId}
-                  className="w-full border border-[#232c33] rounded-md px-3 py-2 text-sm focus:ring-[#C16E70]"
-                  required
-                >
-                  <option value="">Selecione</option>
-                  {cities.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
+            <FormControl size="small" sx={{ flex: "1 1 160px" }}>
+              <InputLabel>Estado</InputLabel>
+              <Select
+                label="Estado"
+                value={filterStateId}
+                onChange={(e) => {
+                  setFilterStateId(e.target.value);
+                  setFilterCityId("");
+                  setPage(1);
+                }}
+              >
+                <MenuItem value="">Todos</MenuItem>
+                {states.map((s) => (
+                  <MenuItem key={s.id} value={s.id}>
+                    {s.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
 
-            {error && <p className="text-red-600 text-sm">{error}</p>}
-            {message && (
-              <p className="text-emerald-700 text-sm font-medium">{message}</p>
-            )}
+            <FormControl
+              size="small"
+              sx={{ flex: "1 1 160px" }}
+              disabled={!filterStateId}
+            >
+              <InputLabel>Cidade</InputLabel>
+              <Select
+                label="Cidade"
+                value={filterCityId}
+                onChange={(e) => {
+                  setFilterCityId(e.target.value);
+                  setPage(1);
+                }}
+              >
+                <MenuItem value="">Todas</MenuItem>
+                {filterCities.map((c) => (
+                  <MenuItem key={c.id} value={c.id}>
+                    {c.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
 
             <Button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-[#232c33] hover:bg-[#3f4755] text-white font-semibold py-2 rounded-lg transition"
+              size="large"
+              variant="outlined"
+              sx={{
+                px: 4,
+                borderColor: "#1e293b",
+                color: "#1e293b",
+                textTransform: "none",
+                fontWeight: 600,
+              }}
+              onClick={() => {
+                setFilterName("");
+                setFilterCnpj("");
+                setFilterStateId("");
+                setFilterCityId("");
+                setPage(1);
+              }}
             >
-              {loading ? "Enviando..." : "Criar Filial"}
+              Limpar
             </Button>
-          </form>
-        </motion.div>
 
-        {/* TABELA DE FILIAIS */}
-        <div className="bg-white rounded-2xl shadow-lg p-6">
-          <h2 className="text-2xl font-semibold mb-4 text-[#151E3F]">
-            Filiais cadastradas
-          </h2>
+            <Button
+              size="large"
+              onClick={() => setCreateModalOpen(true)}
+              sx={{
+                px: 4,
+                ml: "auto",
+                backgroundColor: "#1e293b",
+                color: "white",
+                textTransform: "none",
+                fontWeight: 600,
+              }}
+            >
+              Criar Filial
+            </Button>
+          </Box>
+        </Paper>
 
-          <table className="w-full border-collapse text-sm">
+        {/* TABLE */}
+        <Paper sx={{ p: 4, borderRadius: 3 }}>
+          <table className="w-full text-sm border-collapse">
             <thead>
-              <tr className="text-left border-b">
-                <th className="py-2">Nome</th>
-                <th className="py-2">CNPJ</th>
-                <th className="py-2 w-24 text-center">Ações</th>
+              <tr className="bg-gray-50">
+                <th className="text-left px-4 py-3 font-semibold text-gray-700">
+                  Nome
+                </th>
+                <th className="text-left px-4 py-3 font-semibold text-gray-700">
+                  CNPJ
+                </th>
               </tr>
             </thead>
+
             <tbody>
-              {branches.map((branch) => (
-                <tr
-                  key={branch.id}
-                  className="border-b hover:bg-gray-50 cursor-pointer"
-                  onClick={() => openEditModal(branch)}
-                >
-                  <td className="py-2">{branch.name}</td>
-                  <td className="py-2">{branch.cnpj}</td>
-                  <td className="py-2 text-center text-[#C16E70] font-medium">
-                    Editar
+              {loadingTable ? (
+                <tr>
+                  <td colSpan={2} className="py-6 text-center text-gray-500">
+                    Carregando...
                   </td>
                 </tr>
-              ))}
+              ) : branches.length === 0 ? (
+                <tr>
+                  <td colSpan={2} className="py-6 text-center text-gray-500">
+                    Nenhuma filial encontrada.
+                  </td>
+                </tr>
+              ) : (
+                branches.map((branch) => (
+                  <tr
+                    key={branch.id}
+                    className="border-b hover:bg-gray-100 cursor-pointer transition"
+                    onClick={() => openEditModal(branch)}
+                  >
+                    <td className="px-4 py-3">{branch.name}</td>
+                    <td className="px-4 py-3">{branch.cnpj}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
-        </div>
+
+          {/* PAGINATION */}
+          <Box display="flex" justifyContent="space-between" alignItems="center" mt={3}>
+            <Typography variant="body2">
+              Página {page} de {pageCount}
+            </Typography>
+
+            <Box display="flex" gap={2}>
+              <Button
+                variant="outlined"
+                size="small"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => p - 1)}
+              >
+                Anterior
+              </Button>
+
+              <Button
+                variant="outlined"
+                size="small"
+                disabled={page >= pageCount}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                Próxima
+              </Button>
+            </Box>
+          </Box>
+        </Paper>
       </main>
 
-      {/* MODAL UNIVERSAL (BaseModal) */}
+      {/* CREATE BRANCH MODAL */}
       <BaseModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        open={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        title="Criar Filial"
+        description="Preencha os dados da nova filial."
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button variant="outlined" onClick={() => setCreateModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleCreateBranch}
+              disabled={
+                !branchName ||
+                !cnpj ||
+                !zipCode ||
+                !address ||
+                !addressNumber ||
+                !stateId ||
+                !cityId
+              }
+              sx={{ backgroundColor: "#1e293b", color: "white" }}
+            >
+              Criar
+            </Button>
+          </div>
+        }
+      >
+        <div className="flex flex-col gap-4">
+          <TextField
+            size="small"
+            label="Nome da Filial"
+            value={branchName}
+            onChange={(e) => setBranchName(e.target.value)}
+          />
+          <TextField
+            size="small"
+            label="CNPJ"
+            value={cnpj}
+            onChange={(e) => setCnpj(e.target.value)}
+          />
+          <TextField
+            size="small"
+            label="CEP"
+            value={zipCode}
+            onChange={(e) => setZipCode(e.target.value)}
+          />
+          <TextField
+            size="small"
+            label="Endereço"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+          />
+          <TextField
+            size="small"
+            label="Número"
+            value={addressNumber}
+            onChange={(e) => setAddressNumber(e.target.value)}
+          />
+
+          <Box display="flex" gap={2}>
+            <FormControl size="small" sx={{ flex: 1 }}>
+              <InputLabel>Estado</InputLabel>
+              <Select
+                label="Estado"
+                value={stateId}
+                onChange={(e) => {
+                  setStateId(e.target.value);
+                  setCityId("");
+                }}
+              >
+                {states.map((s) => (
+                  <MenuItem key={s.id} value={s.id}>
+                    {s.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl size="small" sx={{ flex: 1 }} disabled={!stateId}>
+              <InputLabel>Cidade</InputLabel>
+              <Select
+                label="Cidade"
+                value={cityId}
+                onChange={(e) => setCityId(e.target.value)}
+              >
+                {createCities.map((c) => (
+                  <MenuItem key={c.id} value={c.id}>
+                    {c.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
+        </div>
+      </BaseModal>
+
+      {/* EDIT BRANCH MODAL */}
+      <BaseModal
+        open={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
         title="Editar Filial"
         description="Atualize as informações da filial ou exclua o registro."
         footer={
           <div className="flex justify-between w-full">
-            <Button
-              variant="destructive"
-              onClick={handleDeleteBranch}
-              className="bg-red-600 hover:bg-red-700"
-            >
+            <Button color="error" variant="outlined" onClick={handleDeleteBranch}>
               Excluir
             </Button>
-            <Button onClick={handleSaveBranch} disabled={loading}>
+            <Button
+              onClick={handleSaveBranch}
+              disabled={loading}
+              sx={{ backgroundColor: "#1e293b", color: "white" }}
+            >
               {loading ? "Salvando..." : "Salvar alterações"}
             </Button>
           </div>
         }
       >
         <div className="flex flex-col gap-4">
-          <Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Nome da Filial" />
-          <Input value={editCnpj} onChange={(e) => setEditCnpj(e.target.value)} placeholder="CNPJ" />
-          <Input value={editZipCode} onChange={(e) => setEditZipCode(e.target.value)} placeholder="CEP" />
-          <Input value={editAddress} onChange={(e) => setEditAddress(e.target.value)} placeholder="Endereço" />
-          <Input value={editAddressNumber} onChange={(e) => setEditAddressNumber(e.target.value)} placeholder="Número" />
+          <TextField
+            size="small"
+            label="Nome da Filial"
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+          />
+          <TextField
+            size="small"
+            label="CNPJ"
+            value={editCnpj}
+            onChange={(e) => setEditCnpj(e.target.value)}
+          />
+          <TextField
+            size="small"
+            label="CEP"
+            value={editZipCode}
+            onChange={(e) => setEditZipCode(e.target.value)}
+          />
+          <TextField
+            size="small"
+            label="Endereço"
+            value={editAddress}
+            onChange={(e) => setEditAddress(e.target.value)}
+          />
+          <TextField
+            size="small"
+            label="Número"
+            value={editAddressNumber}
+            onChange={(e) => setEditAddressNumber(e.target.value)}
+          />
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Estado</label>
-              <select
+          <Box display="flex" gap={2}>
+            <FormControl size="small" sx={{ flex: 1 }}>
+              <InputLabel>Estado</InputLabel>
+              <Select
+                label="Estado"
                 value={editStateId}
-                onChange={(e) => setEditStateId(e.target.value)}
-                className="w-full border border-[#232c33] rounded-md px-3 py-2 text-sm focus:ring-[#C16E70]"
+                onChange={(e) => {
+                  setEditStateId(e.target.value);
+                  setEditCityId("");
+                }}
               >
-                <option value="">Selecione</option>
+                <MenuItem value="">Selecione</MenuItem>
                 {states.map((s) => (
-                  <option key={s.id} value={s.id}>
+                  <MenuItem key={s.id} value={s.id}>
                     {s.name}
-                  </option>
+                  </MenuItem>
                 ))}
-              </select>
-            </div>
+              </Select>
+            </FormControl>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Cidade</label>
-              <select
+            <FormControl size="small" sx={{ flex: 1 }} disabled={!editStateId}>
+              <InputLabel>Cidade</InputLabel>
+              <Select
+                label="Cidade"
                 value={editCityId}
                 onChange={(e) => setEditCityId(e.target.value)}
-                className="w-full border border-[#232c33] rounded-md px-3 py-2 text-sm focus:ring-[#C16E70]"
               >
-                <option value="">Selecione</option>
+                <MenuItem value="">Selecione</MenuItem>
                 {editCities.map((c) => (
-                  <option key={c.id} value={c.id}>
+                  <MenuItem key={c.id} value={c.id}>
                     {c.name}
-                  </option>
+                  </MenuItem>
                 ))}
-              </select>
-            </div>
-          </div>
+              </Select>
+            </FormControl>
+          </Box>
         </div>
       </BaseModal>
     </div>

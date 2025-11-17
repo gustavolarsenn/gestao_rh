@@ -1,8 +1,16 @@
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import Sidebar from "@/components/Sidebar";
+import {
+  Typography,
+  Paper,
+  Box,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Button,
+} from "@mui/material";
 import { BaseModal } from "@/components/modals/BaseModal";
 
 import { useKpis, Kpi } from "@/hooks/kpi/useKpis";
@@ -15,71 +23,118 @@ import {
 
 export default function Kpis() {
   const { listKpis, createKpi, updateKpi, deleteKpi, loading, error } = useKpis();
-  const { listDepartments } = useDepartments();
-  const { listEvaluationTypes } = useEvaluationTypes();
+  const { listDistinctDepartments } = useDepartments();
+  const { listDistinctEvaluationTypes } = useEvaluationTypes();
 
   const [kpis, setKpis] = useState<Kpi[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [evaluationTypes, setEvaluationTypes] = useState<EvaluationType[]>([]);
-
-  // Campos do form
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [departmentId, setDepartmentId] = useState("");
-  const [evaluationTypeId, setEvaluationTypeId] = useState("");
-  const [unit, setUnit] = useState("");
   const [message, setMessage] = useState("");
 
-  // Modal
+  // ======================================================
+  // PAGINATION + FILTERS (backend)
+  // ======================================================
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10);
+  const [total, setTotal] = useState(0);
+  const pageCount = Math.ceil(total / limit) || 1;
+
+  const [filterName, setFilterName] = useState("");
+  const [filterDepartmentId, setFilterDepartmentId] = useState("");
+  const [filterEvaluationTypeId, setFilterEvaluationTypeId] = useState("");
+  const [loadingTable, setLoadingTable] = useState(false);
+
+  async function loadKpis() {
+    setLoadingTable(true);
+
+    const result = await listKpis({
+      page,
+      limit,
+      name: filterName || undefined,
+      departmentId: filterDepartmentId || undefined,
+      evaluationTypeId: filterEvaluationTypeId || undefined,
+    });
+
+    setKpis(result.data);
+    setTotal(result.total);
+
+    setLoadingTable(false);
+  }
+
+  useEffect(() => {
+    async function loadStatic() {
+      const [deps, evalTypes] = await Promise.all([
+        listDistinctDepartments(),
+        listDistinctEvaluationTypes(),
+      ]);
+
+      setDepartments(deps || []);
+      setEvaluationTypes(evalTypes || []);
+    }
+
+    loadStatic();
+  }, [listDistinctDepartments, listDistinctEvaluationTypes]);
+
+  useEffect(() => {
+    loadKpis();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, filterName, filterDepartmentId, filterEvaluationTypeId]);
+
+  // helper para sufixo no select de tipo de avaliação
+  const getEvalSuffix = (code: EvaluationCode) => {
+    if (code === EvaluationCode.HIGHER_BETTER_PCT || code === EvaluationCode.HIGHER_BETTER_SUM)
+      return "(↑ melhor)";
+    if (code === EvaluationCode.LOWER_BETTER_PCT || code === EvaluationCode.LOWER_BETTER_SUM)
+      return "(↓ melhor)";
+    return "(Binário)";
+  };
+
+  // ======================================================
+  // CREATE KPI MODAL
+  // ======================================================
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [createDepartmentId, setCreateDepartmentId] = useState("");
+  const [createEvaluationTypeId, setCreateEvaluationTypeId] = useState("");
+  const [unit, setUnit] = useState("");
+
+  const handleCreate = async () => {
+    setMessage("");
+
+    await createKpi({
+      name,
+      description,
+      departmentId: createDepartmentId,
+      evaluationTypeId: createEvaluationTypeId,
+      unit,
+      companyId: localStorage.getItem("companyId")!,
+    });
+
+    setCreateModalOpen(false);
+    setPage(1);
+    loadKpis();
+
+    setMessage("KPI criada com sucesso!");
+    setName("");
+    setDescription("");
+    setCreateDepartmentId("");
+    setCreateEvaluationTypeId("");
+    setUnit("");
+  };
+
+  // ======================================================
+  // EDIT KPI MODAL
+  // ======================================================
+  const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedKpi, setSelectedKpi] = useState<Kpi | null>(null);
-  const [modalOpen, setModalOpen] = useState(false);
   const [editName, setEditName] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editDepartmentId, setEditDepartmentId] = useState("");
   const [editEvaluationTypeId, setEditEvaluationTypeId] = useState("");
   const [editUnit, setEditUnit] = useState("");
 
-  // Carregar dados
-  useEffect(() => {
-    async function fetchAll() {
-      const [k, d, e] = await Promise.all([
-        listKpis(),
-        listDepartments(),
-        listEvaluationTypes(),
-      ]);
-      setKpis(k);
-      setDepartments(d);
-      setEvaluationTypes(e);
-    }
-    fetchAll();
-  }, []);
-
-  // Criar KPI
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setMessage("");
-    try {
-      const newKpi = await createKpi({
-        name,
-        description,
-        departmentId,
-        evaluationTypeId,
-        unit,
-        companyId: localStorage.getItem("companyId")!,
-      });
-      setKpis((prev) => [...prev, newKpi]);
-      setMessage("KPI criada com sucesso!");
-      setName("");
-      setDescription("");
-      setDepartmentId("");
-      setEvaluationTypeId("");
-      setUnit("");
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  // Abrir modal
   const openEditModal = (kpi: Kpi) => {
     setSelectedKpi(kpi);
     setEditName(kpi.name);
@@ -87,246 +142,407 @@ export default function Kpis() {
     setEditDepartmentId(kpi.departmentId);
     setEditEvaluationTypeId(kpi.evaluationTypeId);
     setEditUnit(kpi.unit);
-    setModalOpen(true);
+    setEditModalOpen(true);
   };
 
-  // Atualizar KPI
   const handleSave = async () => {
     if (!selectedKpi) return;
-    const updated = await updateKpi(selectedKpi.id, {
+
+    await updateKpi(selectedKpi.id, {
       name: editName,
       description: editDescription,
       departmentId: editDepartmentId,
       evaluationTypeId: editEvaluationTypeId,
       unit: editUnit,
     });
-    setKpis((prev) => prev.map((k) => (k.id === selectedKpi.id ? updated : k)));
-    setModalOpen(false);
+
+    setEditModalOpen(false);
+    loadKpis();
   };
 
-  // Excluir KPI
   const handleDelete = async () => {
     if (!selectedKpi) return;
+
     await deleteKpi(selectedKpi.id);
-    setKpis((prev) => prev.filter((k) => k.id !== selectedKpi.id));
-    setModalOpen(false);
+    setEditModalOpen(false);
+    loadKpis();
   };
 
+  // ======================================================
+  // UI
+  // ======================================================
   return (
-    <div className="flex min-h-screen bg-[#fefefe]">
+    <div className="flex min-h-screen bg-[#f7f7f9]">
       <Sidebar />
 
-      <main className="flex-1 p-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* FORMULÁRIO */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="bg-white rounded-2xl shadow-lg p-6 flex flex-col gap-5"
+      <main className="flex-1 p-8">
+        {/* TITLE */}
+        <Typography variant="h4" fontWeight={700} color="#1e293b" sx={{ mb: 4 }}>
+          KPIs
+        </Typography>
+
+        {message && (
+          <Typography variant="body2" sx={{ mb: 2 }} color="success.main">
+            {message}
+          </Typography>
+        )}
+
+        {error && (
+          <Typography variant="body2" sx={{ mb: 2 }} color="error.main">
+            {error}
+          </Typography>
+        )}
+
+        {/* FILTERS */}
+        <Paper
+          elevation={0}
+          sx={{
+            width: "100%",
+            p: 4,
+            mb: 4,
+            borderRadius: 3,
+            backgroundColor: "#ffffff",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+          }}
         >
-          <h1 className="text-3xl font-bold text-[#151E3F] mb-4">Criar KPI</h1>
+          <Typography variant="h6" fontWeight={600} mb={3}>
+            Filtros
+          </Typography>
 
-          <form onSubmit={handleCreate} className="flex flex-col gap-5">
-            <Input
-              type="text"
-              placeholder="Nome da métrica (ex: Taxa de conversão)"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
+          <Box display="flex" gap={3} flexWrap="wrap" alignItems="flex-end">
+            <TextField
+              size="small"
+              label="Nome"
+              value={filterName}
+              onChange={(e) => {
+                setFilterName(e.target.value);
+                setPage(1);
+              }}
+              sx={{ flex: "1 1 200px" }}
             />
 
-            {/* Departamento */}
-            <div>
-              <label className="block text-sm font-medium mb-1">Departamento</label>
-              <select
-                value={departmentId}
-                onChange={(e) => setDepartmentId(e.target.value)}
-                required
-                className="border border-[#232c33] rounded-md px-3 py-2 text-sm w-full"
+            <FormControl size="small" sx={{ flex: "1 1 200px" }}>
+              <InputLabel>Departamento</InputLabel>
+              <Select
+                label="Departamento"
+                value={filterDepartmentId}
+                onChange={(e) => {
+                  setFilterDepartmentId(e.target.value);
+                  setPage(1);
+                }}
               >
-                <option value="">Selecione</option>
+                <MenuItem value="">Todos</MenuItem>
                 {departments.map((d) => (
-                  <option key={d.id} value={d.id}>
+                  <MenuItem key={d.id} value={d.id}>
                     {d.name}
-                  </option>
+                  </MenuItem>
                 ))}
-              </select>
-            </div>
+              </Select>
+            </FormControl>
 
-            {/* Tipo de avaliação */}
-            <div>
-              <label className="block text-sm font-medium mb-1">Tipo de Avaliação</label>
-              <select
-                value={evaluationTypeId}
-                onChange={(e) => setEvaluationTypeId(e.target.value)}
-                required
-                className="border border-[#232c33] rounded-md px-3 py-2 text-sm w-full"
+            <FormControl size="small" sx={{ flex: "1 1 220px" }}>
+              <InputLabel>Tipo de Avaliação</InputLabel>
+              <Select
+                label="Tipo de Avaliação"
+                value={filterEvaluationTypeId}
+                onChange={(e) => {
+                  setFilterEvaluationTypeId(e.target.value);
+                  setPage(1);
+                }}
               >
-                <option value="">Selecione</option>
+                <MenuItem value="">Todos</MenuItem>
                 {evaluationTypes.map((et) => (
-                  <option key={et.id} value={et.id}>
-                    {et.name}{" "}
-                    {et.code === EvaluationCode.HIGHER_BETTER_PCT || et.code === EvaluationCode.HIGHER_BETTER_SUM
-                      ? "(↑ melhor)"
-                      : et.code === EvaluationCode.LOWER_BETTER_PCT || et.code === EvaluationCode.LOWER_BETTER_SUM
-                      ? "(↓ melhor)"
-                      : "(Binário)"}
-                  </option>
+                  <MenuItem key={et.id} value={et.id}>
+                    {et.name} {getEvalSuffix(et.code)}
+                  </MenuItem>
                 ))}
-              </select>
-            </div>
-
-            {/* Unidade */}
-            <Input
-              type="text"
-              placeholder="Unidade de medida (ex: R$, %, horas, features)"
-              value={unit}
-              onChange={(e) => setUnit(e.target.value)}
-              required
-            />
-
-            {/* Descrição */}
-            <div>
-              <label className="block text-sm font-medium mb-1">Descrição</label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Descreva o objetivo desta métrica..."
-                className="border border-[#232c33] rounded-md px-3 py-2 text-sm w-full min-h-[80px]"
-              />
-            </div>
-
-            {error && <p className="text-red-600 text-sm">{error}</p>}
-            {message && (
-              <p className="text-emerald-700 text-sm font-medium">{message}</p>
-            )}
+              </Select>
+            </FormControl>
 
             <Button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-[#232c33] hover:bg-[#3f4755] text-white font-semibold py-2 rounded-lg transition"
+              size="large"
+              variant="outlined"
+              sx={{
+                px: 4,
+                borderColor: "#1e293b",
+                color: "#1e293b",
+                textTransform: "none",
+                fontWeight: 600,
+              }}
+              onClick={() => {
+                setFilterName("");
+                setFilterDepartmentId("");
+                setFilterEvaluationTypeId("");
+                setPage(1);
+              }}
             >
-              {loading ? "Enviando..." : "Criar KPI"}
+              Limpar
             </Button>
-          </form>
-        </motion.div>
 
-        {/* LISTAGEM */}
-        <div className="bg-white rounded-2xl shadow-lg p-6">
-          <h2 className="text-2xl font-semibold mb-4 text-[#151E3F]">KPIs Cadastrados</h2>
+            <Button
+              size="large"
+              onClick={() => setCreateModalOpen(true)}
+              sx={{
+                px: 4,
+                ml: "auto",
+                backgroundColor: "#1e293b",
+                color: "white",
+                textTransform: "none",
+                fontWeight: 600,
+              }}
+            >
+              Criar KPI
+            </Button>
+          </Box>
+        </Paper>
 
-          <table className="w-full border-collapse text-sm">
+        {/* TABLE */}
+        <Paper sx={{ p: 4, borderRadius: 3 }}>
+          <table className="w-full text-sm border-collapse">
             <thead>
-              <tr className="text-left border-b">
-                <th className="py-2">Nome</th>
-                <th className="py-2">Departamento</th>
-                <th className="py-2">Tipo</th>
-                <th className="py-2">Unidade</th>
-                <th className="py-2 text-center w-24">Ações</th>
+              <tr className="bg-gray-50">
+                <th className="text-left px-4 py-3 font-semibold text-gray-700">
+                  Nome
+                </th>
+                <th className="text-left px-4 py-3 font-semibold text-gray-700">
+                  Departamento
+                </th>
+                <th className="text-left px-4 py-3 font-semibold text-gray-700">
+                  Tipo de Avaliação
+                </th>
+                <th className="text-left px-4 py-3 font-semibold text-gray-700">
+                  Unidade
+                </th>
               </tr>
             </thead>
+
             <tbody>
-              {kpis.map((kpi) => (
-                <tr
-                  key={kpi.id}
-                  className="border-b hover:bg-gray-50 cursor-pointer"
-                  onClick={() => openEditModal(kpi)}
-                >
-                  <td className="py-2">{kpi.name}</td>
-                  <td className="py-2 text-slate-700">
-                    {kpi.department?.name ||
-                      departments.find((d) => d.id === kpi.departmentId)?.name ||
-                      "—"}
+              {loadingTable ? (
+                <tr>
+                  <td colSpan={4} className="py-6 text-center text-gray-500">
+                    Carregando...
                   </td>
-                  <td className="py-2 text-slate-700">
-                    {kpi.evaluationType?.name ||
-                      evaluationTypes.find((et) => et.id === kpi.evaluationTypeId)?.name ||
-                      "—"}
-                  </td>
-                  <td className="py-2 text-slate-700">{kpi.unit}</td>
-                  <td className="py-2 text-center text-[#C16E70] font-medium">Editar</td>
                 </tr>
-              ))}
+              ) : kpis.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="py-6 text-center text-gray-500">
+                    Nenhuma KPI encontrada.
+                  </td>
+                </tr>
+              ) : (
+                kpis.map((kpi) => {
+                  const deptName =
+                    kpi.department?.name ||
+                    departments.find((d) => d.id === kpi.departmentId)?.name ||
+                    "—";
+
+                  const evalType =
+                    kpi.evaluationType ||
+                    evaluationTypes.find((et) => et.id === kpi.evaluationTypeId);
+
+                  return (
+                    <tr
+                      key={kpi.id}
+                      className="border-b hover:bg-gray-100 cursor-pointer transition"
+                      onClick={() => openEditModal(kpi)}
+                    >
+                      <td className="px-4 py-3">{kpi.name}</td>
+                      <td className="px-4 py-3 text-slate-700">{deptName}</td>
+                      <td className="px-4 py-3 text-slate-700">
+                        {evalType ? `${evalType.name} ${getEvalSuffix(evalType.code)}` : "—"}
+                      </td>
+                      <td className="px-4 py-3 text-slate-700">{kpi.unit}</td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
-        </div>
+
+          {/* PAGINATION */}
+          <Box display="flex" justifyContent="space-between" alignItems="center" mt={3}>
+            <Typography variant="body2">
+              Página {page} de {pageCount}
+            </Typography>
+
+            <Box display="flex" gap={2}>
+              <Button
+                variant="outlined"
+                size="small"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => p - 1)}
+              >
+                Anterior
+              </Button>
+
+              <Button
+                variant="outlined"
+                size="small"
+                disabled={page >= pageCount}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                Próxima
+              </Button>
+            </Box>
+          </Box>
+        </Paper>
       </main>
 
-      {/* MODAL */}
+      {/* CREATE MODAL */}
       <BaseModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        open={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        title="Criar KPI"
+        description="Preencha os dados da métrica."
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button variant="outlined" onClick={() => setCreateModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleCreate}
+              disabled={
+                !name || !createDepartmentId || !createEvaluationTypeId || !unit
+              }
+              sx={{ backgroundColor: "#1e293b", color: "white" }}
+            >
+              Criar
+            </Button>
+          </div>
+        }
+      >
+        <div className="flex flex-col gap-4">
+          <TextField
+            size="small"
+            label="Nome da métrica (ex: Taxa de conversão)"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+
+          <FormControl size="small" fullWidth>
+            <InputLabel>Departamento</InputLabel>
+            <Select
+              label="Departamento"
+              value={createDepartmentId}
+              onChange={(e) => setCreateDepartmentId(e.target.value)}
+            >
+              {departments.map((d) => (
+                <MenuItem key={d.id} value={d.id}>
+                  {d.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <FormControl size="small" fullWidth>
+            <InputLabel>Tipo de Avaliação</InputLabel>
+            <Select
+              label="Tipo de Avaliação"
+              value={createEvaluationTypeId}
+              onChange={(e) => setCreateEvaluationTypeId(e.target.value)}
+            >
+              {evaluationTypes.map((et) => (
+                <MenuItem key={et.id} value={et.id}>
+                  {et.name} {getEvalSuffix(et.code)}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <TextField
+            size="small"
+            label="Unidade de medida (ex: R$, %, horas, features)"
+            value={unit}
+            onChange={(e) => setUnit(e.target.value)}
+          />
+
+          <TextField
+            size="small"
+            label="Descrição"
+            multiline
+            minRows={3}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
+        </div>
+      </BaseModal>
+
+      {/* EDIT MODAL */}
+      <BaseModal
+        open={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
         title="Editar KPI"
         description="Atualize as informações da métrica ou exclua o registro."
         footer={
           <div className="flex justify-between w-full">
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              className="bg-red-600 hover:bg-red-700"
-            >
+            <Button color="error" variant="outlined" onClick={handleDelete}>
               Excluir
             </Button>
-            <Button onClick={handleSave} disabled={loading}>
+            <Button
+              onClick={handleSave}
+              disabled={loading}
+              sx={{ backgroundColor: "#1e293b", color: "white" }}
+            >
               {loading ? "Salvando..." : "Salvar alterações"}
             </Button>
           </div>
         }
       >
         <div className="flex flex-col gap-4">
-          <Input
+          <TextField
+            size="small"
+            label="Nome da métrica"
             value={editName}
             onChange={(e) => setEditName(e.target.value)}
-            placeholder="Nome da métrica"
           />
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Departamento</label>
-            <select
+          <FormControl size="small" fullWidth>
+            <InputLabel>Departamento</InputLabel>
+            <Select
+              label="Departamento"
               value={editDepartmentId}
               onChange={(e) => setEditDepartmentId(e.target.value)}
-              className="border border-[#232c33] rounded-md px-3 py-2 text-sm w-full"
             >
-              <option value="">Selecione</option>
+              <MenuItem value="">Selecione</MenuItem>
               {departments.map((d) => (
-                <option key={d.id} value={d.id}>
+                <MenuItem key={d.id} value={d.id}>
                   {d.name}
-                </option>
+                </MenuItem>
               ))}
-            </select>
-          </div>
+            </Select>
+          </FormControl>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Tipo de Avaliação</label>
-            <select
+          <FormControl size="small" fullWidth>
+            <InputLabel>Tipo de Avaliação</InputLabel>
+            <Select
+              label="Tipo de Avaliação"
               value={editEvaluationTypeId}
               onChange={(e) => setEditEvaluationTypeId(e.target.value)}
-              className="border border-[#232c33] rounded-md px-3 py-2 text-sm w-full"
             >
-              <option value="">Selecione</option>
+              <MenuItem value="">Selecione</MenuItem>
               {evaluationTypes.map((et) => (
-                <option key={et.id} value={et.id}>
-                  {et.name}
-                </option>
+                <MenuItem key={et.id} value={et.id}>
+                  {et.name} {getEvalSuffix(et.code)}
+                </MenuItem>
               ))}
-            </select>
-          </div>
+            </Select>
+          </FormControl>
 
-          <Input
+          <TextField
+            size="small"
+            label="Unidade de medida"
             value={editUnit}
             onChange={(e) => setEditUnit(e.target.value)}
-            placeholder="Unidade de medida"
           />
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Descrição</label>
-            <textarea
-              value={editDescription}
-              onChange={(e) => setEditDescription(e.target.value)}
-              placeholder="Descreva o objetivo desta métrica..."
-              className="border border-[#232c33] rounded-md px-3 py-2 text-sm w-full min-h-[80px]"
-            />
-          </div>
+          <TextField
+            size="small"
+            label="Descrição"
+            multiline
+            minRows={3}
+            value={editDescription}
+            onChange={(e) => setEditDescription(e.target.value)}
+          />
         </div>
       </BaseModal>
     </div>

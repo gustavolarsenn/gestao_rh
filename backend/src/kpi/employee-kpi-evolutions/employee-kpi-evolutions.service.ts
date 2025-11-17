@@ -10,6 +10,7 @@ import { TeamKPI } from '../entities/team-kpi.entity';
 import { applyScope } from '../../common/utils/scoped-query.util';
 import { TeamsService } from '../../team/teams.service';
 import { Team } from '../../team/entities/team.entity';
+import { EmployeeKpiEvolutionQueryDto } from '../dto/employee-kpi-evolution/employee-kpi-evolution-query.dto';
 
 @Injectable()
     export class EmployeeKpiEvolutionsService {
@@ -57,19 +58,17 @@ import { Team } from '../../team/entities/team.entity';
     return this.repo.save(entity);
   }
 
-  async findAll(user: any, filters?: {
-    employeeId?: string;
-    employeeKpiId?: string;
-    submittedDate?: Date;
-    status?: KpiStatus;
-  }): Promise<EmployeeKPIEvolution[]> {
+  async findAll(user: any, query: EmployeeKpiEvolutionQueryDto) {
     const where = applyScope(user, {}, { company: true, team: true, employee: true, department: false });
 
-    if (filters?.employeeId) where.employeeId = filters.employeeId;
-    if (filters?.employeeKpiId) where.employeeKpiId = filters.employeeKpiId;
-    if (filters?.status) where.status = filters.status;
+    if (query?.status) where.status = query.status;
 
-    return this.repo.find({ where, relations: ['employee', 'employee.person', 'employeeKpi'] });
+    const page = Math.max(1, Number(query.page ?? 1));
+    const limit = Math.max(1, Number(query.limit ?? 10));
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await this.repo.findAndCount({ where, relations: ['employee', 'employee.person', 'employeeKpi'], skip, take: limit });
+    return { page, limit, total, data };
   }
 
   async findOne(companyId: string, id: string): Promise<EmployeeKPIEvolution> {

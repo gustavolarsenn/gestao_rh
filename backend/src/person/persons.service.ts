@@ -1,9 +1,11 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Like, ILike } from 'typeorm';
 import { Person } from './entities/person.entity';
 import { CreatePersonDto } from './dto/create-person.dto';
 import { UpdatePersonDto } from './dto/update-person.dto';
+import { PersonQueryDto } from './dto/person-query.dto';
+import { applyScope } from '../common/utils/scoped-query.util';
 
 @Injectable()
 export class PersonsService {
@@ -21,8 +23,33 @@ export class PersonsService {
     return this.repo.save(entity);
   }
 
-  async findAll(companyId: string): Promise<Person[]> {
-    return this.repo.find({ where: { companyId } });
+  async findAll(user: any, query: PersonQueryDto) {
+    if (user.level < 3) {
+      throw new ForbiddenException('You do not have permission to access this resource.');
+    }
+
+    const where = applyScope(user, {}, { company: true, team: false, employee: false, department: false });
+
+    if (query.cityId) {
+      where['cityId'] = query.cityId;
+    }
+    if (query.cpf) {
+      where['cpf'] = Like(`%${query.cpf}%`);
+    }
+    if (query.name) {
+      where['name'] = ILike(`%${query.name}%`);
+    }
+    if (query.email) {
+      where['email'] = ILike(`%${query.email}%`);
+    }
+
+    const page = Math.max(1, Number(query.page ?? 1));
+    const limit = Math.max(1, Number(query.limit ?? 10));
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await this.repo.findAndCount({ where, skip, take: limit });
+
+    return { page, limit, total, data };
   }
 
   async findOne(companyId: string, id: string): Promise<Person> {

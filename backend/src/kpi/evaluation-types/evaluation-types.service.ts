@@ -1,10 +1,11 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { ILike, Repository } from 'typeorm';
 import { EvaluationType } from '../entities/evaluation-type.entity';
 import { CreateEvaluationTypeDto } from '../dto/evaluation-type/create-evaluation-type.dto';
 import { UpdateEvaluationTypeDto } from '../dto/evaluation-type/update-evaluation-type.dto';
 import { applyScope } from '../../common/utils/scoped-query.util';
+import { EvaluationTypeQueryDto } from '../dto/evaluation-type/evaluation-type-query.dto';
 
 @Injectable()
 export class EvaluationTypesService {
@@ -21,10 +22,27 @@ export class EvaluationTypesService {
     return this.repo.save(entity);
   }
 
-  async findAll(user: any): Promise<EvaluationType[]> {
+  async findAll(user: any, query: EvaluationTypeQueryDto) {
+    const where = applyScope(user, {}, { company: true, team: false, employee: false, department: true });
+    if (query.code) {
+      where['code'] = query.code;
+    }
+    if (query.name) {
+      where['name'] = ILike(`%${query.name}%`);
+    }
+
+    const page = Math.max(1, Number(query.page ?? 1));
+    const limit = Math.max(1, Number(query.limit ?? 10));
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await this.repo.findAndCount({ where, skip, take: limit });
+    return { page, limit, total, data };
+  }
+
+  async findDistinctEvaluationTypes(user: any) {
     const where = applyScope(user, {}, { company: true, team: false, employee: false, department: true });
     
-    return this.repo.find({ where });
+    return await this.repo.find({ where });
   }
 
   async findOne(companyId: string, id: string): Promise<EvaluationType> {

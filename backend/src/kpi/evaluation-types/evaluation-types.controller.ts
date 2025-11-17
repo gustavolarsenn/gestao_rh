@@ -3,6 +3,7 @@ import { EvaluationTypesService } from './evaluation-types.service';
 import { CreateEvaluationTypeDto } from '../dto/evaluation-type/create-evaluation-type.dto';
 import { UpdateEvaluationTypeDto } from '../dto/evaluation-type/update-evaluation-type.dto';
 import { EvaluationType } from '../entities/evaluation-type.entity';
+import { EvaluationTypeQueryDto } from '../dto/evaluation-type/evaluation-type-query.dto';
 
 @Controller('kpi/evaluation-types')
 @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
@@ -16,8 +17,13 @@ export class EvaluationTypesController {
 
   @Get()
   findAll(
-    @Req() req: any): Promise<EvaluationType[]> {
-    return this.service.findAll(req.user);
+    @Req() req: any, @Query() query: EvaluationTypeQueryDto) {
+    return this.service.findAll(req.user, query);
+  }
+
+  @Get('/distinct')
+  findDistinctEvaluationTypes(@Req() req: any) {
+    return this.service.findDistinctEvaluationTypes(req.user);
   }
 
   @Get(':id')

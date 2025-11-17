@@ -5,6 +5,7 @@ import { Company } from './entities/company.entity';
 import { CreateCompanyDto } from './dto/create-company.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
 import { Branch } from './entities/branch.entity';
+import { CompanyQueryDto } from './dto/company-query.dto';
 
 @Injectable()
 export class CompaniesService {
@@ -38,9 +39,37 @@ export class CompaniesService {
     return entity;
   }
 
-  async findAll(): Promise<Company[]> {
-    return this.repo.find();
+  async findAll(query: CompanyQueryDto) {
+    const page = Number(query.page) || 1;
+    const limit = Number(query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const qb = this.repo.createQueryBuilder('company');
+
+    // Filtros opcionais
+    if (query.name) {
+      qb.andWhere('company.name ILIKE :name', { name: `%${query.name}%` });
+    }
+
+    if (query.cnpj) {
+      qb.andWhere('company.cnpj ILIKE :cnpj', { cnpj: `%${query.cnpj}%` });
+    }
+
+    if (query.cityId) {
+      qb.andWhere('company.cityId = :cityId', { cityId: query.cityId });
+    }
+
+    const [data, total] = await qb.skip(skip).take(limit).getManyAndCount();
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      pageCount: Math.ceil(total / limit),
+    };
   }
+
 
   async findOne(id: string): Promise<Company> {
     const row = await this.repo.findOne({ where: { id } });

@@ -1,6 +1,7 @@
 import {
   Controller, Get, Post, Patch, Delete, Param, Body, Query,
   ParseUUIDPipe, UsePipes, ValidationPipe,
+  Req,
 } from '@nestjs/common';
 import { TeamMembersService, TeamMemberFilters } from './team-members.service';
 import { CreateTeamMemberDto } from './dto/create-team-member.dto';
@@ -19,7 +20,7 @@ export class TeamMembersController {
 
   @Get()
   findAll(
-    @Query('companyId', ParseUUIDPipe) companyId: string,
+    @Req() req: any,
     @Query('teamId') teamId?: string,
     @Query('employeeId') employeeId?: string,
     @Query('parentTeamId') parentTeamId?: string,
@@ -31,7 +32,7 @@ export class TeamMembersController {
       parentTeamId,
       active: typeof active === 'string' ? active === 'true' : undefined,
     };
-    return this.service.findAll(companyId, filters);
+    return this.service.findAll(req.user  , filters);
   }
 
   @Get(':id')

@@ -1,252 +1,480 @@
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import Sidebar from "@/components/Sidebar";
+import {
+  Typography,
+  Paper,
+  Box,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Button,
+} from "@mui/material";
 import { BaseModal } from "@/components/modals/BaseModal";
+
 import { useUsers, User } from "@/hooks/user/useUsers";
 import { useUserRoles, UserRole } from "@/hooks/user/useUserRoles";
 import { usePersons, Person } from "@/hooks/person/usePersons";
 
 export default function Users() {
-  const { listUsers, createUser, updateUser, deleteUser, loading, error } = useUsers();
+  const { listUsers, createUser, updateUser, deleteUser } = useUsers();
   const { listUserRoles } = useUserRoles();
   const { listPersons } = usePersons();
 
   const [users, setUsers] = useState<User[]>([]);
-  const [persons, setPersons] = useState<Person[]>([]);
   const [userRoles, setUserRoles] = useState<UserRole[]>([]);
 
-  // Campos de criação
-  const [selectedPersonId, setSelectedPersonId] = useState("");
-  const [userRoleId, setUserRoleId] = useState("");
-  const [password, setPassword] = useState("");
-  const [message, setMessage] = useState("");
+  // ============== PERSON MODAL SELECT ==============
+  const [selectPersonModalOpen, setSelectPersonModalOpen] = useState(false);
+  const [personNameSearch, setPersonNameSearch] = useState("");
+  const [personEmailSearch, setPersonEmailSearch] = useState("");
+  const [personPage, setPersonPage] = useState(1);
+  const [personTotal, setPersonTotal] = useState(0);
+  const personLimit = 10;
 
-  // Modal de edição
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editUserRoleId, setEditUserRoleId] = useState("");
-  const [editPersonName, setEditPersonName] = useState("");
+  const [personsList, setPersonsList] = useState<Person[]>([]);
 
-  // Carregar dados iniciais
+  async function loadPersonsModal() {
+    const result = await listPersons({
+      page: personPage,
+      limit: personLimit,
+      name: personNameSearch || undefined,
+      email: personEmailSearch || undefined,
+    });
+
+    setPersonsList(result.data);
+    setPersonTotal(result.total);
+  }
+
   useEffect(() => {
-    async function fetchData() {
-      const [u, p, r] = await Promise.all([
-        listUsers(),
-        listPersons(),
-        listUserRoles(),
-      ]);
-      setUsers(u);
-      setPersons(p);
-      setUserRoles(r);
+    if (selectPersonModalOpen) loadPersonsModal();
+  }, [selectPersonModalOpen, personNameSearch, personEmailSearch, personPage]);
+
+  const personPageCount = Math.ceil(personTotal / personLimit);
+
+  // ============== USERS PAGINATION ==============
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10);
+  const [total, setTotal] = useState(0);
+  const usersPageCount = Math.ceil(total / limit);
+
+  // ============== FILTERS ==============
+  const [filterName, setFilterName] = useState("");
+  const [filterEmail, setFilterEmail] = useState("");
+  const [filterRole, setFilterRole] = useState("");
+
+  // ============== LOAD USERS (backend pagination) ==============
+  async function loadUsers() {
+    const result = await listUsers({
+      page,
+      limit,
+      name: filterName || undefined,
+      email: filterEmail || undefined,
+      userRoleId: filterRole || undefined,
+    });
+
+    setUsers(result.data);
+    setTotal(result.total);
+  }
+
+  useEffect(() => {
+    async function loadInitial() {
+      const roles = await listUserRoles();
+      setUserRoles(roles);
     }
-    fetchData();
+    loadInitial();
   }, []);
 
-  // Criar usuário a partir de pessoa existente
-  const handleCreateUser = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setMessage("");
-    try {
-      const person = persons.find((p) => p.id === selectedPersonId);
-      if (!person) throw new Error("Selecione uma pessoa válida");
+  useEffect(() => {
+    loadUsers();
+  }, [page, filterName, filterEmail, filterRole]);
 
-      const newUser = await createUser({
-        name: person.name,
-        email: person.email,
-        password,
-        userRoleId,
-        personId: selectedPersonId,
-        companyId: localStorage.getItem("companyId")!,
-      });
+  // ============== CREATE MODAL ==============
+  const [createModalOpen, setCreateModalOpen] = useState(false);
 
-      setUsers((prev) => [...prev, newUser]);
-      setMessage(`Usuário "${person.name}" criado com sucesso!`);
-      setSelectedPersonId("");
-      setUserRoleId("");
-      setPassword("");
-    } catch (err) {
-      console.error(err);
-    }
+  const [selectedPersonId, setSelectedPersonId] = useState("");
+  const [selectedPersonName, setSelectedPersonName] = useState("");
+  const [selectedPersonEmail, setSelectedPersonEmail] = useState("");
+
+  const [userRoleId, setUserRoleId] = useState("");
+  const [password, setPassword] = useState("");
+
+  const handleSelectPerson = (p: Person) => {
+    setSelectedPersonId(p.id);
+    setSelectedPersonName(p.name);
+    setSelectedPersonEmail(p.email);
+    setSelectPersonModalOpen(false);
   };
 
-  // Abrir modal de edição
-  const openEditModal = (user: User) => {
-    setSelectedUser(user);
-    setEditUserRoleId(user.userRoleId);
-    setEditPersonName(user.name);
-    setModalOpen(true);
+  const handleCreateUser = async () => {
+    await createUser({
+      name: selectedPersonName,
+      email: selectedPersonEmail,
+      password,
+      userRoleId,
+      personId: selectedPersonId,
+      companyId: localStorage.getItem("companyId")!,
+    });
+
+    setCreateModalOpen(false);
+    setPage(1);
+    loadUsers();
   };
 
-  // Atualizar usuário (perfil)
+  // ============== EDIT MODAL ==============
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [editUserRoleId, setEditUserRoleId] = useState("");
+
+  const openEditModal = (u: User) => {
+    setSelectedUser(u);
+    setEditUserRoleId(u.userRoleId);
+    setEditModalOpen(true);
+  };
+
   const handleSaveUser = async () => {
     if (!selectedUser) return;
-    const updated = await updateUser(selectedUser.id, {
+
+    await updateUser(selectedUser.id, {
       userRoleId: editUserRoleId,
       companyId: selectedUser.companyId,
     });
-    setUsers((prev) => prev.map((u) => (u.id === selectedUser.id ? updated : u)));
-    setModalOpen(false);
+
+    setEditModalOpen(false);
+    loadUsers();
   };
 
-  // Excluir usuário
   const handleDeleteUser = async () => {
     if (!selectedUser) return;
+
     await deleteUser(selectedUser.id);
-    setUsers((prev) => prev.filter((u) => u.id !== selectedUser.id));
-    setModalOpen(false);
+    setEditModalOpen(false);
+    loadUsers();
   };
 
+  // ============================================================
+  // UI
+  // ============================================================
+
   return (
-    <div className="flex min-h-screen bg-[#fefefe]">
+    <div className="flex min-h-screen bg-[#f7f7f9]">
       <Sidebar />
 
-      <main className="flex-1 p-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* FORMULÁRIO DE CRIAÇÃO */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="bg-white rounded-2xl shadow-lg p-6 flex flex-col gap-5"
+      <main className="flex-1 p-8">
+
+        <Typography variant="h4" fontWeight={700} color="#1e293b" sx={{ mb: 4 }}>
+          Usuários
+        </Typography>
+
+        {/* FILTERS */}
+        <Paper
+          elevation={0}
+          sx={{
+            width: "100%",
+            p: 4,
+            mb: 4,
+            borderRadius: 3,
+            backgroundColor: "#ffffff",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+          }}
         >
-          <h1 className="text-3xl font-bold text-[#151E3F] mb-4">
-            Criar novo usuário
-          </h1>
+          <Typography variant="h6" fontWeight={600} mb={3}>
+            Filtros
+          </Typography>
 
-          <form onSubmit={handleCreateUser} className="flex flex-col gap-5">
-            {/* Pessoa existente */}
-            <div>
-              <label className="block text-sm font-medium mb-1">Pessoa</label>
-              <select
-                value={selectedPersonId}
-                onChange={(e) => setSelectedPersonId(e.target.value)}
-                required
-                className="w-full border border-[#232c33] rounded-md px-3 py-2 text-sm focus:ring-[#C16E70]"
-              >
-                <option value="">Selecione uma pessoa</option>
-                {persons.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} ({p.email})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Perfil */}
-            <div>
-              <label className="block text-sm font-medium mb-1">Perfil</label>
-              <select
-                value={userRoleId}
-                onChange={(e) => setUserRoleId(e.target.value)}
-                required
-                className="w-full border border-[#232c33] rounded-md px-3 py-2 text-sm focus:ring-[#C16E70]"
-              >
-                <option value="">Selecione</option>
-                {userRoles.map((ur) => (
-                  <option key={ur.id} value={ur.id}>
-                    {ur.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Senha */}
-            <Input
-              type="password"
-              placeholder="Defina uma senha"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
+          <Box display="flex" gap={3} flexWrap="wrap" alignItems="flex-end">
+            <TextField
+              size="small"
+              label="Nome"
+              value={filterName}
+              onChange={(e) => {
+                setFilterName(e.target.value);
+                setPage(1);
+              }}
+              sx={{ flex: "1 1 200px" }}
             />
 
-            {error && <p className="text-red-600 text-sm">{error}</p>}
-            {message && (
-              <p className="text-emerald-700 text-sm font-medium">{message}</p>
-            )}
+            <TextField
+              size="small"
+              label="Email"
+              value={filterEmail}
+              onChange={(e) => {
+                setFilterEmail(e.target.value);
+                setPage(1);
+              }}
+              sx={{ flex: "1 1 200px" }}
+            />
+
+            <FormControl size="small" sx={{ flex: "1 1 200px" }}>
+              <InputLabel>Perfil</InputLabel>
+              <Select
+                label="Perfil"
+                value={filterRole}
+                onChange={(e) => {
+                  setFilterRole(e.target.value);
+                  setPage(1);
+                }}
+              >
+                <MenuItem value="">Todos</MenuItem>
+                {userRoles.map((r) => (
+                  <MenuItem key={r.id} value={r.id}>
+                    {r.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
 
             <Button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-[#232c33] hover:bg-[#3f4755] text-white font-semibold py-2 rounded-lg transition"
+              size="large"
+              variant="outlined"
+              sx={{
+                px: 4,
+                borderColor: "#1e293b",
+                color: "#1e293b",
+                textTransform: "none",
+                fontWeight: 600,
+              }}
+              onClick={() => {
+                setFilterName("");
+                setFilterEmail("");
+                setFilterRole("");
+                setPage(1);
+              }}
             >
-              {loading ? "Criando..." : "Criar Usuário"}
+              Limpar
             </Button>
-          </form>
-        </motion.div>
 
-        {/* TABELA DE USUÁRIOS */}
-        <div className="bg-white rounded-2xl shadow-lg p-6">
-          <h2 className="text-2xl font-semibold mb-4 text-[#151E3F]">
-            Usuários cadastrados
-          </h2>
+            <Button
+              size="large"
+              onClick={() => setCreateModalOpen(true)}
+              sx={{
+                px: 4,
+                ml: "auto",
+                backgroundColor: "#1e293b",
+                color: "white",
+              }}
+            >
+              Criar Usuário
+            </Button>
+          </Box>
+        </Paper>
 
-          <table className="w-full border-collapse text-sm">
+        {/* TABLE */}
+        <Paper sx={{ p: 4, borderRadius: 3 }}>
+          <table className="w-full text-sm border-collapse">
             <thead>
-              <tr className="text-left border-b">
-                <th className="py-2">Pessoa</th>
-                <th className="py-2">E-mail</th>
-                <th className="py-2">Perfil</th>
-                <th className="py-2 w-24 text-center">Ações</th>
+              <tr className="bg-gray-50">
+                <th className="text-left px-4 py-3 font-semibold text-gray-700">Nome</th>
+                <th className="text-left px-4 py-3 font-semibold text-gray-700">Email</th>
+                <th className="text-left px-4 py-3 font-semibold text-gray-700">Perfil</th>
               </tr>
             </thead>
+
             <tbody>
-              {users.map((user) => (
+              {users.map((u) => (
                 <tr
-                  key={user.id}
-                  className="border-b hover:bg-gray-50 cursor-pointer"
-                  onClick={() => openEditModal(user)}
+                  key={u.id}
+                  className="border-b hover:bg-gray-100 cursor-pointer transition"
+                  onClick={() => openEditModal(u)}
                 >
-                  <td className="py-2">{user.name}</td>
-                  <td className="py-2">{user.email}</td>
-                  <td className="py-2">{user.role?.name || "—"}</td>
-                  <td className="py-2 text-center text-[#C16E70] font-medium">
-                    Editar
-                  </td>
+                  <td className="px-4 py-3">{u.name}</td>
+                  <td className="px-4 py-3">{u.email}</td>
+                  <td className="px-4 py-3">{u.role?.name || "-"}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
+
+          {/* PAGINATION */}
+          <Box display="flex" justifyContent="space-between" alignItems="center" mt={3}>
+            <Typography variant="body2">
+              Página {page} de {usersPageCount || 1}
+            </Typography>
+
+            <Box display="flex" gap={2}>
+              <Button
+                variant="outlined"
+                size="small"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => p - 1)}
+              >
+                Anterior
+              </Button>
+
+              <Button
+                variant="outlined"
+                size="small"
+                disabled={page >= usersPageCount}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                Próxima
+              </Button>
+            </Box>
+          </Box>
+        </Paper>
       </main>
 
-      {/* MODAL UNIVERSAL */}
+      {/* CREATE USER MODAL */}
       <BaseModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        title={`Editar Usuário: ${editPersonName}`}
-        description="Atualize o perfil ou exclua o registro."
+        open={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        title="Criar Usuário"
+        description="Selecione uma pessoa e defina o perfil."
         footer={
-          <div className="flex justify-between w-full">
-            <Button
-              variant="destructive"
-              onClick={handleDeleteUser}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Excluir
+          <div className="flex justify-end gap-2">
+            <Button variant="outlined" onClick={() => setCreateModalOpen(false)}>
+              Cancelar
             </Button>
-            <Button onClick={handleSaveUser} disabled={loading}>
-              {loading ? "Salvando..." : "Salvar alterações"}
+            <Button onClick={handleCreateUser} disabled={!selectedPersonId || !userRoleId || !password}>
+              Criar
             </Button>
           </div>
         }
       >
         <div className="flex flex-col gap-4">
+          {/* Person selector */}
           <div>
-            <label className="block text-sm font-medium mb-1">Perfil</label>
-            <select
+            <label className="block text-sm font-medium mb-1">Pessoa</label>
+            <Button
+              variant="outlined"
+              sx={{ width: "100%" }}
+              onClick={() => setSelectPersonModalOpen(true)}
+            >
+              {selectedPersonName
+                ? `${selectedPersonName} (${selectedPersonEmail})`
+                : "Selecionar Pessoa"}
+            </Button>
+          </div>
+
+          <FormControl size="small">
+            <InputLabel>Perfil</InputLabel>
+            <Select
+              label="Perfil"
+              value={userRoleId}
+              onChange={(e) => setUserRoleId(e.target.value)}
+            >
+              {userRoles.map((r) => (
+                <MenuItem key={r.id} value={r.id}>
+                  {r.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <TextField
+            size="small"
+            label="Senha"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </div>
+      </BaseModal>
+
+      {/* EDIT USER MODAL */}
+      <BaseModal
+        open={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        title={`Editar Usuário`}
+        description="Atualize o perfil ou remova."
+        footer={
+          <div className="flex justify-between w-full">
+            <Button color="error" variant="outlined" onClick={handleDeleteUser}>
+              Excluir
+            </Button>
+            <Button onClick={handleSaveUser}>Salvar</Button>
+          </div>
+        }
+      >
+        <div className="flex flex-col gap-4">
+          <FormControl size="small">
+            <InputLabel>Perfil</InputLabel>
+            <Select
+              label="Perfil"
               value={editUserRoleId}
               onChange={(e) => setEditUserRoleId(e.target.value)}
-              className="w-full border border-[#232c33] rounded-md px-3 py-2 text-sm focus:ring-[#C16E70]"
             >
-              <option value="">Selecione</option>
-              {userRoles.map((ur) => (
-                <option key={ur.id} value={ur.id}>
-                  {ur.name}
-                </option>
+              {userRoles.map((r) => (
+                <MenuItem key={r.id} value={r.id}>
+                  {r.name}
+                </MenuItem>
               ))}
-            </select>
-          </div>
+            </Select>
+          </FormControl>
+        </div>
+      </BaseModal>
+
+      {/* PERSON SELECTOR MODAL */}
+      <BaseModal
+        open={selectPersonModalOpen}
+        onClose={() => setSelectPersonModalOpen(false)}
+        title="Selecionar Pessoa"
+        description="Busque pelo nome ou email."
+        footer={null}
+      >
+        <div className="flex flex-col gap-4">
+          <Box display="flex" gap={2}>
+          <TextField
+            size="small"
+            sx={{ flex: 1 }}
+            label="Nome"
+            value={personNameSearch}
+            onChange={(e) => {
+              setPersonNameSearch(e.target.value);
+              setPersonPage(1);
+            }}
+          />
+          <TextField
+            size="small"
+            sx={{ flex: 1 }}
+            label="Email"
+            value={personEmailSearch}
+            onChange={(e) => {
+              setPersonEmailSearch(e.target.value);
+              setPersonPage(1);
+            }}
+          />
+          </Box>
+
+          <Paper sx={{ maxHeight: 300, overflowY: "auto" }}>
+            {personsList.map((p) => (
+              <div
+                key={p.id}
+                className="px-4 py-3 border-b hover:bg-gray-100 cursor-pointer"
+                onClick={() => handleSelectPerson(p)}
+              >
+                <div className="font-medium">{p.name}</div>
+                <div className="text-sm text-gray-600">{p.email}</div>
+              </div>
+            ))}
+          </Paper>
+
+          <Box display="flex" justifyContent="space-between" alignItems="center">
+            <Typography variant="body2">
+              Página {personPage} de {personPageCount || 1}
+            </Typography>
+
+            <Box display="flex" gap={2}>
+              <Button
+                size="small"
+                variant="outlined"
+                disabled={personPage <= 1}
+                onClick={() => setPersonPage((p) => p - 1)}
+              >
+                Anterior
+              </Button>
+
+              <Button
+                size="small"
+                variant="outlined"
+                disabled={personPage >= personPageCount}
+                onClick={() => setPersonPage((p) => p + 1)}
+              >
+                Próxima
+              </Button>
+            </Box>
+          </Box>
         </div>
       </BaseModal>
     </div>

@@ -1,10 +1,11 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { ILike, Repository } from 'typeorm';
 import { Team } from './entities/team.entity';
 import { CreateTeamDto } from './dto/create-team.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
 import { applyScope } from '../common/utils/scoped-query.util';
+import { TeamQueryDto } from './dto/team-query.dto';
 
 @Injectable()
 export class TeamsService {
@@ -20,15 +21,35 @@ export class TeamsService {
     return this.repo.save(entity);
   }
 
-  async findAll(user: any): Promise<Team[]> {
+  async findAll(user: any, query: TeamQueryDto) {
     let where;
     if (user.role != 'gestor'){
       where = applyScope(user, {}, { company: true, team: true, employee: false, department: false });
+
+      if (query.parentTeamId) {
+        where['parentTeamId'] = query.parentTeamId;
+      }
     } 
     else {
       where = {parentTeamId: user.teamId, companyId: user.companyId}; 
     } 
-    return this.repo.find({ where });
+
+    if (query.name) {
+      where['name'] = ILike(`%${query.name}%`);
+    }
+
+    const page = Math.max(1, Number(query.page ?? 1));
+    const limit = Math.max(1, Number(query.limit ?? 10));
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await this.repo.findAndCount({ where, skip, take: limit });
+    return { page, limit, total, data };
+  }
+
+  async findDistinctTeams(user: any) {
+    const where = applyScope(user, {}, { company: true, team: true, employee: false, department: false });
+
+    return await this.repo.find({ where });
   }
 
   async findUpperTeamsRecursive(

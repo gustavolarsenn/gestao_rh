@@ -17,8 +17,13 @@ export function useRoles() {
   const [error, setError] = useState<string | null>(null);
   const companyId = localStorage.getItem("companyId");
 
-  async function listRoles(): Promise<Role[]> {
-    const { data } = await api.get(`/roles?companyId=${companyId}`);
+  async function listRoles(params: any): Promise<Role[]> {
+    const { data } = await api.get(`/roles?companyId=${companyId}`, { params });
+    return data;
+  }
+
+  async function listDistinctRoles(): Promise<Role[]> {
+    const { data } = await api.get(`/roles/distinct?companyId=${companyId}`);
     return data;
   }
 
@@ -45,5 +50,5 @@ export function useRoles() {
     await api.delete(`/roles/${id}?companyId=${companyId}`);
   }
 
-  return { listRoles, createRole, updateRole, deleteRole, loading, error };
+  return { listRoles, listDistinctRoles, createRole, updateRole, deleteRole, loading, error };
 }

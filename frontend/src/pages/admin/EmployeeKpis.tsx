@@ -1,9 +1,16 @@
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { format, addMonths } from "date-fns";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import Sidebar from "@/components/Sidebar";
+import {
+  Typography,
+  Paper,
+  Box,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Button,
+} from "@mui/material";
 import { BaseModal } from "@/components/modals/BaseModal";
 
 import {
@@ -13,11 +20,21 @@ import {
 } from "@/hooks/employee-kpi/useEmployeeKpis";
 import { useEmployees, Employee } from "@/hooks/employee/useEmployees";
 import { useKpis, Kpi } from "@/hooks/kpi/useKpis";
-import { useEvaluationTypes, EvaluationType } from "@/hooks/evaluation-type/useEvaluationTypes";
+import {
+  useEvaluationTypes,
+  EvaluationType,
+  EvaluationCode,
+} from "@/hooks/evaluation-type/useEvaluationTypes";
 
 export default function EmployeeKpis() {
-  const { listEmployeeKpis, createEmployeeKpi, updateEmployeeKpi, deleteEmployeeKpi, loading, error } =
-    useEmployeeKpis();
+  const {
+    listEmployeeKpis,
+    createEmployeeKpi,
+    updateEmployeeKpi,
+    deleteEmployeeKpi,
+    loading,
+    error,
+  } = useEmployeeKpis();
   const { listEmployees } = useEmployees();
   const { listKpis } = useKpis();
   const { listEvaluationTypes } = useEvaluationTypes();
@@ -26,309 +43,612 @@ export default function EmployeeKpis() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [kpis, setKpis] = useState<Kpi[]>([]);
   const [evaluationTypes, setEvaluationTypes] = useState<EvaluationType[]>([]);
+  const [message, setMessage] = useState("");
 
-  // Campos
+  // ======================================================
+  // PAGINATION + FILTERS (backend)
+  // ======================================================
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10);
+  const [total, setTotal] = useState(0);
+  const pageCount = Math.ceil(total / limit) || 1;
+
+  const [filterEmployeeId, setFilterEmployeeId] = useState("");
+  const [filterKpiId, setFilterKpiId] = useState("");
+  const [filterStatus, setFilterStatus] = useState<"" | KpiStatus>("");
+  const [filterPeriodStart, setFilterPeriodStart] = useState("");
+  const [filterPeriodEnd, setFilterPeriodEnd] = useState("");
+  const [loadingTable, setLoadingTable] = useState(false);
+
+  const statusOptions: { value: KpiStatus; label: string }[] = [
+    { value: KpiStatus.DRAFT, label: "Rascunho" },
+    { value: KpiStatus.SUBMITTED, label: "Enviado" },
+    { value: KpiStatus.APPROVED, label: "Aprovado" },
+    { value: KpiStatus.REJECTED, label: "Rejeitado" },
+  ];
+
+  const statusLabelMap: Record<KpiStatus, string> = {
+    [KpiStatus.DRAFT]: "Rascunho",
+    [KpiStatus.SUBMITTED]: "Enviado",
+    [KpiStatus.APPROVED]: "Aprovado",
+    [KpiStatus.REJECTED]: "Rejeitado",
+  };
+
+  const getEvalSuffix = (code: EvaluationCode) => {
+    if (
+      code === EvaluationCode.HIGHER_BETTER_PCT ||
+      code === EvaluationCode.HIGHER_BETTER_SUM
+    )
+      return "(↑ melhor)";
+    if (
+      code === EvaluationCode.LOWER_BETTER_PCT ||
+      code === EvaluationCode.LOWER_BETTER_SUM
+    )
+      return "(↓ melhor)";
+    return "(Binário)";
+  };
+
+  const getKpiLabel = (k: Kpi) => {
+    const evalType = evaluationTypes.find((et) => et.id === k.evaluationTypeId);
+    if (!evalType) return k.name;
+    return `${k.name} ${getEvalSuffix(evalType.code)}`;
+  };
+
+  // ======================================================
+  // LOAD EMPLOYEE KPIS (backend filters + paginação)
+  // ======================================================
+  async function loadEmployeeKpis() {
+    setLoadingTable(true);
+
+    const result = await listEmployeeKpis({
+      page,
+      limit,
+      employeeId: filterEmployeeId || undefined,
+      kpiId: filterKpiId || undefined,
+      status: filterStatus || undefined,
+      periodStart: filterPeriodStart || undefined,
+      periodEnd: filterPeriodEnd || undefined,
+    });
+
+    setEmployeeKpis(result.data);
+    setTotal(result.total);
+
+    setLoadingTable(false);
+  }
+
+  // ======================================================
+  // STATIC DATA (employees, kpis, evaluationTypes) - RODA UMA VEZ
+  // ======================================================
+  useEffect(() => {
+    async function loadStatic() {
+      const [empResult, kpiResult, evalResult] = await Promise.all([
+        listEmployees({ page: 1, limit: 999 }),
+        listKpis({ page: 1, limit: 999 }),
+        listEvaluationTypes({ page: 1, limit: 999 }),
+      ]);
+
+      setEmployees(empResult.data || []);
+      setKpis(kpiResult.data || []);
+      setEvaluationTypes(evalResult.data || []);
+    }
+    loadStatic();
+    // <- sem deps para não entrar em loop se os hooks não forem memoizados
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // KPIs filtradas/paginadas
+  useEffect(() => {
+    loadEmployeeKpis();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    page,
+    filterEmployeeId,
+    filterKpiId,
+    filterStatus,
+    filterPeriodStart,
+    filterPeriodEnd,
+  ]);
+
+  // ======================================================
+  // CREATE MODAL
+  // ======================================================
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+
   const [employeeId, setEmployeeId] = useState("");
   const [kpiId, setKpiId] = useState("");
   const [evaluationTypeId, setEvaluationTypeId] = useState("");
-  const [periodStart, setPeriodStart] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [periodStart, setPeriodStart] = useState(
+    new Date().toISOString().slice(0, 10)
+  );
   const [deltaMonths, setDeltaMonths] = useState(3);
   const [goal, setGoal] = useState<string>("");
   const [status, setStatus] = useState<KpiStatus>(KpiStatus.DRAFT);
-  const [submittedBy, setSubmittedBy] = useState(localStorage.getItem("userId") || "");
-  const [message, setMessage] = useState("");
+  const [submittedBy] = useState(localStorage.getItem("userId") || "");
 
-  // Modal
-  const [selectedKpi, setSelectedKpi] = useState<EmployeeKpi | null>(null);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editGoal, setEditGoal] = useState<string>("");
-  const [editStatus, setEditStatus] = useState<KpiStatus>(KpiStatus.DRAFT);
-
-  // Carregar dados
-  useEffect(() => {
-    async function fetchAll() {
-      const [ek, e, k, et] = await Promise.all([
-        listEmployeeKpis(),
-        listEmployees(),
-        listKpis(),
-        listEvaluationTypes(),
-      ]);
-      setEmployeeKpis(ek);
-      setEmployees(e);
-      setKpis(k);
-      setEvaluationTypes(et);
-    }
-    fetchAll();
-  }, []);
-
-  // Atualiza evaluationTypeId automaticamente
+  // Atualiza evaluationTypeId automaticamente com base na KPI selecionada
   useEffect(() => {
     const selectedKpiObj = kpis.find((k) => k.id === kpiId);
     if (selectedKpiObj) setEvaluationTypeId(selectedKpiObj.evaluationTypeId);
-  }, [kpiId]);
+  }, [kpiId, kpis]);
 
-  // Criar Employee KPI
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCreate = async () => {
     setMessage("");
 
-    const periodEnd = format(addMonths(new Date(periodStart), deltaMonths), "yyyy-MM-dd");
+    const startDate = new Date(periodStart);
+    const end = new Date(startDate);
+    end.setMonth(end.getMonth() + Number(deltaMonths || 0));
 
-    try {
-      const newKpi = await createEmployeeKpi({
-        companyId: localStorage.getItem("companyId")!,
-        employeeId,
-        teamId: employees.find((emp) => emp.id === employeeId)?.teamId || "",
-        kpiId,
-        evaluationTypeId,
-        periodStart,
-        periodEnd,
-        goal,
-        status,
-        submittedBy,
-        submittedDate: new Date().toISOString(),
-      });
-      setEmployeeKpis((prev) => [...prev, newKpi]);
-      setMessage("KPI designada com sucesso!");
-      setEmployeeId("");
-      setKpiId("");
-      setGoal("");
-      setStatus(KpiStatus.DRAFT);
-    } catch (err) {
-      console.error(err);
-    }
+    const periodEnd = end.toISOString().slice(0, 10);
+
+    const employee = employees.find((emp) => emp.id === employeeId);
+
+    await createEmployeeKpi({
+      companyId: localStorage.getItem("companyId")!,
+      employeeId,
+      teamId: employee?.teamId || "",
+      kpiId,
+      evaluationTypeId,
+      periodStart,
+      periodEnd,
+      goal,
+      status,
+      submittedBy,
+      submittedDate: new Date().toISOString(),
+    });
+
+    setCreateModalOpen(false);
+    setPage(1);
+    loadEmployeeKpis();
+
+    setMessage("KPI designada com sucesso!");
+    setEmployeeId("");
+    setKpiId("");
+    setEvaluationTypeId("");
+    setPeriodStart(new Date().toISOString().slice(0, 10));
+    setDeltaMonths(3);
+    setGoal("");
+    setStatus(KpiStatus.DRAFT);
   };
 
-  // Abrir modal
+  // ======================================================
+  // EDIT MODAL
+  // ======================================================
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedKpi, setSelectedKpi] = useState<EmployeeKpi | null>(null);
+  const [editGoal, setEditGoal] = useState<string>("");
+  const [editStatus, setEditStatus] = useState<KpiStatus>(KpiStatus.DRAFT);
+
   const openEditModal = (kpi: EmployeeKpi) => {
     setSelectedKpi(kpi);
     setEditGoal(kpi.goal);
     setEditStatus(kpi.status);
-    setModalOpen(true);
+    setEditModalOpen(true);
   };
 
-  // Atualizar KPI
   const handleSave = async () => {
     if (!selectedKpi) return;
-    const updated = await updateEmployeeKpi(selectedKpi.id, {
+
+    await updateEmployeeKpi(selectedKpi.id, {
       goal: editGoal,
       status: editStatus,
     });
-    setEmployeeKpis((prev) => prev.map((k) => (k.id === selectedKpi.id ? updated : k)));
-    setModalOpen(false);
+
+    setEditModalOpen(false);
+    loadEmployeeKpis();
   };
 
-  // Excluir KPI
   const handleDelete = async () => {
     if (!selectedKpi) return;
+
     await deleteEmployeeKpi(selectedKpi.id);
-    setEmployeeKpis((prev) => prev.filter((k) => k.id !== selectedKpi.id));
-    setModalOpen(false);
+    setEditModalOpen(false);
+    loadEmployeeKpis();
   };
 
+  // ======================================================
+  // UI
+  // ======================================================
   return (
-    <div className="flex min-h-screen bg-[#fefefe]">
+    <div className="flex min-h-screen bg-[#f7f7f9]">
       <Sidebar />
 
-      <main className="flex-1 p-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* FORMULÁRIO */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="bg-white rounded-2xl shadow-lg p-6 flex flex-col gap-5"
+      <main className="flex-1 p-8">
+        {/* TITLE */}
+        <Typography variant="h4" fontWeight={700} color="#1e293b" sx={{ mb: 4 }}>
+          KPIs de Colaboradores
+        </Typography>
+
+        {message && (
+          <Typography variant="body2" sx={{ mb: 2 }} color="success.main">
+            {message}
+          </Typography>
+        )}
+
+        {error && (
+          <Typography variant="body2" sx={{ mb: 2 }} color="error.main">
+            {error}
+          </Typography>
+        )}
+
+        {/* FILTERS */}
+        <Paper
+          elevation={0}
+          sx={{
+            width: "100%",
+            p: 4,
+            mb: 4,
+            borderRadius: 3,
+            backgroundColor: "#ffffff",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+          }}
         >
-          <h1 className="text-3xl font-bold text-[#151E3F] mb-4">
-            Designar KPI a Colaborador
-          </h1>
+          <Typography variant="h6" fontWeight={600} mb={3}>
+            Filtros
+          </Typography>
 
-          <form onSubmit={handleCreate} className="flex flex-col gap-5">
-            {/* Employee */}
-            <div>
-              <label className="block text-sm font-medium mb-1">Colaborador</label>
-              <select
-                value={employeeId}
-                onChange={(e) => setEmployeeId(e.target.value)}
-                required
-                className="border border-[#232c33] rounded-md px-3 py-2 text-sm w-full"
+          <Box display="flex" gap={3} flexWrap="wrap" alignItems="flex-end">
+            <FormControl size="small" sx={{ flex: "1 1 220px" }}>
+              <InputLabel>Colaborador</InputLabel>
+              <Select
+                label="Colaborador"
+                value={filterEmployeeId}
+                onChange={(e) => {
+                  setFilterEmployeeId(e.target.value);
+                  setPage(1);
+                }}
               >
-                <option value="">Selecione</option>
+                <MenuItem value="">Todos</MenuItem>
                 {employees.map((emp) => (
-                  <option key={emp.id} value={emp.id}>
+                  <MenuItem key={emp.id} value={emp.id}>
                     {emp.person?.name || emp.id}
-                  </option>
+                  </MenuItem>
                 ))}
-              </select>
-            </div>
+              </Select>
+            </FormControl>
 
-            {/* KPI */}
-            <div>
-              <label className="block text-sm font-medium mb-1">KPI</label>
-              <select
-                value={kpiId}
-                onChange={(e) => setKpiId(e.target.value)}
-                required
-                className="border border-[#232c33] rounded-md px-3 py-2 text-sm w-full"
+            <FormControl size="small" sx={{ flex: "1 1 220px" }}>
+              <InputLabel>KPI</InputLabel>
+              <Select
+                label="KPI"
+                value={filterKpiId}
+                onChange={(e) => {
+                  setFilterKpiId(e.target.value);
+                  setPage(1);
+                }}
               >
-                <option value="">Selecione</option>
-                {kpis.map((kpi) => (
-                  <option key={kpi.id} value={kpi.id}>
-                    {kpi.name}
-                  </option>
+                <MenuItem value="">Todas</MenuItem>
+                {kpis.map((k) => (
+                  <MenuItem key={k.id} value={k.id}>
+                    {getKpiLabel(k)}
+                  </MenuItem>
                 ))}
-              </select>
-            </div>
+              </Select>
+            </FormControl>
 
-            {/* Período */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Início do Período
-                </label>
-                <Input
-                  type="date"
-                  value={periodStart}
-                  onChange={(e) => setPeriodStart(e.target.value)}
-                  required
-                />
-              </div>
+            <FormControl size="small" sx={{ flex: "1 1 180px" }}>
+              <InputLabel>Status</InputLabel>
+              <Select
+                label="Status"
+                value={filterStatus}
+                onChange={(e) => {
+                  setFilterStatus(e.target.value as KpiStatus | "");
+                  setPage(1);
+                }}
+              >
+                <MenuItem value="">Todos</MenuItem>
+                {statusOptions.map((opt) => (
+                  <MenuItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
 
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Duração (meses)
-                </label>
-                <Input
-                  type="number"
-                  min={1}
-                  max={12}
-                  value={deltaMonths}
-                  onChange={(e) => setDeltaMonths(Number(e.target.value))}
-                />
-              </div>
-            </div>
-
-            {/* Meta */}
-            <Input
-              // type="number"
-              // step="0.01"
-              placeholder="Meta (goal)"
-              value={goal}
-              onChange={(e) => setGoal(e.target.value)}
-              required
+            {/* Filtros de Período */}
+            <TextField
+              size="small"
+              label="Período início"
+              type="date"
+              value={filterPeriodStart}
+              onChange={(e) => {
+                setFilterPeriodStart(e.target.value);
+                setPage(1);
+              }}
+              sx={{ flex: "1 1 180px" }}
+              InputLabelProps={{ shrink: true }}
+            />
+            <TextField
+              size="small"
+              label="Período fim"
+              type="date"
+              value={filterPeriodEnd}
+              onChange={(e) => {
+                setFilterPeriodEnd(e.target.value);
+                setPage(1);
+              }}
+              sx={{ flex: "1 1 180px" }}
+              InputLabelProps={{ shrink: true }}
             />
 
-            {/* Status */}
-            <div>
-              <label className="block text-sm font-medium mb-1">Status</label>
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value as KpiStatus)}
-                className="border border-[#232c33] rounded-md px-3 py-2 text-sm w-full"
-              >
-                <option value={KpiStatus.DRAFT}>Rascunho</option>
-                <option value={KpiStatus.SUBMITTED}>Enviado</option>
-                <option value={KpiStatus.APPROVED}>Aprovado</option>
-                <option value={KpiStatus.REJECTED}>Rejeitado</option>
-              </select>
-            </div>
-
-            {error && <p className="text-red-600 text-sm">{error}</p>}
-            {message && (
-              <p className="text-emerald-700 text-sm font-medium">{message}</p>
-            )}
+            <Button
+              size="large"
+              variant="outlined"
+              sx={{
+                px: 4,
+                borderColor: "#1e293b",
+                color: "#1e293b",
+                textTransform: "none",
+                fontWeight: 600,
+              }}
+              onClick={() => {
+                setFilterEmployeeId("");
+                setFilterKpiId("");
+                setFilterStatus("");
+                setFilterPeriodStart("");
+                setFilterPeriodEnd("");
+                setPage(1);
+              }}
+            >
+              Limpar
+            </Button>
 
             <Button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-[#232c33] hover:bg-[#3f4755] text-white font-semibold py-2 rounded-lg transition"
+              size="large"
+              onClick={() => setCreateModalOpen(true)}
+              sx={{
+                px: 4,
+                ml: "auto",
+                backgroundColor: "#1e293b",
+                color: "white",
+                textTransform: "none",
+                fontWeight: 600,
+              }}
             >
-              {loading ? "Enviando..." : "Designar KPI"}
+              Designar KPI
             </Button>
-          </form>
-        </motion.div>
+          </Box>
+        </Paper>
 
-        {/* LISTAGEM */}
-        <div className="bg-white rounded-2xl shadow-lg p-6">
-          <h2 className="text-2xl font-semibold mb-4 text-[#151E3F]">
-            KPIs de Colaboradores
-          </h2>
-
-          <table className="w-full border-collapse text-sm">
+        {/* TABLE */}
+        <Paper sx={{ p: 4, borderRadius: 3 }}>
+          <table className="w-full text-sm border-collapse">
             <thead>
-              <tr className="text-left border-b">
-                <th className="py-2">Colaborador</th>
-                <th className="py-2">KPI</th>
-                <th className="py-2">Meta</th>
-                <th className="py-2">Status</th>
-                <th className="py-2">Período</th>
-                <th className="py-2 text-center w-24">Ações</th>
+              <tr className="bg-gray-50">
+                <th className="text-left px-4 py-3 font-semibold text-gray-700">
+                  Colaborador
+                </th>
+                <th className="text-left px-4 py-3 font-semibold text-gray-700">
+                  KPI
+                </th>
+                <th className="text-left px-4 py-3 font-semibold text-gray-700">
+                  Meta
+                </th>
+                <th className="text-left px-4 py-3 font-semibold text-gray-700">
+                  Status
+                </th>
+                <th className="text-left px-4 py-3 font-semibold text-gray-700">
+                  Período
+                </th>
               </tr>
             </thead>
+
             <tbody>
-              {employeeKpis.map((ek) => (
-                <tr
-                  key={ek.id}
-                  className="border-b hover:bg-gray-50 cursor-pointer"
-                  onClick={() => openEditModal(ek)}
-                >
-                  <td className="py-2">{ek.employee?.person?.name || ek.employeeId}</td>
-                  <td className="py-2">{ek.kpi?.name || ek.kpiId}</td>
-                  <td className="py-2">{ek.goal}</td>
-                  <td className="py-2 text-slate-700">{ek.status}</td>
-                  <td className="py-2 text-slate-700">
-                    {format(new Date(ek.periodStart), "dd/MM/yyyy")} -{" "}
-                    {format(new Date(ek.periodEnd), "dd/MM/yyyy")}
+              {loadingTable ? (
+                <tr>
+                  <td colSpan={5} className="py-6 text-center text-gray-500">
+                    Carregando...
                   </td>
-                  <td className="py-2 text-center text-[#C16E70] font-medium">Editar</td>
                 </tr>
-              ))}
+              ) : employeeKpis.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="py-6 text-center text-gray-500">
+                    Nenhuma KPI atribuída encontrada.
+                  </td>
+                </tr>
+              ) : (
+                employeeKpis.map((ek) => {
+                  const employeeName =
+                    ek.employee?.person?.name ||
+                    employees.find((e) => e.id === ek.employeeId)?.person?.name ||
+                    ek.employeeId;
+
+                  const kpiName =
+                    ek.kpi?.name ||
+                    kpis.find((k) => k.id === ek.kpiId)?.name ||
+                    ek.kpiId;
+
+                  return (
+                    <tr
+                      key={ek.id}
+                      className="border-b hover:bg-gray-100 cursor-pointer transition"
+                      onClick={() => openEditModal(ek)}
+                    >
+                      <td className="px-4 py-3">{employeeName}</td>
+                      <td className="px-4 py-3 text-slate-700">{kpiName}</td>
+                      <td className="px-4 py-3 text-slate-700">{ek.goal}</td>
+                      <td className="px-4 py-3 text-slate-700">
+                        {statusLabelMap[ek.status] || ek.status}
+                      </td>
+                      <td className="px-4 py-3 text-slate-700">
+                        {new Date(ek.periodStart).toLocaleDateString()}{" "}
+                        - {new Date(ek.periodEnd).toLocaleDateString()}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
-        </div>
+
+          {/* PAGINATION */}
+          <Box display="flex" justifyContent="space-between" alignItems="center" mt={3}>
+            <Typography variant="body2">
+              Página {page} de {pageCount}
+            </Typography>
+
+            <Box display="flex" gap={2}>
+              <Button
+                variant="outlined"
+                size="small"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => p - 1)}
+              >
+                Anterior
+              </Button>
+
+              <Button
+                variant="outlined"
+                size="small"
+                disabled={page >= pageCount}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                Próxima
+              </Button>
+            </Box>
+          </Box>
+        </Paper>
       </main>
 
-      {/* MODAL */}
+      {/* CREATE MODAL */}
       <BaseModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        open={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        title="Designar KPI a Colaborador"
+        description="Preencha os dados para atribuir a KPI ao colaborador."
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button variant="outlined" onClick={() => setCreateModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleCreate}
+              disabled={!employeeId || !kpiId || !periodStart || !goal}
+              sx={{ backgroundColor: "#1e293b", color: "white" }}
+            >
+              Designar
+            </Button>
+          </div>
+        }
+      >
+        <div className="flex flex-col gap-4">
+          <FormControl size="small" fullWidth>
+            <InputLabel>Colaborador</InputLabel>
+            <Select
+              label="Colaborador"
+              value={employeeId}
+              onChange={(e) => setEmployeeId(e.target.value)}
+            >
+              {employees.map((emp) => (
+                <MenuItem key={emp.id} value={emp.id}>
+                  {emp.person?.name || emp.id}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <FormControl size="small" fullWidth>
+            <InputLabel>KPI</InputLabel>
+            <Select
+              label="KPI"
+              value={kpiId}
+              onChange={(e) => setKpiId(e.target.value)}
+            >
+              {kpis.map((k) => (
+                <MenuItem key={k.id} value={k.id}>
+                  {getKpiLabel(k)}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <Box display="flex" gap={2}>
+            <TextField
+              size="small"
+              label="Início do Período"
+              type="date"
+              value={periodStart}
+              onChange={(e) => setPeriodStart(e.target.value)}
+              sx={{ flex: 1 }}
+              InputLabelProps={{ shrink: true }}
+            />
+            <TextField
+              size="small"
+              label="Duração (meses)"
+              type="number"
+              inputProps={{ min: 1, max: 12 }}
+              value={deltaMonths}
+              onChange={(e) => setDeltaMonths(Number(e.target.value))}
+              sx={{ width: 140 }}
+            />
+          </Box>
+
+          <TextField
+            size="small"
+            label="Meta (goal)"
+            value={goal}
+            onChange={(e) => setGoal(e.target.value)}
+          />
+
+          <FormControl size="small" fullWidth>
+            <InputLabel>Status</InputLabel>
+            <Select
+              label="Status"
+              value={status}
+              onChange={(e) => setStatus(e.target.value as KpiStatus)}
+            >
+              {statusOptions.map((opt) => (
+                <MenuItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </div>
+      </BaseModal>
+
+      {/* EDIT MODAL */}
+      <BaseModal
+        open={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
         title="Editar KPI Designada"
         description="Atualize a meta ou status da KPI."
         footer={
           <div className="flex justify-between w-full">
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              className="bg-red-600 hover:bg-red-700"
-            >
+            <Button color="error" variant="outlined" onClick={handleDelete}>
               Excluir
             </Button>
-            <Button onClick={handleSave} disabled={loading}>
+            <Button
+              onClick={handleSave}
+              disabled={loading}
+              sx={{ backgroundColor: "#1e293b", color: "white" }}
+            >
               {loading ? "Salvando..." : "Salvar alterações"}
             </Button>
           </div>
         }
       >
         <div className="flex flex-col gap-4">
-          <Input
-            type="number"
+          <TextField
+            size="small"
+            label="Meta"
             value={editGoal}
             onChange={(e) => setEditGoal(e.target.value)}
-            placeholder="Meta"
           />
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Status</label>
-            <select
+          <FormControl size="small" fullWidth>
+            <InputLabel>Status</InputLabel>
+            <Select
+              label="Status"
               value={editStatus}
               onChange={(e) => setEditStatus(e.target.value as KpiStatus)}
-              className="border border-[#232c33] rounded-md px-3 py-2 text-sm w-full"
             >
-              <option value={KpiStatus.DRAFT}>Rascunho</option>
-              <option value={KpiStatus.SUBMITTED}>Enviado</option>
-              <option value={KpiStatus.APPROVED}>Aprovado</option>
-              <option value={KpiStatus.REJECTED}>Rejeitado</option>
-            </select>
-          </div>
+              {statusOptions.map((opt) => (
+                <MenuItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
         </div>
       </BaseModal>
     </div>

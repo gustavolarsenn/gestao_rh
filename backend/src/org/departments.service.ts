@@ -1,11 +1,12 @@
 // src/org/departments.service.ts
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { ILike, Repository } from 'typeorm';
 import { Department } from './entities/department.entity';
 import { CreateDepartmentDto } from './dto/create-department.dto';
 import { UpdateDepartmentDto } from './dto/update-department.dto';
 import { applyScope } from '../common/utils/scoped-query.util';
+import { DepartmentQueryDto } from './dto/department-query.dto';
 
 @Injectable()
 export class DepartmentsService {
@@ -16,10 +17,25 @@ export class DepartmentsService {
     return this.repo.save(entity);
   }
 
-  async findAll(user: any): Promise<Department[]> {
+  async findAll(user: any, query: DepartmentQueryDto) {
     const where = applyScope(user, {}, { company: true, team: false, employee: true, department: true }, 'department');
     
-    return this.repo.find({ where  });
+    if (query.name) {
+      where['department.name'] = ILike(`%${query.name}%`);
+    }
+
+    const page = Math.max(1, Number(query.page ?? 1));
+    const limit = Math.max(1, Number(query.limit ?? 10));
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await this.repo.findAndCount({ where, skip, take: limit });
+    return { page, limit, total, data };
+  }
+
+  async findDistinctDepartments(user: any): Promise<Department[]> {
+    const where = applyScope(user, {}, { company: true, team: false, employee: true, department: true }, 'department');
+    
+    return this.repo.find({ where });
   }
 
   async findOne(companyId: string, id: string): Promise<Department> {

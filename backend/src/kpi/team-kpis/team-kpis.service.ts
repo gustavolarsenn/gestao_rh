@@ -6,6 +6,7 @@ import { CreateTeamKpiDto } from '../dto/team-kpi/create-team-kpi.dto';
 import { UpdateTeamKpiDto } from '../dto/team-kpi/update-team-kpi.dto';
 import { KpiStatus } from '../entities/kpi.enums';
 import { TeamKPIQueryDto } from '../dto/team-kpi/query-team-kpi.dto';
+import { applyScope } from '../../common/utils/scoped-query.util';
 
 @Injectable()
 export class TeamKpisService {
@@ -29,17 +30,22 @@ export class TeamKpisService {
     return this.repo.save(entity);
   }
 
-  async findAll(query: TeamKPIQueryDto): Promise<TeamKPI[]> {
-    const where: any = {};
-
+  async findAll(user: any, query: TeamKPIQueryDto) {
+    const where = applyScope(user, {}, { company: true, team: true, employee: false, department: false });
+    console.log(query)
     if (query?.kpiId) where.kpiId = query.kpiId;
     if (query?.status) where.status = query.status;
-
+    if (query?.teamId) where.teamId = query.teamId;
     if (query?.periodStart && query?.periodEnd) {
       where.periodStart = Between(query.periodStart, query.periodEnd);
     }
 
-    return this.repo.find({ where, relations: ['team', 'kpi'] });
+    const page = Math.max(1, Number(query.page ?? 1));
+    const limit = Math.max(1, Number(query.limit ?? 10));
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await this.repo.findAndCount({ where, relations: ['team', 'kpi'], skip, take: limit });
+    return { page, limit, total, data };
   }
 
   async findByCompany(companyId: string, query: TeamKPIQueryDto): Promise<TeamKPI[]> {

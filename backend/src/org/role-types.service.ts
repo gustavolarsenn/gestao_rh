@@ -1,10 +1,12 @@
 // src/org/role-types.service.ts
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { ILike, Repository } from 'typeorm';
 import { RoleType } from './entities/role-type.entity';
 import { CreateRoleTypeDto } from './dto/create-role-type.dto';
 import { UpdateRoleTypeDto } from './dto/update-role-type.dto';
+import { RoleTypeQueryDto } from './dto/role-type-query.dto';
+import { applyScope } from '../common/utils/scoped-query.util';
 
 @Injectable()
 export class RoleTypesService {
@@ -15,8 +17,24 @@ export class RoleTypesService {
     return this.repo.save(entity);
   }
 
-  async findAll(companyId: string): Promise<RoleType[]> {
-    return this.repo.find({ where: { companyId }, relations: ['department'] });
+  async findAll(user: any, query: RoleTypeQueryDto) {
+    const where = applyScope(user, {}, { company: true, team: false, employee: false, department: true });
+    
+    if (query.name) {
+      where['name'] = ILike(`%${query.name}%`);
+    }
+    
+    const page = Math.max(1, Number(query.page ?? 1));
+    const limit = Math.max(1, Number(query.limit ?? 10));
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await this.repo.findAndCount({ where, skip, take: limit });
+    return { page, limit, total, data };
+  }
+
+  async findDistinctRoleTypes(user: any): Promise<RoleType[]> {
+    const where = applyScope(user, {}, { company: true, team: false, employee: false, department: true });
+    return this.repo.find({ where });
   }
 
   async findOne(companyId: string, id: string): Promise<RoleType> {

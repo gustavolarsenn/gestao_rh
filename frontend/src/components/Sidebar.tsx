@@ -34,6 +34,7 @@ export default function Sidebar() {
       items: [
         { to: "/admin/persons", label: "Pessoas", level: 3 },
         { to: "/admin/users", label: "Usuários", level: 3 },
+        { to: "/admin/branches", label: "Filiais", level: 3 },
       ],
     },
     {
@@ -59,6 +60,7 @@ export default function Sidebar() {
         { to: "/manager/employee-kpis", label: "Designar KPIs de Funcionários", level: 2 },
         { to: "/manager/kpi-review", label: "Revisão de KPIs", level: 2 },
         { to: "/manager/team-kpis", label: "Designar KPIs de Time", level: 2 },
+        { to: "/manager/team-dashboard", label: "Dashboard de Time", level: 2 },
         { to: "/employee/employee-kpis", label: "KPIs de Funcionários", level: 1 },
         { to: "/employee/dashboard", label: "Dashboard", level: 1 },
       ],

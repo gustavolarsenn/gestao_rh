@@ -1,6 +1,6 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { ILike, Repository } from 'typeorm';
 import { Employee } from './entities/employee.entity';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
@@ -8,6 +8,7 @@ import { Person } from '../person/entities/person.entity';
 import { TeamMember } from '../team/entities/team-member.entity';
 import { Team } from '../team/entities/team.entity';
 import { applyScope } from '../common/utils/scoped-query.util';
+import { EmployeeQueryDto } from './dto/employee-query.dto';
 
 @Injectable()
 export class EmployeesService {
@@ -52,10 +53,35 @@ export class EmployeesService {
     return saved;
   }
 
-  async findAll(user: any): Promise<Employee[]> {
+  async findAll(user: any, query: EmployeeQueryDto) {
     const where = applyScope(user, {}, { company: true, team: true, employee: true, department: false });
     
-    return this.repo.find({ where, relations: ['person', 'role', 'roleType', 'team', 'department', 'branch'] });
+    if (query.name) {
+      where['person'] = { name: ILike(`%${query.name}%`) };
+    }
+
+    if (query.teamId) {
+      where['teamId'] = query.teamId;
+    }
+
+    if (query.departmentId) {
+      where['departmentId'] = query.departmentId;
+    }
+
+    if (query.roleTypeId) {
+      where['roleTypeId'] = query.roleTypeId;
+    }
+
+    if (query.roleId) {
+      where['roleId'] = query.roleId;
+    }
+
+    const page = Math.max(1, Number(query.page ?? 1));
+    const limit = Math.max(1, Number(query.limit ?? 10));
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await this.repo.findAndCount({ where, relations: ['person', 'role', 'roleType', 'team', 'department', 'branch'], skip, take: limit });
+    return { page, limit, total, data };
   }
 
   async findOne(companyId: string, id: string): Promise<Employee> {

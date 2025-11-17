@@ -12,6 +12,14 @@ export type Company = {
   createdAt?: string;
 };
 
+export type PaginatedCompaniesResponse = {
+  data: Company[];
+  total: number;
+  page: number;
+  limit: number;
+  pageCount: number;
+};
+
 export function useCompanies() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -19,21 +27,22 @@ export function useCompanies() {
   async function createCompany(data: Omit<Company, "id" | "createdAt">) {
     setLoading(true);
     setError(null);
+
     try {
       const response = await api.post<Company>("/companies", data);
       return response.data;
     } catch (err: any) {
-      setError(
-        err?.response?.data?.message || "Erro ao criar a empresa."
-      );
+      setError(err?.response?.data?.message || "Erro ao criar a empresa.");
       throw err;
     } finally {
       setLoading(false);
     }
   }
 
-  async function listCompanies(): Promise<Company[]> {
-    const { data } = await api.get<Company[]>("/companies");
+  async function listCompanies(queryString?: string): Promise<PaginatedCompaniesResponse> {
+    const url = queryString ? `/companies?${queryString}` : "/companies";
+
+    const { data } = await api.get<PaginatedCompaniesResponse>(url);
     return data;
   }
 

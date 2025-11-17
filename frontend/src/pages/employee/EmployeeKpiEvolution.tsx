@@ -1,15 +1,27 @@
 import { useState, useEffect, useMemo } from "react";
-import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import Sidebar from "@/components/Sidebar";
+import {
+  Typography,
+  Paper,
+  Box,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Button,
+} from "@mui/material";
 import { BaseModal } from "@/components/modals/BaseModal";
-import { useEmployeeKpis, EmployeeKpi } from "@/hooks/employee-kpi/useEmployeeKpis";
+
+import {
+  useEmployeeKpis,
+  EmployeeKpi,
+} from "@/hooks/employee-kpi/useEmployeeKpis";
 import {
   useEmployeeKpiEvolutions,
   EmployeeKpiEvolutionStatus,
 } from "@/hooks/employee-kpi/useEmployeeKpiEvolutions";
-import React from "react";
+
 import { rateKPI } from "@/utils/rateKPI";
 
 export default function EmployeeKpiEvolution() {
@@ -23,68 +35,95 @@ export default function EmployeeKpiEvolution() {
   } = useEmployeeKpiEvolutions();
 
   const employeeId = localStorage.getItem("employeeId")!;
-  const companyId = localStorage.getItem("companyId")!;
+  const [message, setMessage] = useState("");
 
+  // ======================================================
+  // STATE PRINCIPAL
+  // ======================================================
   const [employeeKpis, setEmployeeKpis] = useState<EmployeeKpi[]>([]);
   const [evolutions, setEvolutions] = useState<any[]>([]);
-  const [filteredKpis, setFilteredKpis] = useState<EmployeeKpi[]>([]);
 
-  // Filtros
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [selectedType, setSelectedType] = useState("");
+  // ======================================================
+  // PAGINAÇÃO + FILTROS (BACKEND)
+  // ======================================================
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10);
+  const [total, setTotal] = useState(0);
+  const pageCount = Math.ceil(total / limit) || 1;
 
-  // Modal
-  const [modalOpen, setModalOpen] = useState(false);
+  const [filterPeriodStart, setFilterPeriodStart] = useState("");
+  const [filterPeriodEnd, setFilterPeriodEnd] = useState("");
+  const [filterKpiId, setFilterKpiId] = useState("");
+  const [loadingTable, setLoadingTable] = useState(false);
+
+  // Opções de KPI para filtro (id + nome)
+  const kpiOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const k of employeeKpis) {
+      if (!k.kpiId) continue;
+      const label = k.kpi?.name || k.kpiId;
+      if (!map.has(k.kpiId)) {
+        map.set(k.kpiId, label);
+      }
+    }
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+  }, [employeeKpis]);
+
+  // ======================================================
+  // LOAD KPIS (BACKEND)
+  // ======================================================
+  async function loadEmployeeKpis() {
+    setLoadingTable(true);
+
+    const result = await listEmployeeKpis({
+      page,
+      limit,
+      employeeId,
+      kpiId: filterKpiId || undefined,
+      periodStart: filterPeriodStart || undefined,
+      periodEnd: filterPeriodEnd || undefined,
+    });
+
+    setEmployeeKpis(result?.data || []);
+    setTotal(result?.total || 0);
+    setLoadingTable(false);
+  }
+
+  useEffect(() => {
+    loadEmployeeKpis();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, filterKpiId, filterPeriodStart, filterPeriodEnd]);
+
+  // ======================================================
+  // LOAD EVOLUTIONS (BACKEND PAGINADO)
+  // ======================================================
+  async function loadEvolutions() {
+    const result = await listEmployeeKpiEvolutions({
+      page: 1,
+      limit: 999,
+      employeeId,
+    });
+    setEvolutions(result?.data || []);
+  }
+
+  useEffect(() => {
+    loadEvolutions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [employeeId]);
+
+  // ======================================================
+  // MODAL - REGISTRAR NOVA EVOLUÇÃO
+  // ======================================================
+  const [createModalOpen, setCreateModalOpen] = useState(false);
   const [selectedKpi, setSelectedKpi] = useState<EmployeeKpi | null>(null);
   const [achievedValueEvolution, setAchievedValueEvolution] = useState("");
 
-  // 🔹 Carregar dados
-  useEffect(() => {
-    async function fetchData() {
-      const [kpis, evols] = await Promise.all([
-        listEmployeeKpis(),
-        listEmployeeKpiEvolutions(),
-      ]);
-      setEmployeeKpis(kpis);
-      setEvolutions(evols);
-    }
-    fetchData();
-  }, []);
-
-  // 🔹 Aplicar filtros
-  useEffect(() => {
-    let filtered = [...employeeKpis];
-
-    if (startDate) {
-      filtered = filtered.filter(
-        (kpi) => new Date(kpi.periodStart) >= new Date(startDate)
-      );
-    }
-
-    if (endDate) {
-      filtered = filtered.filter(
-        (kpi) => new Date(kpi.periodEnd) <= new Date(endDate)
-      );
-    }
-
-    if (selectedType) {
-      filtered = filtered.filter(
-        (kpi) => kpi.kpi?.name === selectedType
-      );
-    }
-
-    setFilteredKpis(filtered);
-  }, [startDate, endDate, selectedType, employeeKpis]);
-
-  // 🔹 Abrir modal
-  const openModal = (kpi: EmployeeKpi) => {
+  const openCreateModal = (kpi: EmployeeKpi) => {
     setSelectedKpi(kpi);
     setAchievedValueEvolution("");
-    setModalOpen(true);
+    setCreateModalOpen(true);
   };
 
-  // 🔹 Criar evolução
   const handleSaveEvolution = async () => {
     if (!selectedKpi) return;
 
@@ -94,332 +133,506 @@ export default function EmployeeKpiEvolution() {
       status: EmployeeKpiEvolutionStatus.SUBMITTED,
     });
 
-    // 🔄 Atualiza evoluções após salvar
-    const updatedEvols = await listEmployeeKpiEvolutions();
-    setEvolutions(updatedEvols);
-
-    setModalOpen(false);
+    await loadEvolutions();
+    setCreateModalOpen(false);
+    setMessage("Evolução registrada com sucesso!");
   };
 
-  const [editEvolution, setEditEvolution] = useState<any | null>(null);
+  // ======================================================
+  // MODAL - EDITAR EVOLUÇÃO DO DIA
+  // ======================================================
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editEvolution, setEditEvolution] = useState<any | null>(null);
+
+  const openEditModal = (evolution: any) => {
+    setEditEvolution(evolution);
+    setAchievedValueEvolution(evolution.achievedValueEvolution);
+    setEditModalOpen(true);
+  };
 
   const handleSaveEditEvolution = async () => {
     if (!editEvolution) return;
+
     await updateEmployeeKpiEvolution(editEvolution.id, {
       achievedValueEvolution,
     });
-    const updatedEvols = await listEmployeeKpiEvolutions();
-    setEvolutions(updatedEvols);
+
+    await loadEvolutions();
     setEditModalOpen(false);
+    setMessage("Evolução atualizada com sucesso!");
   };
 
-  // 🔹 Tipos únicos de KPI
-  const kpiTypes = useMemo(
-    () => Array.from(new Set(employeeKpis.map((k) => k.kpi?.name))).filter(Boolean),
-    [employeeKpis]
-  );
+  // ======================================================
+  // LINHA EXPANDIDA (KPI → EVOLUÇÕES)
+  // ======================================================
+  const [expandedKpiId, setExpandedKpiId] = useState<string | null>(null);
 
+  const toggleExpand = (kpiId: string) => {
+    setExpandedKpiId((prev) => (prev === kpiId ? null : kpiId));
+  };
+
+  // ======================================================
+  // UI
+  // ======================================================
   return (
-    <div className="flex min-h-screen bg-[#fefefe]">
+    <div className="flex min-h-screen bg-[#f7f7f9]">
       <Sidebar />
 
-      <main className="flex-1 p-8 flex flex-col gap-8">
-        <motion.h1
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="text-3xl font-bold text-[#151E3F]"
-        >
+      <main className="flex-1 p-8">
+        {/* TITLE */}
+        <Typography variant="h4" fontWeight={700} color="#1e293b" sx={{ mb: 4 }}>
           Meus KPIs
-        </motion.h1>
+        </Typography>
 
-        {/* 🔍 FILTROS */}
-        <div className="bg-white shadow-md rounded-2xl p-4 flex flex-wrap gap-4 items-end">
-          <div>
-            <label className="block text-sm font-medium mb-1">Data Início</label>
-            <Input
+        {message && (
+          <Typography variant="body2" sx={{ mb: 2 }} color="success.main">
+            {message}
+          </Typography>
+        )}
+
+        {error && (
+          <Typography variant="body2" sx={{ mb: 2 }} color="error.main">
+            {error}
+          </Typography>
+        )}
+
+        {/* FILTERS */}
+        <Paper
+          elevation={0}
+          sx={{
+            width: "100%",
+            p: 4,
+            mb: 4,
+            borderRadius: 3,
+            backgroundColor: "#ffffff",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+          }}
+        >
+          <Typography variant="h6" fontWeight={600} mb={3}>
+            Filtros
+          </Typography>
+
+          <Box display="flex" gap={3} flexWrap="wrap" alignItems="flex-end">
+            {/* Período início */}
+            <TextField
+              size="small"
+              label="Período início"
               type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              value={filterPeriodStart}
+              onChange={(e) => {
+                setFilterPeriodStart(e.target.value);
+                setPage(1);
+              }}
+              sx={{ flex: "1 1 180px" }}
+              InputLabelProps={{ shrink: true }}
             />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Data Fim</label>
-            <Input
+
+            {/* Período fim */}
+            <TextField
+              size="small"
+              label="Período fim"
               type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
+              value={filterPeriodEnd}
+              onChange={(e) => {
+                setFilterPeriodEnd(e.target.value);
+                setPage(1);
+              }}
+              sx={{ flex: "1 1 180px" }}
+              InputLabelProps={{ shrink: true }}
             />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Tipo de KPI</label>
-            <select
-              value={selectedType}
-              onChange={(e) => setSelectedType(e.target.value)}
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+
+            {/* Tipo/KPI */}
+            <FormControl size="small" sx={{ flex: "1 1 220px" }}>
+              <InputLabel>Tipo de KPI</InputLabel>
+              <Select
+                label="Tipo de KPI"
+                value={filterKpiId}
+                onChange={(e) => {
+                  setFilterKpiId(e.target.value);
+                  setPage(1);
+                }}
+              >
+                <MenuItem value="">Todas</MenuItem>
+                {kpiOptions.map((opt) => (
+                  <MenuItem key={opt.id} value={opt.id}>
+                    {opt.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <Button
+              size="large"
+              variant="outlined"
+              sx={{
+                px: 4,
+                borderColor: "#1e293b",
+                color: "#1e293b",
+                textTransform: "none",
+                fontWeight: 600,
+                ml: "auto",
+              }}
+              onClick={() => {
+                setFilterKpiId("");
+                setFilterPeriodStart("");
+                setFilterPeriodEnd("");
+                setPage(1);
+              }}
             >
-              <option value="">Todos</option>
-              {kpiTypes.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
+              Limpar filtros
+            </Button>
+          </Box>
+        </Paper>
 
-        {/* 📊 TABELA DE KPIs */}
-        <div className="bg-white rounded-2xl shadow-lg p-6">
-          <table className="w-full border-collapse text-sm">
+        {/* TABLE */}
+        <Paper sx={{ p: 4, borderRadius: 3 }}>
+          <table className="w-full text-sm border-collapse">
             <thead>
-              <tr className="text-left border-b">
-                <th className="py-2"></th>
-                <th className="py-2">KPI</th>
-                <th className="py-2">Tipo</th>
-                <th className="py-2">Meta</th>
-                <th className="py-2">Atingido</th>
-                <th className="py-2 text-center"></th>
+              <tr className="bg-gray-50">
+                <th className="text-left px-4 py-3 font-semibold text-gray-700" />
+                <th className="text-left px-4 py-3 font-semibold text-gray-700">
+                  KPI
+                </th>
+                <th className="text-left px-4 py-3 font-semibold text-gray-700">
+                  Tipo
+                </th>
+                <th className="text-left px-4 py-3 font-semibold text-gray-700">
+                  Meta
+                </th>
+                <th className="text-left px-4 py-3 font-semibold text-gray-700">
+                  Atingido
+                </th>
+                <th className="text-center px-4 py-3 font-semibold text-gray-700">
+                  Ações
+                </th>
               </tr>
             </thead>
 
             <tbody>
-              {filteredKpis.map((kpi) => {
-                const relatedEvolutions = evolutions.filter(
-                  (e) => e.employeeKpiId === kpi.id
-                );
-                const isExpanded = selectedKpi?.id === kpi.id;
+              {loadingTable ? (
+                <tr>
+                  <td colSpan={6} className="py-6 text-center text-gray-500">
+                    Carregando...
+                  </td>
+                </tr>
+              ) : employeeKpis.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-6 text-center text-gray-500">
+                    Nenhum KPI encontrado neste período.
+                  </td>
+                </tr>
+              ) : (
+                employeeKpis.map((kpi) => {
+                  const isExpanded = expandedKpiId === kpi.id;
 
-                return (
-                  <React.Fragment key={kpi.id}>
-                    <tr
-                      className={`border-b hover:bg-gray-50 cursor-pointer ${
-                        isExpanded ? "bg-gray-50" : ""
-                      }`}
-                      onClick={() =>
-                        setSelectedKpi((prev) => (prev?.id === kpi.id ? null : kpi))
-                      }
-                    >
-                      <td className="py-2 px-3">
-                        <span
-                          title={
-                            !kpi.achievedValue
-                              ? "Sem valor"
-                              : rateKPI(
-                                  Number(kpi.achievedValue),
-                                  Number(kpi.goal),
-                                  kpi.kpi?.evaluationType?.code || ""
-                                )
-                              ? "Meta atingida"
-                              : "Meta não atingida"
-                          }
-                          className={`inline-block w-3 h-3 rounded-full mr-2 ${
-                            !kpi.achievedValue
-                              ? "bg-gray-300"
-                              : rateKPI(
-                                  Number(kpi.achievedValue),
-                                  Number(kpi.goal),
-                                  kpi.kpi?.evaluationType?.code || ""
-                                )
-                              ? "bg-green-500"
-                              : "bg-red-500"
-                          }`}
-                          aria-hidden="true"
-                        />
-                      </td>
-                      <td className="py-2">{kpi.kpi?.name}</td>
-                      <td className="py-2">{kpi.kpi?.evaluationType?.name}</td>
-                      <td className="py-2">{kpi.goal}</td>
-                      <td className="py-2">{kpi.achievedValue || ""}</td>
-                      <td className="py-2 text-center">
-                        <Button
-                          variant="outline"
-                          onClick={(e) => {
-                            e.stopPropagation(); // evita abrir/fechar a expansão
-                            openModal(kpi);
-                          }}
-                          className="text-[#C16E70]"
-                        >
-                          Registrar Evolução
-                        </Button>
-                      </td>
-                    </tr>
+                  const relatedEvolutions = evolutions.filter(
+                    (e) => e.employeeKpiId === kpi.id
+                  );
 
-                    {/* 🔽 Linhas expansíveis com evoluções + animação */}
-                    {isExpanded && (
-                      <motion.tr
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        transition={{ duration: 0.25 }}
-                        className="bg-gray-100 border-b"
+                  const rateOk =
+                    kpi.achievedValue != null &&
+                    kpi.achievedValue !== "" &&
+                    rateKPI(
+                      Number(kpi.achievedValue),
+                      Number(kpi.goal),
+                      kpi.kpi?.evaluationType?.code || ""
+                    );
+
+                  return (
+                    <>
+                      <tr
+                        key={kpi.id}
+                        className={`border-b hover:bg-gray-100 cursor-pointer transition ${
+                          isExpanded ? "bg-gray-50" : ""
+                        }`}
+                        onClick={() => toggleExpand(kpi.id)}
                       >
-                        <td colSpan={6} className="p-4">
-                          {relatedEvolutions.length > 0 ? (
-                            <table className="w-full border text-xs bg-white rounded-lg shadow-sm">
-                              <thead>
-                                <tr className="text-left bg-gray-200">
-                                  <th className="py-2 px-3">Valor / Observação</th>
-                                  <th className="py-2 px-3">Status</th>
-                                  <th className="py-2 px-3">Enviado em</th>
-                                  <th className="py-2 px-3">Aprovado em</th>
-                                  <th className="py-2 px-3 text-center"></th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {relatedEvolutions.map((ev) => {
-                                  const today = new Date().toISOString().split("T")[0];
-                                  const isToday =
-                                    ev.submittedDate &&
-                                    new Date(ev.submittedDate).toISOString().split("T")[0] === today;
-                                  return (
-                                    <tr key={ev.id} className="border-t">
-                                      <td className="py-2 px-3">{ev.achievedValueEvolution}</td>
-                                      <td className="py-2 px-3">{ev.status}</td>
-                                      <td className="py-2 px-3">
-                                        {ev.submittedDate
-                                          ? new Date(ev.submittedDate).toLocaleDateString()
-                                          : "—"}
-                                      </td>
-                                      <td className="py-2 px-3">
-                                        {ev.approvedDate
-                                          ? new Date(ev.approvedDate).toLocaleDateString()
-                                          : "—"}
-                                      </td>
-                                      <td className="py-2 px-3 text-center">
-                                        {isToday && (
-                                          <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="text-blue-600 border-blue-300"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setEditEvolution(ev);
-                                              setAchievedValueEvolution(ev.achievedValueEvolution);
-                                              setEditModalOpen(true);
-                                            }}
-                                          >
-                                            Editar
-                                          </Button>
-                                        )}
-                                      </td>
-                                    </tr>
-                                  );
-                                })}
-                              </tbody>
-                            </table>
-                          ) : (
-                            <p className="text-gray-500 text-sm italic">
-                              Nenhuma evolução registrada.
-                            </p>
-                          )}
+                        <td className="px-4 py-3">
+                          <span
+                            className={`inline-block w-3 h-3 rounded-full mr-2 ${
+                              kpi.achievedValue == null || kpi.achievedValue === ""
+                                ? "bg-gray-300"
+                                : rateOk
+                                ? "bg-green-500"
+                                : "bg-red-500"
+                            }`}
+                          />
                         </td>
-                      </motion.tr>
-                    )}              
-                    </React.Fragment>
-                );
-              })}
+                        <td className="px-4 py-3 text-slate-800">
+                          {kpi.kpi?.name || "—"}
+                        </td>
+                        <td className="px-4 py-3 text-slate-700">
+                          {kpi.kpi?.evaluationType?.name || "—"}
+                        </td>
+                        <td className="px-4 py-3 text-slate-700">
+                          {kpi.goal ?? "—"}
+                        </td>
+                        <td className="px-4 py-3 text-slate-700">
+                          {kpi.achievedValue ?? "—"}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            sx={{
+                              borderColor: "#C16E70",
+                              color: "#C16E70",
+                              textTransform: "none",
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openCreateModal(kpi);
+                            }}
+                          >
+                            Registrar evolução
+                          </Button>
+                        </td>
+                      </tr>
+
+                      {isExpanded && (
+                        <tr key={`${kpi.id}-details`} className="bg-gray-50 border-b">
+                          <td colSpan={6} className="px-4 py-4">
+                            {relatedEvolutions.length > 0 ? (
+                              <table className="w-full text-xs border bg-white rounded-lg overflow-hidden">
+                                <thead className="bg-gray-100">
+                                  <tr>
+                                    <th className="text-left px-3 py-2 font-semibold text-gray-700">
+                                      Valor / Observação
+                                    </th>
+                                    <th className="text-left px-3 py-2 font-semibold text-gray-700">
+                                      Status
+                                    </th>
+                                    <th className="text-left px-3 py-2 font-semibold text-gray-700">
+                                      Enviado em
+                                    </th>
+                                    <th className="text-left px-3 py-2 font-semibold text-gray-700">
+                                      Aprovado em
+                                    </th>
+                                    <th className="text-center px-3 py-2 font-semibold text-gray-700">
+                                      Ações
+                                    </th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {relatedEvolutions.map((ev) => {
+                                    const today = new Date()
+                                      .toISOString()
+                                      .split("T")[0];
+                                    const submittedDateIso = ev.submittedDate
+                                      ? new Date(ev.submittedDate)
+                                          .toISOString()
+                                          .split("T")[0]
+                                      : null;
+                                    const isToday = submittedDateIso === today;
+
+                                    return (
+                                      <tr key={ev.id} className="border-t">
+                                        <td className="px-3 py-2">
+                                          {ev.achievedValueEvolution}
+                                        </td>
+                                        <td className="px-3 py-2">{ev.status}</td>
+                                        <td className="px-3 py-2">
+                                          {ev.submittedDate
+                                            ? new Date(
+                                                ev.submittedDate
+                                              ).toLocaleDateString()
+                                            : "—"}
+                                        </td>
+                                        <td className="px-3 py-2">
+                                          {ev.approvedDate
+                                            ? new Date(
+                                                ev.approvedDate
+                                              ).toLocaleDateString()
+                                            : "—"}
+                                        </td>
+                                        <td className="px-3 py-2 text-center">
+                                          {isToday && (
+                                            <Button
+                                              variant="outlined"
+                                              size="small"
+                                              sx={{
+                                                borderColor: "#3b82f6",
+                                                color: "#1d4ed8",
+                                                textTransform: "none",
+                                              }}
+                                              onClick={() => openEditModal(ev)}
+                                            >
+                                              Editar
+                                            </Button>
+                                          )}
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            ) : (
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                                sx={{ fontStyle: "italic" }}
+                              >
+                                Nenhuma evolução registrada para esta KPI.
+                              </Typography>
+                            )}
+                          </td>
+                        </tr>
+                      )}
+                    </>
+                  );
+                })
+              )}
             </tbody>
           </table>
 
-          {filteredKpis.length === 0 && (
-            <p className="text-center text-gray-500 mt-4">
-              Nenhum KPI encontrado neste período.
-            </p>
+          {/* PAGINATION */}
+          {employeeKpis.length > 0 && (
+            <Box
+              display="flex"
+              justifyContent="space-between"
+              alignItems="center"
+              mt={3}
+            >
+              <Typography variant="body2">
+                Página {page} de {pageCount}
+              </Typography>
+
+              <Box display="flex" gap={2}>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => p - 1)}
+                >
+                  Anterior
+                </Button>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  disabled={page >= pageCount}
+                  onClick={() => setPage((p) => p + 1)}
+                >
+                  Próxima
+                </Button>
+              </Box>
+            </Box>
           )}
-        </div>
+        </Paper>
       </main>
 
-      {/* MODAL DE EVOLUÇÃO */}
+      {/* MODAL NOVA EVOLUÇÃO */}
       <BaseModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        title={`Registrar evolução - ${selectedKpi?.kpi?.name}`}
-        description="Insira o novo valor atingido para este KPI."
+        open={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        title={`Registrar evolução - ${selectedKpi?.kpi?.name || ""}`}
+        description="Insira o novo valor atingido ou observação para esta KPI."
         footer={
-          <div className="flex justify-end w-full gap-2">
-            <Button variant="outline" onClick={() => setModalOpen(false)}>
+          <div className="flex justify-end gap-2 w-full">
+            <Button variant="outlined" onClick={() => setCreateModalOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleSaveEvolution} disabled={loading}>
+            <Button
+              onClick={handleSaveEvolution}
+              disabled={loading || !achievedValueEvolution}
+              sx={{ backgroundColor: "#1e293b", color: "white" }}
+            >
               {loading ? "Salvando..." : "Salvar"}
             </Button>
           </div>
         }
       >
         <div className="flex flex-col gap-4">
-          <label className="text-sm font-medium">
+          <Typography variant="body2" color="text.secondary">
             Valor Atingido / Observação
-          </label>
+          </Typography>
 
-          {/* ✅ Campo condicional baseado no tipo do KPI */}
           {selectedKpi?.kpi?.evaluationType?.code === "BINARY" ? (
-            <select
-              value={achievedValueEvolution}
-              onChange={(e) => setAchievedValueEvolution(e.target.value)}
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm"
-            >
-              <option value="">Selecione</option>
-              <option value="Sim">Sim</option>
-              <option value="Não">Não</option>
-            </select>
+            <FormControl size="small" fullWidth>
+              <InputLabel>Valor</InputLabel>
+              <Select
+                label="Valor"
+                value={achievedValueEvolution}
+                onChange={(e) => setAchievedValueEvolution(e.target.value)}
+              >
+                <MenuItem value="">Selecione</MenuItem>
+                <MenuItem value="Sim">Sim</MenuItem>
+                <MenuItem value="Não">Não</MenuItem>
+              </Select>
+            </FormControl>
           ) : (
-            <Input
-              type="text"
-              placeholder="Ex: 85, concluído, ou 'Atingido'"
+            <TextField
+              size="small"
+              label="Valor / Observação"
               value={achievedValueEvolution}
               onChange={(e) => setAchievedValueEvolution(e.target.value)}
+              fullWidth
             />
           )}
 
-          {error && <p className="text-red-600 text-sm">{error}</p>}
+          {error && (
+            <Typography variant="body2" color="error.main">
+              {error}
+            </Typography>
+          )}
         </div>
       </BaseModal>
 
-      {/* MODAL DE EDIÇÃO DE EVOLUÇÃO */}
+      {/* MODAL EDITAR EVOLUÇÃO */}
       <BaseModal
         open={editModalOpen}
         onClose={() => setEditModalOpen(false)}
         title="Editar Evolução"
-        description="Atualize o valor ou observação da evolução do dia."
+        description="Atualize o valor ou observação da evolução registrada hoje."
         footer={
-          <div className="flex justify-end w-full gap-2">
-            <Button variant="outline" onClick={() => setEditModalOpen(false)}>
+          <div className="flex justify-end gap-2 w-full">
+            <Button variant="outlined" onClick={() => setEditModalOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleSaveEditEvolution} disabled={loading}>
-              {loading ? "Salvando..." : "Salvar Alterações"}
+            <Button
+              onClick={handleSaveEditEvolution}
+              disabled={loading || !achievedValueEvolution}
+              sx={{ backgroundColor: "#1e293b", color: "white" }}
+            >
+              {loading ? "Salvando..." : "Salvar alterações"}
             </Button>
           </div>
         }
       >
         <div className="flex flex-col gap-4">
-          <label className="text-sm font-medium">Novo Valor / Observação</label>
+          <Typography variant="body2" color="text.secondary">
+            Novo valor / observação
+          </Typography>
 
-          {/* ✅ Campo condicional também na edição */}
           {selectedKpi?.kpi?.evaluationType?.code === "BINARY" ? (
-            <select
-              value={achievedValueEvolution}
-              onChange={(e) => setAchievedValueEvolution(e.target.value)}
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm"
-            >
-              <option value="">Selecione</option>
-              <option value="Sim">Sim</option>
-              <option value="Não">Não</option>
-            </select>
+            <FormControl size="small" fullWidth>
+              <InputLabel>Valor</InputLabel>
+              <Select
+                label="Valor"
+                value={achievedValueEvolution}
+                onChange={(e) => setAchievedValueEvolution(e.target.value)}
+              >
+                <MenuItem value="">Selecione</MenuItem>
+                <MenuItem value="Sim">Sim</MenuItem>
+                <MenuItem value="Não">Não</MenuItem>
+              </Select>
+            </FormControl>
           ) : (
-            <Input
-              type="text"
-              placeholder="Ex: 90, atingido, concluído..."
+            <TextField
+              size="small"
+              label="Valor / Observação"
               value={achievedValueEvolution}
               onChange={(e) => setAchievedValueEvolution(e.target.value)}
+              fullWidth
             />
           )}
 
-          {error && <p className="text-red-600 text-sm">{error}</p>}
+          {error && (
+            <Typography variant="body2" color="error.main">
+              {error}
+            </Typography>
+          )}
         </div>
       </BaseModal>
-
     </div>
   );
 }

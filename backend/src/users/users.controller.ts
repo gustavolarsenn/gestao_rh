@@ -10,11 +10,13 @@ import {
   ParseUUIDPipe,
   UsePipes,
   ValidationPipe,
+  Req,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
+import { UserQueryDto } from './dto/user-query.dto';
 
 @Controller('users')
 @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
@@ -28,9 +30,10 @@ export class UsersController {
 
   @Get()
   findAll(
-    @Query('companyId', ParseUUIDPipe) companyId: string,
-  ): Promise<User[]> {
-    return this.service.findAll(companyId);
+    @Req() req: any,
+    @Query() query: UserQueryDto,
+  ){
+    return this.service.findAll(req.user, query);
   }
 
   @Get(':id')

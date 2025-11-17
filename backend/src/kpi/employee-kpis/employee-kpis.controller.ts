@@ -20,7 +20,7 @@ export class EmployeeKpisController {
   findAll(
     @Query() query: EmployeeKPIQueryDto,
     @Req() req: any,
-  ): Promise<EmployeeKPI[]> {
+  ) {
     return this.service.findAll(req.user, query);
   }
 
