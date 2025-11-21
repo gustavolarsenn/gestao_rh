@@ -19,7 +19,7 @@ export class UserQueryDto {
 
   @IsOptional()
   @IsString()
-  roleId?: string;
+  userRoleId?: string;
   
   @IsOptional()
   @IsString()

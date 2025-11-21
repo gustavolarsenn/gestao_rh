@@ -9,6 +9,8 @@ export class CreateEmployeeHistoryDto {
   @IsOptional() @IsUUID() departmentId?: string;
   @IsOptional() @IsUUID() branchId?: string;
   @IsOptional() @IsNumberString() wage?: string;
+  @IsDateString() hiringDate!: string;
+  @IsOptional() @IsDateString() departureDate?: string | null;
   @IsDateString() startDate!: string;
   @IsOptional() @IsDateString() endDate?: string;
 }

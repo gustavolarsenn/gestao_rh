@@ -40,7 +40,6 @@ import {
 
 import { ptBR } from "date-fns/locale";
 
-
 // 🎨 Cor por progresso
 function colorByProgress(achieved: number, goal: number): string {
   if (!goal) return "#BDBDBD";
@@ -76,22 +75,29 @@ export default function EmployeeDashboard() {
 
   const [selectedKpiId, setSelectedKpiId] = useState<string | null>(null);
 
-  // 🔥 Carregar KPIs + Evoluções
+  // 🔥 Carregar KPIs + Evoluções (ajustado para retorno paginado)
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
-      const [ek, ev] = await Promise.all([
-        listEmployeeKpis(),
-        listEmployeeKpiEvolutions(),
+
+      const [ekResult, evResult] = await Promise.all([
+        // pega "tudo" desse colaborador com um limite alto
+        listEmployeeKpis({ page: 1, limit: 999 }),
+        listEmployeeKpiEvolutions({ page: 1, limit: 999 }),
       ]);
+
+      const ek = (ekResult as any)?.data ?? ekResult ?? [];
+      const ev = (evResult as any)?.data ?? evResult ?? [];
+
       setKpis(ek);
       setEvolutions(ev);
       setSelectedKpiId(ek.length ? ek[0].id : null);
+
       setLoading(false);
     }
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
 
   // 🔥 Agrupa evoluções por KPI
   const groupedEvolutions = useMemo(() => {
@@ -109,34 +115,32 @@ export default function EmployeeDashboard() {
     return groups;
   }, [evolutions]);
 
-
   // 🔥 FILTRA KPIs
-const filteredKpis = useMemo(() => {
+  const filteredKpis = useMemo(() => {
     return kpis.filter((k) => {
       // Filtro por tipo
       if (filterType && k.kpi?.evaluationType?.code !== filterType) return false;
-      
+
       // Filtro por KPI específica
       if (filterKpi && k.id !== filterKpi) return false;
-      
+
       // Filtro por data inicial
       if (filterStart && k.periodEnd) {
         const kpiEnd = parseISO(k.periodEnd);
         const filterStartDate = parseISO(filterStart);
         if (isBefore(kpiEnd, filterStartDate)) return false;
       }
-      
+
       // Filtro por data final
       if (filterEnd && k.periodStart) {
         const kpiStart = parseISO(k.periodStart);
         const filterEndDate = parseISO(filterEnd);
         if (isAfter(kpiStart, filterEndDate)) return false;
       }
-      
+
       return true;
     });
   }, [kpis, filterType, filterKpi, filterStart, filterEnd]);
-
 
   // 🔥 Ajusta KPI selecionada automaticamente
   useEffect(() => {
@@ -145,12 +149,10 @@ const filteredKpis = useMemo(() => {
     } else if (!filteredKpis.find((k) => k.id === selectedKpiId)) {
       setSelectedKpiId(filteredKpis[0]?.id || null);
     }
-  }, [filterKpi, filteredKpis]);
-
+  }, [filterKpi, filteredKpis, selectedKpiId]);
 
   // 🔥 KPI atual
   const selectedKpi = filteredKpis.find((k) => k.id === selectedKpiId);
-
 
   // 🔥 Evoluções filtradas por KPI + datas
   const selectedEvols = useMemo(() => {
@@ -211,7 +213,6 @@ const filteredKpis = useMemo(() => {
     });
   }, [selectedEvols, selectedKpi]);
 
-
   // 🔥 Linha (valores)
   const lineData = useMemo(() => {
     if (!aggregatedEvolutions.length) return [];
@@ -238,9 +239,7 @@ const filteredKpis = useMemo(() => {
     ];
   }, [aggregatedEvolutions, selectedKpi]);
 
-
   const xAxisDates = aggregatedEvolutions.map((d) => d.date);
-
 
   // 🔥 Totais
   const total = filteredKpis.length;
@@ -250,7 +249,7 @@ const filteredKpis = useMemo(() => {
     finalizados: filteredKpis.filter((k) => k.status === "APPROVED").length,
   };
 
-    // ============================================================
+  // ============================================================
   // 🔥 HEATMAP — também considerando filtros de KPI e datas
   // ============================================================
 
@@ -291,7 +290,6 @@ const filteredKpis = useMemo(() => {
     return evols;
   }, [evolutions, kpis, filterStart, filterEnd, filterKpi, filterType]);
 
-
   // 🔥 Heatmap datas
   const start = startOfMonth(subMonths(new Date(), 2));
   const end = endOfMonth(new Date());
@@ -303,7 +301,6 @@ const filteredKpis = useMemo(() => {
       isSameDay(new Date(ev.submittedDate), day)
     ).length,
   }));
-
 
   // 🔥 Agrupamento semanal
   const firstWeekStart = startOfWeek(start, { weekStartsOn: 0 });
@@ -329,7 +326,6 @@ const filteredKpis = useMemo(() => {
     )
   );
 
-
   // 🔥 Loading
   if (loading) {
     return (
@@ -338,7 +334,6 @@ const filteredKpis = useMemo(() => {
       </div>
     );
   }
-
 
   // ============================================================
   // =======================   RENDER   ==========================
@@ -349,7 +344,6 @@ const filteredKpis = useMemo(() => {
       <Sidebar />
 
       <main className="flex-1 p-8 overflow-y-auto">
-
         {/* ===================== TÍTULO ===================== */}
         <Typography
           variant="h4"
@@ -361,11 +355,7 @@ const filteredKpis = useMemo(() => {
           Dashboard de Desempenho
         </Typography>
 
-
-        {/* ====================================================== */}
         {/* =====================   FILTROS   ===================== */}
-        {/* ====================================================== */}
-
         <Paper
           elevation={0}
           sx={{
@@ -384,8 +374,6 @@ const filteredKpis = useMemo(() => {
           </Typography>
 
           <Box display="flex" gap={3} flexWrap="wrap">
-
-            {/* Data inicial */}
             <TextField
               size="small"
               label="Data inicial"
@@ -396,7 +384,6 @@ const filteredKpis = useMemo(() => {
               sx={{ flex: "1 1 200px" }}
             />
 
-            {/* Data final */}
             <TextField
               size="small"
               label="Data final"
@@ -407,7 +394,6 @@ const filteredKpis = useMemo(() => {
               sx={{ flex: "1 1 200px" }}
             />
 
-            {/* Tipo de KPI */}
             <FormControl sx={{ flex: "1 1 200px" }} size="small">
               <InputLabel>Tipo de KPI</InputLabel>
               <Select
@@ -424,7 +410,6 @@ const filteredKpis = useMemo(() => {
               </Select>
             </FormControl>
 
-            {/* KPI */}
             <FormControl sx={{ flex: "1 1 200px" }} size="small">
               <InputLabel>KPI</InputLabel>
               <Select
@@ -440,7 +425,8 @@ const filteredKpis = useMemo(() => {
                 ))}
               </Select>
             </FormControl>
-                        <Button
+
+            <Button
               size="small"
               variant="outlined"
               onClick={() => {
@@ -464,14 +450,12 @@ const filteredKpis = useMemo(() => {
           </Box>
         </Paper>
 
+        {/* LINHA 1: Pie + Progresso + Heatmap */}
+        {/* ... (resto do layout exatamente como você mandou, sem mudanças) ... */}
 
-        {/* ====================================================== */}
-        {/* =====================   LINHA 1   ===================== */}
-        {/* ====================================================== */}
-
+        {/* ==================== LINHA 1 ==================== */}
         <Box display="flex" gap={3} mb={4} flexWrap="nowrap">
-
-          {/* ==================== CARD PIE ==================== */}
+          {/* PIE */}
           <Paper
             elevation={0}
             sx={{
@@ -520,7 +504,6 @@ const filteredKpis = useMemo(() => {
                 height={300}
               />
 
-              {/* Texto central */}
               <Box
                 sx={{
                   position: "absolute",
@@ -531,7 +514,12 @@ const filteredKpis = useMemo(() => {
                   pointerEvents: "none",
                 }}
               >
-                <Typography variant="h4" fontWeight={700} color="#1e293b" lineHeight={1}>
+                <Typography
+                  variant="h4"
+                  fontWeight={700}
+                  color="#1e293b"
+                  lineHeight={1}
+                >
                   {total}
                 </Typography>
                 <Typography variant="caption" color="#6b7280" fontWeight={500}>
@@ -541,8 +529,7 @@ const filteredKpis = useMemo(() => {
             </Box>
           </Paper>
 
-
-          {/* ==================== PROGRESSO ==================== */}
+          {/* PROGRESSO */}
           <Paper
             elevation={0}
             sx={{
@@ -596,8 +583,7 @@ const filteredKpis = useMemo(() => {
             </Box>
           </Paper>
 
-
-          {/* ==================== HEATMAP ==================== */}
+          {/* HEATMAP */}
           <Paper
             elevation={0}
             sx={{
@@ -623,16 +609,23 @@ const filteredKpis = useMemo(() => {
             </Box>
 
             <Box display="flex" gap={0.5}>
-              {/* Dias da semana */}
-              <Box display="flex" flexDirection="column" justifyContent="space-between" mr={1}>
+              <Box
+                display="flex"
+                flexDirection="column"
+                justifyContent="space-between"
+                mr={1}
+              >
                 {["D", "S", "T", "Qa", "Qi", "Sx", "Sa"].map((d, index) => (
-                  <Typography key={`${d}-${index}`} variant="caption" color="#6b7280">
+                  <Typography
+                    key={`${d}-${index}`}
+                    variant="caption"
+                    color="#6b7280"
+                  >
                     {d}
                   </Typography>
                 ))}
               </Box>
 
-              {/* Grade */}
               <Box display="flex" gap={0.5}>
                 {weeks.map((week, wi) => (
                   <Box key={wi} display="flex" flexDirection="column" gap={0.5}>
@@ -666,11 +659,7 @@ const filteredKpis = useMemo(() => {
           </Paper>
         </Box>
 
-
-        {/* ====================================================== */}
-        {/* ==================== LINHA 2 — GRÁFICO =============== */}
-        {/* ====================================================== */}
-
+        {/* LINHA 2 — Gráfico de linha */}
         <Paper
           elevation={0}
           sx={{
@@ -687,7 +676,6 @@ const filteredKpis = useMemo(() => {
             Evolução das KPIs
           </Typography>
 
-          {/* Botões de seleção */}
           <Box display="flex" flexWrap="wrap" gap={1.5} mb={3}>
             {filteredKpis.map((k) => (
               <Button
@@ -705,7 +693,9 @@ const filteredKpis = useMemo(() => {
                     selectedKpiId === k.id ? "#1e293b" : "transparent",
                   "&:hover": {
                     backgroundColor:
-                      selectedKpiId === k.id ? "#334155" : "rgba(0,0,0,0.04)",
+                      selectedKpiId === k.id
+                        ? "#334155"
+                        : "rgba(0,0,0,0.04)",
                   },
                 }}
               >
@@ -714,7 +704,6 @@ const filteredKpis = useMemo(() => {
             ))}
           </Box>
 
-          {/* Gráfico */}
           {aggregatedEvolutions.length > 0 ? (
             <Box sx={{ width: "100%", height: 360 }}>
               <LineChart

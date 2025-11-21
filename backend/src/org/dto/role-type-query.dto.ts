@@ -12,4 +12,8 @@ export class RoleTypeQueryDto {
   @IsOptional()
   @IsString()
   name?: string;
+
+  @IsOptional()
+  @IsString()
+  departmentId?: string;
 }

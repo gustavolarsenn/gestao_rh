@@ -13,7 +13,15 @@ import {
 } from "@mui/material";
 import { BaseModal } from "@/components/modals/BaseModal";
 
-import { useEmployees, Employee } from "@/hooks/employee/useEmployees";
+import {
+  useEmployees,
+  Employee,
+} from "@/hooks/employee/useEmployees";
+
+import { 
+  useEmployeeHistories, 
+  EmployeeHistory 
+} from "@/hooks/employee/useEmployeeHistories";
 import { usePersons, Person } from "@/hooks/person/usePersons";
 import { useDepartments, Department } from "@/hooks/department/useDepartments";
 import { useRoleTypes, RoleType } from "@/hooks/role-type/useRoleTypes";
@@ -22,8 +30,15 @@ import { useTeams, Team } from "@/hooks/team/useTeams";
 import { useBranches, Branch } from "@/hooks/branch/useBranches";
 
 export default function EmployeesPage() {
-  const { listEmployees, createEmployee, updateEmployee, deleteEmployee, loading, error } =
-    useEmployees();
+  const {
+    listEmployees,
+    createEmployee,
+    updateEmployee,
+    deleteEmployee,
+    loading,
+    error,
+  } = useEmployees();
+  const { listEmployeeHistories } = useEmployeeHistories();
   const { listPersons } = usePersons();
   const { listDistinctDepartments } = useDepartments();
   const { listDistinctRoleTypes } = useRoleTypes();
@@ -101,7 +116,7 @@ export default function EmployeesPage() {
   }, [page, filterName, filterDepartmentId, filterRoleId, filterBranchId]);
 
   // ======================================================
-  // PERSON SELECT MODAL (reaproveitando padrão de Users)
+  // PERSON SELECT MODAL
   // ======================================================
   const [selectPersonModalOpen, setSelectPersonModalOpen] = useState(false);
   const [personNameSearch, setPersonNameSearch] = useState("");
@@ -152,7 +167,9 @@ export default function EmployeesPage() {
   const [roleId, setRoleId] = useState("");
   const [teamId, setTeamId] = useState("");
   const [branchId, setBranchId] = useState("");
-  const [hiringDate, setHiringDate] = useState("");
+  const [hiringDate, setHiringDate] = useState(
+    () => new Date().toISOString().split("T")[0]
+  );
   const [departureDate, setDepartureDate] = useState("");
   const [wage, setWage] = useState("");
 
@@ -184,7 +201,7 @@ export default function EmployeesPage() {
       branchId,
       hiringDate,
       departureDate: departureDate || undefined,
-      wage,
+      wage: wage ? String(wage) : undefined,
     };
 
     const newEmployee = await createEmployee(payload as any);
@@ -193,7 +210,9 @@ export default function EmployeesPage() {
     setPage(1);
     loadEmployees();
 
-    setMessage(`Funcionário "${newEmployee.person?.name || ""}" criado com sucesso!`);
+    setMessage(
+      `Funcionário "${newEmployee.person?.name || ""}" criado com sucesso!`
+    );
 
     // reset
     setSelectedPersonId("");
@@ -204,18 +223,45 @@ export default function EmployeesPage() {
     setRoleId("");
     setTeamId("");
     setBranchId("");
-    setHiringDate("");
+    setHiringDate(new Date().toISOString().split("T")[0]);
     setDepartureDate("");
     setWage("");
     setCreateModalOpen(false);
   };
 
   // ======================================================
-  // EDIT EMPLOYEE MODAL
+  // EDIT EMPLOYEE MODAL + HISTÓRICO
   // ======================================================
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
-  const [editData, setEditData] = useState<Partial<Employee & { departureDate?: string; wage?: any }>>({});
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(
+    null
+  );
+  const [editData, setEditData] = useState<
+    Partial<Employee & { departureDate?: string; wage?: any }>
+  >({});
+
+  // Histórico
+  const [employeeHistories, setEmployeeHistories] = useState<EmployeeHistory[]>(
+    []
+  );
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyTotal, setHistoryTotal] = useState(0);
+  const historyLimit = 5;
+  const historyPageCount = Math.ceil(historyTotal / historyLimit) || 1;
+  const [historyLoading, setHistoryLoading] = useState(false);
+
+  async function loadEmployeeHistories(employeeId: string, page: number) {
+    setHistoryLoading(true);
+    const result = await listEmployeeHistories({
+      employeeId,
+      page,
+      limit: historyLimit,
+    });
+    // considerando que o hook retorna set paginado: { data, total }
+    setEmployeeHistories(result.data);
+    setHistoryTotal(result.total);
+    setHistoryLoading(false);
+  }
 
   const openEditModal = (employee: Employee) => {
     setSelectedEmployee(employee);
@@ -230,8 +276,16 @@ export default function EmployeesPage() {
       departureDate: employee.departureDate || "",
       wage: employee.wage,
     });
+    setHistoryPage(1);
     setEditModalOpen(true);
   };
+
+  useEffect(() => {
+    if (editModalOpen && selectedEmployee) {
+      loadEmployeeHistories(selectedEmployee.id, historyPage);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editModalOpen, selectedEmployee, historyPage]);
 
   const handleSaveEmployee = async () => {
     if (!selectedEmployee) return;
@@ -466,10 +520,10 @@ export default function EmployeesPage() {
                     <td className="px-4 py-3">{emp.person?.name}</td>
                     <td className="px-4 py-3">{emp.role?.name}</td>
                     <td className="px-4 py-3">{emp.department?.name}</td>
-                    <td className="px-4 py-3">{emp.branch?.name || "—"}</td>
                     <td className="px-4 py-3">
-                      {formatWage(emp.wage)}
+                      {emp.branch?.name || "—"}
                     </td>
+                    <td className="px-4 py-3">{formatWage(emp.wage)}</td>
                   </tr>
                 ))
               )}
@@ -477,7 +531,12 @@ export default function EmployeesPage() {
           </table>
 
           {/* PAGINATION */}
-          <Box display="flex" justifyContent="space-between" alignItems="center" mt={3}>
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+            mt={3}
+          >
             <Typography variant="body2">
               Página {page} de {employeesPageCount}
             </Typography>
@@ -634,7 +693,7 @@ export default function EmployeesPage() {
             </Select>
           </FormControl>
 
-          {/* Datas e salário */}
+          {/* Data de Admissão */}
           <TextField
             size="small"
             label="Data de Admissão"
@@ -644,15 +703,7 @@ export default function EmployeesPage() {
             InputLabelProps={{ shrink: true }}
           />
 
-          <TextField
-            size="small"
-            label="Data de Demissão"
-            type="date"
-            value={departureDate}
-            onChange={(e) => setDepartureDate(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-          />
-
+          {/* Salário */}
           <TextField
             size="small"
             label="Salário (R$)"
@@ -664,12 +715,12 @@ export default function EmployeesPage() {
         </div>
       </BaseModal>
 
-      {/* EDIT EMPLOYEE MODAL */}
       <BaseModal
         open={editModalOpen}
         onClose={() => setEditModalOpen(false)}
         title="Editar Funcionário"
         description="Atualize as informações do funcionário."
+        maxWidth="lg"
         footer={
           <div className="flex justify-between w-full">
             <Button color="error" variant="outlined" onClick={handleDeleteEmployee}>
@@ -685,139 +736,270 @@ export default function EmployeesPage() {
           </div>
         }
       >
-        <div className="flex flex-col gap-4">
-          <TextField
-            size="small"
-            label="Pessoa"
-            value={selectedEmployee?.person?.name || ""}
-            disabled
-          />
+        {/* AQUI A GENTE AUMENTA A LARGURA DO MODAL E CONTROLA AS COLUNAS */}
+        <div className="flex flex-col gap-6 md:flex-row md:min-w-[980px]">
+          {/* LADO ESQUERDO: FORM (mantém tamanho mais próximo do original) */}
+          <div className="flex flex-col gap-4 flex-1 md:flex-[0_0_380px] max-w-md">
+            <TextField
+              size="small"
+              label="Pessoa"
+              value={selectedEmployee?.person?.name || ""}
+              disabled
+            />
 
-          <TextField
-            size="small"
-            label="Data de Admissão"
-            type="date"
-            value={(editData.hiringDate as string) ?? ""}
-            disabled
-            InputLabelProps={{ shrink: true }}
-          />
+            <TextField
+              size="small"
+              label="Data de Admissão"
+              type="date"
+              value={(editData.hiringDate as string) ?? ""}
+              disabled
+              InputLabelProps={{ shrink: true }}
+            />
 
-          <TextField
-            size="small"
-            label="Salário (R$)"
-            type="number"
-            inputProps={{ step: "0.01" }}
-            value={editData.wage ?? ""}
-            onChange={(e) =>
-              setEditData((prev) => ({ ...prev, wage: e.target.value }))
-            }
-          />
-
-          <TextField
-            size="small"
-            label="Data de Demissão"
-            type="date"
-            value={(editData.departureDate as string) ?? ""}
-            onChange={(e) =>
-              setEditData((prev) => ({ ...prev, departureDate: e.target.value }))
-            }
-            InputLabelProps={{ shrink: true }}
-          />
-
-          {/* Departamento */}
-          <FormControl size="small" fullWidth>
-            <InputLabel>Departamento</InputLabel>
-            <Select
-              label="Departamento"
-              value={editData.departmentId ?? ""}
+            <TextField
+              size="small"
+              label="Salário (R$)"
+              type="number"
+              inputProps={{ step: "0.01" }}
+              value={editData.wage ?? ""}
               onChange={(e) =>
-                setEditData((prev) => ({ ...prev, departmentId: e.target.value }))
+                setEditData((prev) => ({ ...prev, wage: e.target.value }))
               }
-            >
-              <MenuItem value="">Selecione</MenuItem>
-              {departments.map((d) => (
-                <MenuItem key={d.id} value={d.id}>
-                  {d.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+            />
 
-          {/* Tipo de Cargo */}
-          <FormControl size="small" fullWidth>
-            <InputLabel>Tipo de Cargo</InputLabel>
-            <Select
-              label="Tipo de Cargo"
-              value={editData.roleTypeId ?? ""}
+            <TextField
+              size="small"
+              label="Data de Demissão"
+              type="date"
+              value={(editData.departureDate as string) ?? ""}
               onChange={(e) =>
-                setEditData((prev) => ({ ...prev, roleTypeId: e.target.value }))
+                setEditData((prev) => ({
+                  ...prev,
+                  departureDate: e.target.value,
+                }))
               }
-            >
-              <MenuItem value="">Selecione</MenuItem>
-              {filteredRoleTypesEdit.map((rt) => (
-                <MenuItem key={rt.id} value={rt.id}>
-                  {rt.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+              InputLabelProps={{ shrink: true }}
+            />
 
-          {/* Cargo */}
-          <FormControl size="small" fullWidth>
-            <InputLabel>Cargo</InputLabel>
-            <Select
-              label="Cargo"
-              value={editData.roleId ?? ""}
-              onChange={(e) =>
-                setEditData((prev) => ({ ...prev, roleId: e.target.value }))
-              }
-            >
-              <MenuItem value="">Selecione</MenuItem>
-              {filteredRolesEdit.map((r) => (
-                <MenuItem key={r.id} value={r.id}>
-                  {r.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+            {/* Departamento */}
+            <FormControl size="small" fullWidth>
+              <InputLabel>Departamento</InputLabel>
+              <Select
+                label="Departamento"
+                value={editData.departmentId ?? ""}
+                onChange={(e) =>
+                  setEditData((prev) => ({
+                    ...prev,
+                    departmentId: e.target.value,
+                  }))
+                }
+              >
+                <MenuItem value="">Selecione</MenuItem>
+                {departments.map((d) => (
+                  <MenuItem key={d.id} value={d.id}>
+                    {d.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
 
-          {/* Time */}
-          <FormControl size="small" fullWidth>
-            <InputLabel>Time</InputLabel>
-            <Select
-              label="Time"
-              value={editData.teamId ?? ""}
-              onChange={(e) =>
-                setEditData((prev) => ({ ...prev, teamId: e.target.value }))
-              }
-            >
-              <MenuItem value="">Selecione</MenuItem>
-              {teams.map((t) => (
-                <MenuItem key={t.id} value={t.id}>
-                  {t.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+            {/* Tipo de Cargo */}
+            <FormControl size="small" fullWidth>
+              <InputLabel>Tipo de Cargo</InputLabel>
+              <Select
+                label="Tipo de Cargo"
+                value={editData.roleTypeId ?? ""}
+                onChange={(e) =>
+                  setEditData((prev) => ({
+                    ...prev,
+                    roleTypeId: e.target.value,
+                  }))
+                }
+              >
+                <MenuItem value="">Selecione</MenuItem>
+                {filteredRoleTypesEdit.map((rt) => (
+                  <MenuItem key={rt.id} value={rt.id}>
+                    {rt.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
 
-          {/* Filial */}
-          <FormControl size="small" fullWidth>
-            <InputLabel>Filial</InputLabel>
-            <Select
-              label="Filial"
-              value={editData.branchId ?? ""}
-              onChange={(e) =>
-                setEditData((prev) => ({ ...prev, branchId: e.target.value }))
-              }
+            {/* Cargo */}
+            <FormControl size="small" fullWidth>
+              <InputLabel>Cargo</InputLabel>
+              <Select
+                label="Cargo"
+                value={editData.roleId ?? ""}
+                onChange={(e) =>
+                  setEditData((prev) => ({ ...prev, roleId: e.target.value }))
+                }
+              >
+                <MenuItem value="">Selecione</MenuItem>
+                {filteredRolesEdit.map((r) => (
+                  <MenuItem key={r.id} value={r.id}>
+                    {r.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            {/* Time */}
+            <FormControl size="small" fullWidth>
+              <InputLabel>Time</InputLabel>
+              <Select
+                label="Time"
+                value={editData.teamId ?? ""}
+                onChange={(e) =>
+                  setEditData((prev) => ({ ...prev, teamId: e.target.value }))
+                }
+              >
+                <MenuItem value="">Selecione</MenuItem>
+                {teams.map((t) => (
+                  <MenuItem key={t.id} value={t.id}>
+                    {t.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            {/* Filial */}
+            <FormControl size="small" fullWidth>
+              <InputLabel>Filial</InputLabel>
+              <Select
+                label="Filial"
+                value={editData.branchId ?? ""}
+                onChange={(e) =>
+                  setEditData((prev) => ({
+                    ...prev,
+                    branchId: e.target.value,
+                  }))
+                }
+              >
+                <MenuItem value="">Selecione</MenuItem>
+                {branches.map((b) => (
+                  <MenuItem key={b.id} value={b.id}>
+                    {b.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </div>
+
+          {/* LADO DIREITO: HISTÓRICO (usa o espaço extra) */}
+          <div className="flex-1">
+            <Typography
+              variant="subtitle1"
+              fontWeight={600}
+              sx={{ mb: 1.5 }}
+              color="#1e293b"
             >
-              <MenuItem value="">Selecione</MenuItem>
-              {branches.map((b) => (
-                <MenuItem key={b.id} value={b.id}>
-                  {b.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+              Histórico do Funcionário
+            </Typography>
+
+            <Paper
+              variant="outlined"
+              sx={{
+                p: 2,
+                borderRadius: 2,
+                maxHeight: 360,
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-gray-50">
+                      <th className="text-left px-2 py-2 font-semibold text-gray-700">
+                        Cargo
+                      </th>
+                      <th className="text-left px-2 py-2 font-semibold text-gray-700">
+                        Tipo
+                      </th>
+                      <th className="text-left px-2 py-2 font-semibold text-gray-700">
+                        Dep.
+                      </th>
+                      <th className="text-left px-2 py-2 font-semibold text-gray-700">
+                        Filial
+                      </th>
+                      <th className="text-left px-2 py-2 font-semibold text-gray-700">
+                        Time
+                      </th>
+                      <th className="text-left px-2 py-2 font-semibold text-gray-700">
+                        Salário
+                      </th>
+                      <th className="text-left px-2 py-2 font-semibold text-gray-700">
+                        Início
+                      </th>
+                      <th className="text-left px-2 py-2 font-semibold text-gray-700">
+                        Fim
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {historyLoading ? (
+                      <tr>
+                        <td colSpan={8} className="py-4 text-center text-gray-500">
+                          Carregando histórico...
+                        </td>
+                      </tr>
+                    ) : employeeHistories.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="py-4 text-center text-gray-500">
+                          Nenhum histórico encontrado.
+                        </td>
+                      </tr>
+                    ) : (
+                      employeeHistories.map((h) => (
+                        <tr key={h.id} className="border-b">
+                          <td className="px-2 py-2">{h.role?.name || "—"}</td>
+                          <td className="px-2 py-2">{h.roleType?.name || "—"}</td>
+                          <td className="px-2 py-2">{h.department?.name || "—"}</td>
+                          <td className="px-2 py-2">{h.branch?.name || "—"}</td>
+                          <td className="px-2 py-2">{h.team?.name || "—"}</td>
+                          <td className="px-2 py-2">{formatWage(h.wage)}</td>
+                          <td className="px-2 py-2">{h.startDate || "—"}</td>
+                          <td className="px-2 py-2">{h.endDate || "—"}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* PAGINAÇÃO HISTÓRICO */}
+              <Box
+                display="flex"
+                justifyContent="space-between"
+                alignItems="center"
+                mt={2}
+              >
+                <Typography variant="body2">
+                  Página {historyPage} de {historyPageCount}
+                </Typography>
+
+                <Box display="flex" gap={1}>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    disabled={historyPage <= 1 || historyLoading}
+                    onClick={() => setHistoryPage((p) => p - 1)}
+                  >
+                    Anterior
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    disabled={historyPage >= historyPageCount || historyLoading}
+                    onClick={() => setHistoryPage((p) => p + 1)}
+                  >
+                    Próxima
+                  </Button>
+                </Box>
+              </Box>
+            </Paper>
+          </div>
         </div>
       </BaseModal>
 

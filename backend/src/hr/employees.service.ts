@@ -9,6 +9,7 @@ import { TeamMember } from '../team/entities/team-member.entity';
 import { Team } from '../team/entities/team.entity';
 import { applyScope } from '../common/utils/scoped-query.util';
 import { EmployeeQueryDto } from './dto/employee-query.dto';
+import { EmployeeHistory } from './entities/employee-history.entity';
 
 @Injectable()
 export class EmployeesService {
@@ -17,6 +18,7 @@ export class EmployeesService {
     @InjectRepository(Person) private readonly personRepo: Repository<Person>,
     @InjectRepository(Team) private readonly teamRepo: Repository<Team>,
     @InjectRepository(TeamMember) private readonly teamMemberRepo: Repository<TeamMember>,
+    @InjectRepository(EmployeeHistory) private readonly employeeHistoryRepo: Repository<EmployeeHistory>,
   ) {}
 
   async create(dto: CreateEmployeeDto): Promise<Employee> {
@@ -50,6 +52,13 @@ export class EmployeesService {
       await this.teamMemberRepo.save(teamMember);
     }
 
+    const employeeHistory = this.employeeHistoryRepo.create({
+      ...dto,
+      employeeId: saved.id,
+      startDate: new Date().toISOString().split('T')[0],
+    });
+    await this.employeeHistoryRepo.save(employeeHistory);
+
     return saved;
   }
 
@@ -59,21 +68,20 @@ export class EmployeesService {
     if (query.name) {
       where['person'] = { name: ILike(`%${query.name}%`) };
     }
-
     if (query.teamId) {
       where['teamId'] = query.teamId;
     }
-
     if (query.departmentId) {
       where['departmentId'] = query.departmentId;
     }
-
     if (query.roleTypeId) {
       where['roleTypeId'] = query.roleTypeId;
     }
-
     if (query.roleId) {
       where['roleId'] = query.roleId;
+    }
+    if (query.branchId) {
+      where['branchId'] = query.branchId;
     }
 
     const page = Math.max(1, Number(query.page ?? 1));
@@ -128,11 +136,43 @@ export class EmployeesService {
     }
     const merged = this.repo.merge(emp, dto as any);
     const saved = await this.repo.save(merged);
+
+    const lastHistory = await this.employeeHistoryRepo.findOne({ 
+      where: { companyId, employeeId: saved.id },
+      order: { startDate: 'DESC', updatedAt: 'DESC' },
+    });
+    if (lastHistory) {
+      lastHistory.endDate = new Date().toISOString().split('T')[0];
+      lastHistory.active = false;
+      await this.employeeHistoryRepo.save(lastHistory);
+    }
+
+    const employeeHistory = this.employeeHistoryRepo.create({
+      ...dto,
+      companyId,
+      employeeId: saved.id,
+      startDate: new Date().toISOString().split('T')[0],
+    });
+    await this.employeeHistoryRepo.save(employeeHistory);
+
     return saved;
   }
 
   async remove(companyId: string, id: string): Promise<void> {
     const emp = await this.findOne(companyId, id);
-    await this.repo.remove(emp);
+    emp.active = false;
+    await emp.save();
+    await this.repo.softRemove(emp);
+
+    const lastHistory = await this.employeeHistoryRepo.findOne({ 
+      where: { companyId, employeeId: emp.id },
+      order: { startDate: 'DESC', updatedAt: 'DESC' },
+    });
+
+    if (lastHistory) {
+      lastHistory.endDate = new Date().toISOString().split('T')[0];
+      lastHistory.active = false;
+      await this.employeeHistoryRepo.save(lastHistory);
+    }
   }
 }

@@ -34,6 +34,7 @@ export class EmployeeKpisService {
     const where = applyScope(user, {}, { company: true, team: true, employee: true, department: false });
 
     if (query.kpiId) where.kpiId = query.kpiId;
+    if (query.employeeId) where.employeeId = query.employeeId;
     if (query.status) where.status = query.status;
     if (query.periodStart && query.periodEnd) {
       where.periodStart = Between(query.periodStart, query.periodEnd);

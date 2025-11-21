@@ -32,7 +32,6 @@ export class TeamKpisService {
 
   async findAll(user: any, query: TeamKPIQueryDto) {
     const where = applyScope(user, {}, { company: true, team: true, employee: false, department: false });
-    console.log(query)
     if (query?.kpiId) where.kpiId = query.kpiId;
     if (query?.status) where.status = query.status;
     if (query?.teamId) where.teamId = query.teamId;

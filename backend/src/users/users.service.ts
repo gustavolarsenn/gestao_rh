@@ -1,7 +1,7 @@
 // src/auth/users/users.service.ts
 import { Injectable, ConflictException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Like, Repository } from 'typeorm';
+import { ILike, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -50,18 +50,17 @@ export class UsersService {
       throw new ForbiddenException('You do not have permission to access this resource.');
     }
     const where = applyScope(user, {}, { company: true, team: false, employee: false, department: false });
-    
     if (query.cityId) {
       where['person'] = { cityId: query.cityId };
     }
     if (query.name) {
-      where['person'] = { name: Like(`%${query.name}%`) };
+      where['person'] = { name: ILike(`%${query.name}%`) };
     }
     if (query.email) {
-      where['person'] = { email: Like(`%${query.email}%`) };
+      where['person'] = { email: ILike(`%${query.email}%`) };
     }
-    if (query.roleId) {
-      where['roleId'] = query.roleId;
+    if (query.userRoleId) {
+      where['userRoleId'] = query.userRoleId;
     }
     const page = Math.max(1, Number(query.page ?? 1));
     const limit = Math.max(1, Number(query.limit ?? 10));

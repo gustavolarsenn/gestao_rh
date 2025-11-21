@@ -1,4 +1,4 @@
-import { Entity, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, Column, ManyToOne, JoinColumn, Unique } from 'typeorm';
 import { TenantBaseEntity } from '../../common/entities/tenant-base-entity';
 import { City } from '../../geo/entities/city.entity';
 import { Role } from '../../org/entities/role.entity';
@@ -11,6 +11,7 @@ import { Team } from '../../team/entities/team.entity';
 import { Person } from '../../person/entities/person.entity';
 
 @Entity('employees')
+@Unique(['companyId', 'personId'])
 export class Employee extends TenantBaseEntity {
   @ManyToOne(() => Person, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'personId' })
@@ -38,7 +39,7 @@ export class Employee extends TenantBaseEntity {
 
   @Column({ type: 'numeric', nullable: true }) wage?: string | null;
 
-  @Column({ type: 'date', nullable: true }) hiringDate?: string | null;
+  @Column({ type: 'date' }) hiringDate!: string | null;
   @Column({ type: 'date', nullable: true }) departureDate?: string | null;
 
   @ManyToOne(() => Company, { onDelete: 'RESTRICT' })

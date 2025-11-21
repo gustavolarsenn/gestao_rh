@@ -27,10 +27,16 @@ export default function OrgChart() {
   useEffect(() => {
     async function loadData() {
       setLoading(true);
-      const [teams, members] = await Promise.all([
-        listTeams(),
-        listTeamMembers(),
+
+      // teams pode ser paginado ou não
+      const [teamsRes, members] = await Promise.all([
+        listTeams(),       // pode retornar array ou { data, total }
+        listTeamMembers(), // ✅ NÃO paginado: já vem como array
       ]);
+
+      const teams: any[] = Array.isArray(teamsRes)
+        ? teamsRes
+        : teamsRes?.data || [];
 
       // Index de times
       const teamMap: Record<string, OrgNode> = {};
@@ -44,7 +50,7 @@ export default function OrgChart() {
       }
 
       // Vincula membros a times
-      for (const m of members) {
+      for (const m of members as any[]) {
         const team = teamMap[m.teamId];
         if (team) {
           team.members.push({
@@ -71,7 +77,8 @@ export default function OrgChart() {
     }
 
     loadData();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // 🔥 roda só uma vez, evita loop
 
   return (
     <div className="flex min-h-screen bg-[#fefefe]">
@@ -125,19 +132,26 @@ function OrgBranch({ node, level }: BranchProps) {
           level === 0 ? "bg-[#F8FAFC]" : ""
         }`}
       >
-        <div className="font-semibold text-[#151E3F] text-left px-4">{node.name}</div>
+        <div className="font-semibold text-[#151E3F] text-left px-4">
+          {node.name}
+        </div>
 
         {/* Membros */}
         <div className="mt-2">
           {node.members.length === 0 ? (
-            <p className="text-gray-400 text-xs italic text-left px-4">Sem membros</p>
+            <p className="text-gray-400 text-xs italic text-left px-4">
+              Sem membros
+            </p>
           ) : (
             <ul className="text-xs space-y-1 text-left px-4 list-disc pl-5">
-                {node.members.map((m) => (
-                    <li key={m.id} className={m.isLeader ? "font-bold text-[#151E3F]" : ""}>
-                        {m.name}
-                    </li>
-                ))}
+              {node.members.map((m) => (
+                <li
+                  key={m.id}
+                  className={m.isLeader ? "font-bold text-[#151E3F]" : ""}
+                >
+                  {m.name}
+                </li>
+              ))}
             </ul>
           )}
         </div>

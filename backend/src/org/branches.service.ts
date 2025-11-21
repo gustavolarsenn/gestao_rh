@@ -23,6 +23,12 @@ export class BranchesService {
     if (query.name) {
       where['name'] = ILike(`%${query.name}%`);
     }
+    if (query.cnpj) {
+      where['cnpj'] = ILike(`%${query.cnpj}%`);
+    }
+    if (query.cityId) {
+      where['city'] = { id: query.cityId };
+    }
 
     const page = Math.max(1, Number(query.page ?? 1));
     const limit = Math.max(1, Number(query.limit ?? 10));

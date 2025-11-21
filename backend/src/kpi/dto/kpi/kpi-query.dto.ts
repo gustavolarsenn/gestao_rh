@@ -16,5 +16,9 @@ export class KPIQueryDto {
 
   @IsOptional()
   @IsString()
+  departmentId?: string;
+
+  @IsOptional()
+  @IsString()
   evaluationTypeId?: string;
 }

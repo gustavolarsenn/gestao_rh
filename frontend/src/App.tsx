@@ -21,6 +21,7 @@ import TeamKpis from "./pages/manager/TeamKpis";
 import OrgChart from "./pages/admin/OrgChart";
 import EmployeeDashboard from "./pages/employee/EmployeeDashboard";
 import TeamDashboardTabs from "./pages/manager/TeamDashboardTabs";
+import CareerPaths from "./pages/admin/CareerPaths";
 
 export default function App() {
   return (
@@ -43,6 +44,7 @@ export default function App() {
             <Route path="/admin/roles" element={<Roles />} />
             <Route path="/admin/teams" element={<Teams />} />
             <Route path="/admin/employees" element={<Employees />} />
+            <Route path="/admin/career-paths" element={<CareerPaths />} />
             <Route path="/admin/org-chart" element={<OrgChart />} />
           </Route>
           

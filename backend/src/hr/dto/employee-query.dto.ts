@@ -28,4 +28,8 @@ export class EmployeeQueryDto {
   @IsOptional()
   @IsString()
   roleId?: string;
+
+  @IsOptional()
+  @IsString()
+  branchId?: string;
 }

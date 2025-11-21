@@ -79,22 +79,40 @@ export default function TeamMembersKpiDashboard() {
   const [filterKpi, setFilterKpi] = useState("");
   const [filterEmployee, setFilterEmployee] = useState("");
 
-  const [selectedEmployeeKpiId, setSelectedEmployeeKpiId] = useState<string | null>(null);
+  const [selectedEmployeeKpiId, setSelectedEmployeeKpiId] =
+    useState<string | null>(null);
 
   // =====================================
-  // 🔥 LOAD INITIAL DATA
+  // 🔥 LOAD INITIAL DATA (considerando paginação)
   // =====================================
   useEffect(() => {
     async function load() {
       setLoading(true);
 
-      const m = await listTeamMembers();
+      // Team members (paginado)
+      const mResult = await listTeamMembers();
+      const m = (mResult as any)?.data ?? mResult ?? [];
       setMembers(m);
 
-      const ek = await listEmployeeKpis();
+      const memberEmployeeIds = new Set(
+        m.map((tm: any) => tm.employeeId).filter(Boolean)
+      );
+
+      // Employee KPIs (paginado) -> só dos membros do time
+      const ekResult = await listEmployeeKpis({ page: 1, limit: 999 });
+      const ekAll = (ekResult as any)?.data ?? ekResult ?? [];
+      const ek = ekAll.filter((k: any) =>
+        memberEmployeeIds.has(k.employeeId)
+      );
       setEmployeeKpis(ek);
 
-      const ev = await listEmployeeKpiEvolutions();
+      // Evoluções (paginado) -> só das KPIs acima
+      const evResult = await listEmployeeKpiEvolutions({ page: 1, limit: 999 });
+      const evAll = (evResult as any)?.data ?? evResult ?? [];
+      const employeeKpiIds = new Set(ek.map((k: any) => k.id));
+      const ev = evAll.filter((e: any) =>
+        employeeKpiIds.has(e.employeeKpiId)
+      );
       setEvolutions(ev);
 
       if (ek.length) setSelectedEmployeeKpiId(ek[0].id);
@@ -102,8 +120,8 @@ export default function TeamMembersKpiDashboard() {
       setLoading(false);
     }
     load();
-  }, []); // <-- OBRIGATÓRIO
-
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // =====================================
   // 📌 FILTRAR EMPLOYEE KPIS
@@ -136,9 +154,11 @@ export default function TeamMembersKpiDashboard() {
     } else if (!filteredEmployeeKpis.some((k) => k.id === selectedEmployeeKpiId)) {
       setSelectedEmployeeKpiId(filteredEmployeeKpis[0]?.id || null);
     }
-  }, [filterKpi, filteredEmployeeKpis]);
+  }, [filterKpi, filteredEmployeeKpis, selectedEmployeeKpiId]);
 
-  const selectedKpi = filteredEmployeeKpis.find((k) => k.id === selectedEmployeeKpiId);
+  const selectedKpi = filteredEmployeeKpis.find(
+    (k) => k.id === selectedEmployeeKpiId
+  );
 
   // =====================================
   // 🔥 FILTRAR EVOLUÇÕES
@@ -146,7 +166,9 @@ export default function TeamMembersKpiDashboard() {
   const selectedEvols = useMemo(() => {
     if (!selectedEmployeeKpiId) return [];
 
-    let evs = evolutions.filter((ev) => ev.employeeKpiId === selectedEmployeeKpiId);
+    let evs = evolutions.filter(
+      (ev) => ev.employeeKpiId === selectedEmployeeKpiId
+    );
 
     if (filterStart) {
       const start = parseISO(filterStart);
@@ -186,7 +208,10 @@ export default function TeamMembersKpiDashboard() {
       if (type.endsWith("_SUM")) {
         return {
           date,
-          value: list.reduce((a, x) => a + Number(x.achievedValueEvolution || 0), 0),
+          value: list.reduce(
+            (a, x) => a + Number(x.achievedValueEvolution || 0),
+            0
+          ),
         };
       }
 
@@ -241,7 +266,11 @@ export default function TeamMembersKpiDashboard() {
   }
 
   const monthsLabels = Array.from(
-    new Set(allDays.filter((_, i) => i % 14 === 0).map((d) => format(d, "MMM", { locale: ptBR })))
+    new Set(
+      allDays
+        .filter((_, i) => i % 14 === 0)
+        .map((d) => format(d, "MMM", { locale: ptBR }))
+    )
   );
 
   // =====================================
@@ -257,105 +286,104 @@ export default function TeamMembersKpiDashboard() {
         </Typography>
 
         <Box display="flex" flexWrap="wrap" gap={2}>
-
           <TextField
-        size="small"
-        sx={{ flex: "1 1 200px" }}
-        label="Data inicial"
-        type="date"
-        InputLabelProps={{ shrink: true }}
-        value={filterStart}
-        onChange={(e) => setFilterStart(e.target.value)}
+            size="small"
+            sx={{ flex: "1 1 200px" }}
+            label="Data inicial"
+            type="date"
+            InputLabelProps={{ shrink: true }}
+            value={filterStart}
+            onChange={(e) => setFilterStart(e.target.value)}
           />
 
           <TextField
-        size="small"
-        sx={{ flex: "1 1 200px" }}
-        label="Data final"
-        type="date"
-        InputLabelProps={{ shrink: true }}
-        value={filterEnd}
-        onChange={(e) => setFilterEnd(e.target.value)}
+            size="small"
+            sx={{ flex: "1 1 200px" }}
+            label="Data final"
+            type="date"
+            InputLabelProps={{ shrink: true }}
+            value={filterEnd}
+            onChange={(e) => setFilterEnd(e.target.value)}
           />
 
           <FormControl sx={{ flex: "1 1 200px" }} size="small">
-        <InputLabel>Funcionário</InputLabel>
-        <Select
-          size="small"
-          value={filterEmployee}
-          label="Funcionário"
-          onChange={(e) => setFilterEmployee(e.target.value)}
-        >
-          <MenuItem value="">Todos</MenuItem>
-          {members.map((m) => (
-            <MenuItem key={m.id} value={m.employeeId}>
-          {m.employee?.person?.name ?? m.employeeId}
-            </MenuItem>
-          ))}
-        </Select>
+            <InputLabel>Funcionário</InputLabel>
+            <Select
+              size="small"
+              value={filterEmployee}
+              label="Funcionário"
+              onChange={(e) => setFilterEmployee(e.target.value)}
+            >
+              <MenuItem value="">Todos</MenuItem>
+              {members.map((m) => (
+                <MenuItem key={m.id} value={m.employeeId}>
+                  {m.employee?.person?.name ?? m.employeeId}
+                </MenuItem>
+              ))}
+            </Select>
           </FormControl>
 
           <FormControl sx={{ flex: "1 1 200px" }} size="small">
-        <InputLabel>Tipo de KPI</InputLabel>
-        <Select
-          size="small"
-          value={filterType}
-          label="Tipo de KPI"
-          onChange={(e) => setFilterType(e.target.value)}
-        >
-          <MenuItem value="">Todos</MenuItem>
-          <MenuItem value="HIGHER_BETTER_SUM">Maior melhor (Soma)</MenuItem>
-          <MenuItem value="LOWER_BETTER_SUM">Menor melhor (Soma)</MenuItem>
-          <MenuItem value="HIGHER_BETTER_PCT">Maior melhor (Pct)</MenuItem>
-          <MenuItem value="LOWER_BETTER_PCT">Menor melhor (Pct)</MenuItem>
-          <MenuItem value="BINARY">Binário</MenuItem>
-        </Select>
+            <InputLabel>Tipo de KPI</InputLabel>
+            <Select
+              size="small"
+              value={filterType}
+              label="Tipo de KPI"
+              onChange={(e) => setFilterType(e.target.value)}
+            >
+              <MenuItem value="">Todos</MenuItem>
+              <MenuItem value="HIGHER_BETTER_SUM">Maior melhor (Soma)</MenuItem>
+              <MenuItem value="LOWER_BETTER_SUM">Menor melhor (Soma)</MenuItem>
+              <MenuItem value="HIGHER_BETTER_PCT">Maior melhor (Pct)</MenuItem>
+              <MenuItem value="LOWER_BETTER_PCT">Menor melhor (Pct)</MenuItem>
+              <MenuItem value="BINARY">Binário</MenuItem>
+            </Select>
           </FormControl>
 
           <FormControl sx={{ flex: "1 1 200px" }} size="small">
-        <InputLabel>KPI</InputLabel>
-        <Select
-          size="small"
-          value={filterKpi}
-          label="KPI"
-          onChange={(e) => setFilterKpi(e.target.value)}
-        >
-          <MenuItem value="">Todas</MenuItem>
-          {filteredEmployeeKpis.map((k) => (
-            <MenuItem key={k.id} value={k.id}>
-          {k.kpi?.name}
-            </MenuItem>
-          ))}
-        </Select>
+            <InputLabel>KPI</InputLabel>
+            <Select
+              size="small"
+              value={filterKpi}
+              label="KPI"
+              onChange={(e) => setFilterKpi(e.target.value)}
+            >
+              <MenuItem value="">Todas</MenuItem>
+              {filteredEmployeeKpis.map((k) => (
+                <MenuItem key={k.id} value={k.id}>
+                  {k.kpi?.name}
+                </MenuItem>
+              ))}
+            </Select>
           </FormControl>
 
           <Button
-        size="small"
-        variant="outlined"
-        sx={{
-          px: 3,
-          borderRadius: 2,
-          borderColor: "#1e293b",
-          color: "#1e293b",
-          textTransform: "none",
-          fontWeight: 600,
-          "&:hover": { backgroundColor: "rgba(0,0,0,0.04)" },
-        }}
-        onClick={() => {
-          setFilterStart("");
-          setFilterEnd("");
-          setFilterKpi("");
-          setFilterType("");
-        }}
+            size="small"
+            variant="outlined"
+            sx={{
+              px: 3,
+              borderRadius: 2,
+              borderColor: "#1e293b",
+              color: "#1e293b",
+              textTransform: "none",
+              fontWeight: 600,
+              "&:hover": { backgroundColor: "rgba(0,0,0,0.04)" },
+            }}
+            onClick={() => {
+              setFilterStart("");
+              setFilterEnd("");
+              setFilterKpi("");
+              setFilterType("");
+              setFilterEmployee("");
+            }}
           >
-        Limpar
+            Limpar
           </Button>
         </Box>
       </Paper>
 
       {/* ========================= LINHA 1 ========================= */}
       <Box display="flex" gap={3} mb={4}>
-
         {/* PIE */}
         <Paper sx={{ flexBasis: "30%", p: 4, borderRadius: 3 }}>
           <Typography variant="h6" fontWeight={700} mb={2}>
@@ -367,9 +395,24 @@ export default function TeamMembersKpiDashboard() {
               series={[
                 {
                   data: [
-                    { id: 0, value: counts.DRAFT, label: "Rascunho", color: "#FF6B6B" },
-                    { id: 1, value: counts.SUBMITTED, label: "Enviado", color: "#FFC260" },
-                    { id: 2, value: counts.APPROVED, label: "Aprovado", color: "#6FCF97" },
+                    {
+                      id: 0,
+                      value: counts.DRAFT,
+                      label: "Rascunho",
+                      color: "#FF6B6B",
+                    },
+                    {
+                      id: 1,
+                      value: counts.SUBMITTED,
+                      label: "Enviado",
+                      color: "#FFC260",
+                    },
+                    {
+                      id: 2,
+                      value: counts.APPROVED,
+                      label: "Aprovado",
+                      color: "#6FCF97",
+                    },
                   ],
                   innerRadius: 80,
                   outerRadius: 100,
@@ -379,14 +422,18 @@ export default function TeamMembersKpiDashboard() {
               height={300}
             />
 
-            <Box sx={{
-              position: "absolute",
-              top: "52%",
-              left: "50%",
-              transform: "translate(-50%, -60%)",
-              textAlign: "center"
-            }}>
-              <Typography variant="h4" fontWeight={700}>{total}</Typography>
+            <Box
+              sx={{
+                position: "absolute",
+                top: "52%",
+                left: "50%",
+                transform: "translate(-50%, -60%)",
+                textAlign: "center",
+              }}
+            >
+              <Typography variant="h4" fontWeight={700}>
+                {total}
+              </Typography>
               <Typography variant="caption">KPIs</Typography>
             </Box>
           </Box>
@@ -410,7 +457,9 @@ export default function TeamMembersKpiDashboard() {
                     <Typography fontWeight={600}>
                       {k.employee?.person?.name ?? "Funcionário"}
                     </Typography>
-                    <Typography>{achieved} / {goal} ({pct.toFixed(0)}%)</Typography>
+                    <Typography>
+                      {achieved} / {goal} ({pct.toFixed(0)}%)
+                    </Typography>
                   </Box>
                   <LinearProgress
                     variant="determinate"
@@ -445,7 +494,12 @@ export default function TeamMembersKpiDashboard() {
           </Box>
 
           <Box display="flex" gap={0.5}>
-            <Box display="flex" flexDirection="column" justifyContent="space-between" mr={1}>
+            <Box
+              display="flex"
+              flexDirection="column"
+              justifyContent="space-between"
+              mr={1}
+            >
               {["D", "S", "T", "Qa", "Qi", "Sx", "Sa"].map((d, i) => (
                 <Typography key={i} variant="caption">
                   {d}
@@ -459,14 +513,20 @@ export default function TeamMembersKpiDashboard() {
                   {week.map((d, di) => (
                     <Tooltip
                       key={di}
-                      title={`${format(d.day, "dd/MM")}: ${d.count} evolução(es)`}>
-                      <Box sx={{
-                        width: 20,
-                        height: 20,
-                        borderRadius: 4,
-                        backgroundColor: getHeatColor(d.count),
-                        opacity: isSameMonth(d.day, new Date()) ? 1 : 0.4,
-                      }} />
+                      title={`${format(
+                        d.day,
+                        "dd/MM"
+                      )}: ${d.count} evolução(es)`}
+                    >
+                      <Box
+                        sx={{
+                          width: 20,
+                          height: 20,
+                          borderRadius: 4,
+                          backgroundColor: getHeatColor(d.count),
+                          opacity: isSameMonth(d.day, new Date()) ? 1 : 0.4,
+                        }}
+                      />
                     </Tooltip>
                   ))}
                 </Box>

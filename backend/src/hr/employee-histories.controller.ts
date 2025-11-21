@@ -1,11 +1,13 @@
 import {
   Controller, Get, Post, Patch, Delete, Param, Body, Query,
   ParseUUIDPipe, UsePipes, ValidationPipe,
+  Req,
 } from '@nestjs/common';
 import { EmployeeHistoriesService } from './employee-histories.service';
 import { CreateEmployeeHistoryDto } from './dto/create-employee-history.dto';
 import { UpdateEmployeeHistoryDto } from './dto/update-employee-history.dto';
 import { EmployeeHistory } from './entities/employee-history.entity';
+import { EmployeeHistoryQueryDto } from './dto/employee-history-query.dto';
 
 @Controller('employee-histories')
 @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
@@ -19,10 +21,10 @@ export class EmployeeHistoriesController {
 
   @Get()
   findAll(
-    @Query('companyId', ParseUUIDPipe) companyId: string,
-    @Query('employeeId') employeeId?: string,
-  ): Promise<EmployeeHistory[]> {
-    return this.service.findAll(companyId, employeeId);
+    @Req() req: any,
+    @Query() query: EmployeeHistoryQueryDto
+  ) {
+    return this.service.findAll(req.user, query);
   }
 
   @Get(':id')

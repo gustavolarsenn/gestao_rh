@@ -16,6 +16,10 @@ export class EmployeeKPIQueryDto {
   kpiId?: string;
 
   @IsOptional()
+  @IsUUID()
+  employeeId?: string;
+
+  @IsOptional()
   periodStart?: string;
 
   @IsOptional()

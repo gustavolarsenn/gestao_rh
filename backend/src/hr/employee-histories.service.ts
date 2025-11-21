@@ -4,6 +4,8 @@ import { Repository } from 'typeorm';
 import { EmployeeHistory } from './entities/employee-history.entity';
 import { CreateEmployeeHistoryDto } from './dto/create-employee-history.dto';
 import { UpdateEmployeeHistoryDto } from './dto/update-employee-history.dto';
+import { EmployeeHistoryQueryDto } from './dto/employee-history-query.dto';
+import { applyScope } from '../common/utils/scoped-query.util';
 
 @Injectable()
 export class EmployeeHistoriesService {
@@ -16,11 +18,16 @@ export class EmployeeHistoriesService {
     return this.repo.save(entity);
   }
 
-  async findAll(companyId: string, employeeId?: string): Promise<EmployeeHistory[]> {
-    return this.repo.find({
-      where: employeeId ? { companyId, employeeId } as any : { companyId } as any,
-      order: { startDate: 'DESC' },
-    });
+  async findAll(user: any, query: EmployeeHistoryQueryDto) {
+    const where = applyScope(user, {}, { company: true, team: false, employee: false, department: false });
+    
+
+    const page = Math.max(1, Number(query.page ?? 1));
+    const limit = Math.max(1, Number(query.limit ?? 10));
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await this.repo.findAndCount({ where, relations: ['role', 'roleType', 'team', 'department', 'branch'], order: { startDate: 'DESC', updatedAt: 'DESC' }, skip, take: limit });
+    return { page, limit, total, data };
   }
 
   async findOne(companyId: string, id: string): Promise<EmployeeHistory> {

@@ -47,6 +47,7 @@ export default function Sidebar() {
         { to: "/admin/roles", label: "Cargos", level: 3 },
         { to: "/admin/teams", label: "Times", level: 3 },
         { to: "/admin/employees", label: "Funcionários", level: 3 },
+        { to: "/admin/career-paths", label: "Trilhas de Carreira", level: 3 },
         { to: "/admin/org-chart", label: "Organograma", level: 3 },
       ],
     },

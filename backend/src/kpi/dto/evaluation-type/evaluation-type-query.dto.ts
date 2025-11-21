@@ -14,6 +14,10 @@ export class EvaluationTypeQueryDto {
   @IsString()
   name?: string;
 
+  @IsOptional()
+  @IsString()
+  departmentId?: string;
+
   @IsEnum(EvaluationCode) 
   @IsOptional()
   code?: EvaluationCode; // HIGHER_BETTER | LOWER_BETTER | BINARY

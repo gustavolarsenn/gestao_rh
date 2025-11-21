@@ -11,9 +11,10 @@ import { EmployeesService } from '../hr/employees.service';
 import { Employee } from '../hr/entities/employee.entity';
 import { Team } from '../team/entities/team.entity';
 import { TeamMember } from '../team/entities/team-member.entity';
+import { EmployeeHistory } from '../hr/entities/employee-history.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, UserRole, Person, Employee, Team, TeamMember])],
+  imports: [TypeOrmModule.forFeature([User, UserRole, Person, Employee, EmployeeHistory, Team, TeamMember])],
   controllers: [UsersController, UserRolesController],
   providers: [UsersService, UserRolesService, EmployeesService],
   exports: [UsersService, UserRolesService, EmployeesService],

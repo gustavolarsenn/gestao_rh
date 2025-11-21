@@ -33,7 +33,6 @@ export class TeamsService {
     else {
       where = {parentTeamId: user.teamId, companyId: user.companyId}; 
     } 
-
     if (query.name) {
       where['name'] = ILike(`%${query.name}%`);
     }

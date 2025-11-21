@@ -13,8 +13,8 @@ export function useTeams() {
   const [error, setError] = useState<string | null>(null);
   const companyId = localStorage.getItem("companyId");
 
-  async function listTeams(): Promise<Team[]> {
-    const { data } = await api.get(`/teams?companyId=${companyId}`);
+  async function listTeams(params: any): Promise<Team[]> {
+    const { data } = await api.get(`/teams?companyId=${companyId}`, { params });
     return data;
   }
 

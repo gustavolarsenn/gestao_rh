@@ -30,6 +30,9 @@ export class EvaluationTypesService {
     if (query.name) {
       where['name'] = ILike(`%${query.name}%`);
     }
+    if (query.departmentId) {
+      where['departmentId'] = query.departmentId;
+    }
 
     const page = Math.max(1, Number(query.page ?? 1));
     const limit = Math.max(1, Number(query.limit ?? 10));

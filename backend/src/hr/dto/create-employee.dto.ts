@@ -13,6 +13,6 @@ export class CreateEmployeeDto {
   @IsOptional() @IsUUID() branchId?: string;
 
   @IsOptional() @IsNumberString() wage?: string;
-  @IsOptional() @IsDateString() hiringDate?: string;
+  @IsDateString() hiringDate!: string;
   @IsOptional() @IsDateString() departureDate?: string | null;
 }

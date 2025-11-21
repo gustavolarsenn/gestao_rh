@@ -12,4 +12,12 @@ export class branchQueryDto {
   @IsOptional()
   @IsString()
   name?: string;
+  
+  @IsOptional()
+  @IsString()
+  cnpj?: string;
+
+  @IsOptional()
+  @IsString()
+  cityId?: string;
 }

@@ -21,7 +21,7 @@ export class DepartmentsService {
     const where = applyScope(user, {}, { company: true, team: false, employee: true, department: true }, 'department');
     
     if (query.name) {
-      where['department.name'] = ILike(`%${query.name}%`);
+      where['name'] = ILike(`%${query.name}%`);
     }
 
     const page = Math.max(1, Number(query.page ?? 1));

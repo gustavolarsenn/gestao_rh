@@ -86,13 +86,17 @@ export default function TeamKpisDashboard() {
   useEffect(() => {
     async function load() {
       setLoading(true);
-      const tk = await listTeamKpis();
-      const teamOnlyKpis = tk;
+
+      // ➜ AGORA CONSIDERA FORMATO PAGINADO
+      const tkResult = await listTeamKpis({ page: 1, limit: 999 });
+      const teamOnlyKpis = (tkResult as any)?.data ?? tkResult ?? [];
       setTeamKpis(teamOnlyKpis);
 
-      const ev = await listTeamKpiEvolutions();
-      const evFiltered = ev.filter((e) =>
-        teamOnlyKpis.some((k) => k.id === e.teamKpiId)
+      const evResult = await listTeamKpiEvolutions({ page: 1, limit: 999 });
+      const evAll = (evResult as any)?.data ?? evResult ?? [];
+
+      const evFiltered = evAll.filter((e: any) =>
+        teamOnlyKpis.some((k: any) => k.id === e.teamKpiId)
       );
       setEvolutions(evFiltered);
 
@@ -101,7 +105,9 @@ export default function TeamKpisDashboard() {
       setLoading(false);
     }
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
   // ==========================
   // 🎯 APLICAR FILTROS
   // ==========================
@@ -133,7 +139,7 @@ export default function TeamKpisDashboard() {
     } else if (!filteredKpis.some((k) => k.id === selectedKpiId)) {
       setSelectedKpiId(filteredKpis[0]?.id || null);
     }
-  }, [filterKpi, filteredKpis]);
+  }, [filterKpi, filteredKpis, selectedKpiId]);
 
   const selectedKpi = filteredKpis.find((k) => k.id === selectedKpiId);
 
@@ -185,12 +191,17 @@ export default function TeamKpisDashboard() {
       if (type.endsWith("_SUM")) {
         return {
           date,
-          value: list.reduce((a, e) => a + Number(e.achievedValueEvolution || 0), 0),
+          value: list.reduce(
+            (a, e) => a + Number(e.achievedValueEvolution || 0),
+            0
+          ),
         };
       }
 
       const latest = list.sort(
-        (a, b) => new Date(b.submittedDate).getTime() - new Date(a.submittedDate).getTime()
+        (a, b) =>
+          new Date(b.submittedDate).getTime() -
+          new Date(a.submittedDate).getTime()
       )[0];
 
       return { date, value: Number(latest.achievedValueEvolution) || 0 };
@@ -218,7 +229,9 @@ export default function TeamKpisDashboard() {
 
   const heatmap = allDays.map((day) => ({
     day,
-    count: evolutions.filter((e) => isSameDay(parseISO(e.submittedDate), day)).length,
+    count: evolutions.filter((e) =>
+      isSameDay(parseISO(e.submittedDate), day)
+    ).length,
   }));
 
   const firstWeek = startOfWeek(start);
@@ -237,7 +250,9 @@ export default function TeamKpisDashboard() {
 
   const monthsLabels = Array.from(
     new Set(
-      allDays.filter((_, i) => i % 14 === 0).map((d) => format(d, "MMM", { locale: ptBR }))
+      allDays
+        .filter((_, i) => i % 14 === 0)
+        .map((d) => format(d, "MMM", { locale: ptBR }))
     )
   );
 
@@ -247,7 +262,6 @@ export default function TeamKpisDashboard() {
 
   return (
     <Box>
-
       {/* ================= FILTROS ================= */}
       <Paper sx={{ p: 3, mb: 4, borderRadius: 3 }}>
         <Typography variant="h6" fontWeight={700} mb={3}>
@@ -255,19 +269,33 @@ export default function TeamKpisDashboard() {
         </Typography>
 
         <Box display="flex" flexWrap="wrap" gap={2}>
-
-          <TextField size="small" sx={{ flex: "1 1 200px" }} label="Data inicial" type="date" value={filterStart}
+          <TextField
+            size="small"
+            sx={{ flex: "1 1 200px" }}
+            label="Data inicial"
+            type="date"
+            value={filterStart}
             onChange={(e) => setFilterStart(e.target.value)}
-            InputLabelProps={{ shrink: true }} />
+            InputLabelProps={{ shrink: true }}
+          />
 
-          <TextField size="small" sx={{ flex: "1 1 200px" }} label="Data final" type="date" value={filterEnd}
+          <TextField
+            size="small"
+            sx={{ flex: "1 1 200px" }}
+            label="Data final"
+            type="date"
+            value={filterEnd}
             onChange={(e) => setFilterEnd(e.target.value)}
-            InputLabelProps={{ shrink: true }} />
+            InputLabelProps={{ shrink: true }}
+          />
 
           <FormControl sx={{ flex: "1 1 200px" }} size="small">
             <InputLabel>Tipo de KPI</InputLabel>
-            <Select value={filterType} label="Tipo de KPI"
-              onChange={(e) => setFilterType(e.target.value)}>
+            <Select
+              value={filterType}
+              label="Tipo de KPI"
+              onChange={(e) => setFilterType(e.target.value)}
+            >
               <MenuItem value="">Todos</MenuItem>
               <MenuItem value="HIGHER_BETTER_SUM">Maior melhor (Soma)</MenuItem>
               <MenuItem value="LOWER_BETTER_SUM">Menor melhor (Soma)</MenuItem>
@@ -279,31 +307,39 @@ export default function TeamKpisDashboard() {
 
           <FormControl sx={{ flex: "1 1 200px" }} size="small">
             <InputLabel>KPI</InputLabel>
-            <Select value={filterKpi} label="KPI"
-              onChange={(e) => setFilterKpi(e.target.value)}>
+            <Select
+              value={filterKpi}
+              label="KPI"
+              onChange={(e) => setFilterKpi(e.target.value)}
+            >
               <MenuItem value="">Todas</MenuItem>
               {filteredKpis.map((k) => (
-                <MenuItem key={k.id} value={k.id}>{k.kpi?.name}</MenuItem>
+                <MenuItem key={k.id} value={k.id}>
+                  {k.kpi?.name}
+                </MenuItem>
               ))}
             </Select>
           </FormControl>
 
           <Button
-          size="small" 
-          variant="outlined" 
+            size="small"
+            variant="outlined"
             sx={{
-            px: 3,
-            borderRadius: 2,
-            borderColor: "#1e293b",
-            color: "#1e293b",
-            textTransform: "none",
-            fontWeight: 600,
-            "&:hover": { backgroundColor: "rgba(0,0,0,0.04)" },
-          }}
-          onClick={() => {
-            setFilterStart(""); setFilterEnd("");
-            setFilterKpi(""); setFilterType("");
-          }}>
+              px: 3,
+              borderRadius: 2,
+              borderColor: "#1e293b",
+              color: "#1e293b",
+              textTransform: "none",
+              fontWeight: 600,
+              "&:hover": { backgroundColor: "rgba(0,0,0,0.04)" },
+            }}
+            onClick={() => {
+              setFilterStart("");
+              setFilterEnd("");
+              setFilterKpi("");
+              setFilterType("");
+            }}
+          >
             Limpar
           </Button>
         </Box>
@@ -311,7 +347,6 @@ export default function TeamKpisDashboard() {
 
       {/* ===================== LINHA 1 ===================== */}
       <Box display="flex" gap={3} flexWrap="nowrap" mb={4}>
-
         {/* ===== PIE ===== */}
         <Paper sx={{ flexBasis: "30%", p: 4, borderRadius: 3 }}>
           <Typography variant="h6" fontWeight={700} mb={2}>
@@ -323,9 +358,24 @@ export default function TeamKpisDashboard() {
               series={[
                 {
                   data: [
-                    { id: 0, value: counts.DRAFT, label: "Rascunho", color: "#FF6B6B" },
-                    { id: 1, value: counts.SUBMITTED, label: "Enviado", color: "#FFC260" },
-                    { id: 2, value: counts.APPROVED, label: "Aprovado", color: "#6FCF97" },
+                    {
+                      id: 0,
+                      value: counts.DRAFT,
+                      label: "Rascunho",
+                      color: "#FF6B6B",
+                    },
+                    {
+                      id: 1,
+                      value: counts.SUBMITTED,
+                      label: "Enviado",
+                      color: "#FFC260",
+                    },
+                    {
+                      id: 2,
+                      value: counts.APPROVED,
+                      label: "Aprovado",
+                      color: "#6FCF97",
+                    },
                   ],
                   innerRadius: 80,
                   outerRadius: 100,
@@ -335,11 +385,18 @@ export default function TeamKpisDashboard() {
               height={300}
             />
 
-            <Box sx={{
-              position: "absolute", top: "52%", left: "50%",
-              transform: "translate(-50%, -60%)", textAlign: "center"
-            }}>
-              <Typography variant="h4" fontWeight={700}>{total}</Typography>
+            <Box
+              sx={{
+                position: "absolute",
+                top: "52%",
+                left: "50%",
+                transform: "translate(-50%, -60%)",
+                textAlign: "center",
+              }}
+            >
+              <Typography variant="h4" fontWeight={700}>
+                {total}
+              </Typography>
               <Typography variant="caption">KPIs</Typography>
             </Box>
           </Box>
@@ -362,7 +419,9 @@ export default function TeamKpisDashboard() {
                 <Box key={k.id}>
                   <Box display="flex" justifyContent="space-between">
                     <Typography fontWeight={600}>{k.kpi?.name}</Typography>
-                    <Typography>{achieved} / {goal} ({pct.toFixed(0)}%)</Typography>
+                    <Typography>
+                      {achieved} / {goal} ({pct.toFixed(0)}%)
+                    </Typography>
                   </Box>
 
                   <LinearProgress
@@ -399,7 +458,12 @@ export default function TeamKpisDashboard() {
           </Box>
 
           <Box display="flex" gap={0.5}>
-            <Box display="flex" flexDirection="column" justifyContent="space-between" mr={1}>
+            <Box
+              display="flex"
+              flexDirection="column"
+              justifyContent="space-between"
+              mr={1}
+            >
               {["D", "S", "T", "Qa", "Qi", "Sx", "Sa"].map((d, i) => (
                 <Typography key={i} variant="caption" color="#6b7280">
                   {d}
@@ -411,22 +475,28 @@ export default function TeamKpisDashboard() {
               {weeks.map((week, wi) => (
                 <Box key={wi} display="flex" flexDirection="column" gap={0.5}>
                   {week.map((d, di) => (
-                    <Tooltip key={di}
-                      title={`${format(d.day, "dd/MM")}: ${d.count} evolução(es)`}>
-                      <Box sx={{
-                        width: 20,
-                        height: 20,
-                        borderRadius: 4,
-                        backgroundColor: getHeatColor(d.count),
-                        opacity: isSameMonth(d.day, new Date()) ? 1 : 0.4,
-                      }} />
+                    <Tooltip
+                      key={di}
+                      title={`${format(
+                        d.day,
+                        "dd/MM"
+                      )}: ${d.count} evolução(es)`}
+                    >
+                      <Box
+                        sx={{
+                          width: 20,
+                          height: 20,
+                          borderRadius: 4,
+                          backgroundColor: getHeatColor(d.count),
+                          opacity: isSameMonth(d.day, new Date()) ? 1 : 0.4,
+                        }}
+                      />
                     </Tooltip>
                   ))}
                 </Box>
               ))}
             </Box>
           </Box>
-
         </Paper>
       </Box>
 
@@ -446,7 +516,8 @@ export default function TeamKpisDashboard() {
                 textTransform: "none",
                 borderRadius: 2,
                 px: 2,
-                backgroundColor: selectedKpiId === k.id ? "#1e293b" : "transparent",
+                backgroundColor:
+                  selectedKpiId === k.id ? "#1e293b" : "transparent",
                 color: selectedKpiId === k.id ? "#fff" : "#1e293b",
                 borderColor: "#1e293b",
               }}
@@ -483,7 +554,6 @@ export default function TeamKpisDashboard() {
           </Typography>
         )}
       </Paper>
-
     </Box>
   );
 }

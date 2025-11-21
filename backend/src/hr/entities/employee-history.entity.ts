@@ -25,6 +25,8 @@ export class EmployeeHistory extends TenantBaseEntity {
   @ManyToOne(() => Branch, { onDelete: 'SET NULL' }) @JoinColumn({ name: 'branchId' }) branch?: Branch | null;
 
   @Column({ type: 'numeric', nullable: true }) wage?: string | null;
+  @Column({ type: 'date' }) hiringDate!: string;
+  @Column({ type: 'date', nullable: true }) departureDate?: string | null;
   @Column({ type: 'date' }) startDate!: string;
   @Column({ type: 'date', nullable: true }) endDate?: string | null;
 
