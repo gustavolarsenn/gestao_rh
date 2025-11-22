@@ -16,9 +16,15 @@ import {
 import { PieChart } from "@mui/x-charts/PieChart";
 import { LineChart } from "@mui/x-charts/LineChart";
 
+import { BaseModal } from "@/components/modals/BaseModal";
+
 import { useTeamMembers } from "@/hooks/team-member/useTeamMembers";
 import { useEmployeeKpis } from "@/hooks/employee-kpi/useEmployeeKpis";
 import { useEmployeeKpiEvolutions } from "@/hooks/employee-kpi/useEmployeeKpiEvolutions";
+import {
+  usePerformanceReviews,
+  PerformanceReview,
+} from "@/hooks/performance-review/usePerformanceReviews";
 
 import {
   eachDayOfInterval,
@@ -61,6 +67,10 @@ export default function TeamMembersKpiDashboard() {
   const { listTeamMembers } = useTeamMembers();
   const { listEmployeeKpis } = useEmployeeKpis();
   const { listEmployeeKpiEvolutions } = useEmployeeKpiEvolutions();
+  const {
+    listPerformanceReviews,
+    createPerformanceReview,
+  } = usePerformanceReviews();
 
   // =====================================
   // 🔥 STATE
@@ -69,6 +79,20 @@ export default function TeamMembersKpiDashboard() {
   const [employeeKpis, setEmployeeKpis] = useState<any[]>([]);
   const [evolutions, setEvolutions] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // performance reviews (paginadas)
+  const [performanceReviews, setPerformanceReviews] = useState<
+    PerformanceReview[]
+  >([]);
+  const [loadingReviews, setLoadingReviews] = useState(false);
+  const [reviewPage, setReviewPage] = useState(1);
+  const [reviewPageSize] = useState(5);
+  const [reviewTotal, setReviewTotal] = useState(0);
+
+  // modal de nova review
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [reviewDate, setReviewDate] = useState("");
+  const [reviewObservation, setReviewObservation] = useState("");
 
   // =====================================
   // 🔍 FILTROS
@@ -101,18 +125,17 @@ export default function TeamMembersKpiDashboard() {
       // Employee KPIs (paginado) -> só dos membros do time
       const ekResult = await listEmployeeKpis({ page: 1, limit: 999 });
       const ekAll = (ekResult as any)?.data ?? ekResult ?? [];
-      const ek = ekAll.filter((k: any) =>
-        memberEmployeeIds.has(k.employeeId)
-      );
+      const ek = ekAll.filter((k: any) => memberEmployeeIds.has(k.employeeId));
       setEmployeeKpis(ek);
 
       // Evoluções (paginado) -> só das KPIs acima
-      const evResult = await listEmployeeKpiEvolutions({ page: 1, limit: 999 });
+      const evResult = await listEmployeeKpiEvolutions({
+        page: 1,
+        limit: 999,
+      });
       const evAll = (evResult as any)?.data ?? evResult ?? [];
       const employeeKpiIds = new Set(ek.map((k: any) => k.id));
-      const ev = evAll.filter((e: any) =>
-        employeeKpiIds.has(e.employeeKpiId)
-      );
+      const ev = evAll.filter((e: any) => employeeKpiIds.has(e.employeeKpiId));
       setEvolutions(ev);
 
       if (ek.length) setSelectedEmployeeKpiId(ek[0].id);
@@ -122,6 +145,63 @@ export default function TeamMembersKpiDashboard() {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // =====================================
+  // 📌 CARREGAR PERFORMANCE REVIEWS PAGINADAS
+  // =====================================
+  async function fetchPerformanceReviews(employeeId: string, page: number) {
+    try {
+      setLoadingReviews(true);
+      const res = await listPerformanceReviews({
+        employeeId,
+        page,
+        limit: reviewPageSize,
+      });
+
+      const data = ((res as any)?.data ?? res ?? []) as PerformanceReview[];
+
+      // tenta achar total em formatos comuns (total, meta.total, meta.totalItems...)
+      const total =
+        (res as any)?.total ??
+        (res as any)?.meta?.total ??
+        (res as any)?.meta?.totalItems ??
+        data.length;
+
+      // garante ordenação decrescente por data, caso o backend não faça
+      const ordered = data.slice().sort(
+        (a, b) =>
+          new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
+
+      setPerformanceReviews(ordered);
+      setReviewTotal(total);
+    } finally {
+      setLoadingReviews(false);
+    }
+  }
+
+  // sempre que mudar funcionário, resetar para página 1
+  useEffect(() => {
+    if (!filterEmployee) {
+      setPerformanceReviews([]);
+      setReviewTotal(0);
+      setReviewPage(1);
+      return;
+    }
+    setReviewPage(1);
+  }, [filterEmployee]);
+
+  // busca a página atual quando mudar funcionário OU página
+  useEffect(() => {
+    if (!filterEmployee) return;
+    fetchPerformanceReviews(filterEmployee, reviewPage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterEmployee, reviewPage]);
+
+  const totalReviewPages = Math.max(
+    1,
+    Math.ceil(reviewTotal / reviewPageSize || 1)
+  );
 
   // =====================================
   // 📌 FILTRAR EMPLOYEE KPIS
@@ -272,6 +352,33 @@ export default function TeamMembersKpiDashboard() {
         .map((d) => format(d, "MMM", { locale: ptBR }))
     )
   );
+
+  // =====================================
+  // 📌 HANDLERS PERFORMANCE REVIEW
+  // =====================================
+  function handleOpenReviewModal() {
+    if (!filterEmployee) return;
+    setReviewDate(format(new Date(), "yyyy-MM-dd"));
+    setReviewObservation("");
+    setReviewModalOpen(true);
+  }
+
+  async function handleCreateReview() {
+    if (!filterEmployee || !reviewDate) return;
+
+    const leaderId = localStorage.getItem("employeeId") || "";
+
+    await createPerformanceReview({
+      employeeId: filterEmployee,
+      date: reviewDate,
+      observation: reviewObservation,
+    } as any);
+
+    setReviewModalOpen(false);
+    // depois de criar, volta para página 1 e recarrega
+    setReviewPage(1);
+    await fetchPerformanceReviews(filterEmployee, 1);
+  }
 
   // =====================================
   // JSX
@@ -513,11 +620,7 @@ export default function TeamMembersKpiDashboard() {
                   {week.map((d, di) => (
                     <Tooltip
                       key={di}
-                      title={`${format(
-                        d.day,
-                        "dd/MM"
-                      )}: ${d.count} evolução(es)`}
-                    >
+                      title={`${format(d.day, "dd/MM")}: ${d.count} evolução(es)`}                    >
                       <Box
                         sx={{
                           width: 20,
@@ -536,61 +639,240 @@ export default function TeamMembersKpiDashboard() {
         </Paper>
       </Box>
 
-      {/* ========================= GRAPH ========================= */}
-      <Paper sx={{ p: 4, borderRadius: 3 }}>
-        <Typography variant="h6" fontWeight={700} mb={3}>
-          Evolução das KPIs
-        </Typography>
+      {/* ========================= GRÁFICO (ESQ) + TABELA (DIR) ========================= */}
+      <Box display="flex" gap={3}>
+        {/* ESQUERDA: GRÁFICO EM UM PAPER (60%) */}
+        <Paper sx={{ flex: "0 0 60%", p: 4, borderRadius: 3 }}>
+          <Typography variant="h6" fontWeight={700} mb={3}>
+            Evolução das KPIs
+          </Typography>
 
-        <Box display="flex" gap={1} mb={3} flexWrap="wrap">
-          {filteredEmployeeKpis.map((k) => (
+          <Box display="flex" gap={1} mb={3} flexWrap="wrap">
+            {filteredEmployeeKpis.map((k) => (
+              <Button
+                key={k.id}
+                variant={selectedEmployeeKpiId === k.id ? "contained" : "outlined"}
+                onClick={() => setSelectedEmployeeKpiId(k.id)}
+                sx={{
+                  textTransform: "none",
+                  borderRadius: 2,
+                  px: 2,
+                  backgroundColor:
+                    selectedEmployeeKpiId === k.id ? "#1e293b" : "transparent",
+                  color:
+                    selectedEmployeeKpiId === k.id ? "#fff" : "#1e293b",
+                  borderColor: "#1e293b",
+                }}
+              >
+                {k.employee?.person?.name} — {k.kpi?.name}
+              </Button>
+            ))}
+          </Box>
+
+          {aggregatedEvolutions.length ? (
+            <Box sx={{ height: 350 }}>
+              <LineChart
+                xAxis={[
+                  {
+                    data: xAxisDates,
+                    scaleType: "point",
+                    label: "Data",
+                  },
+                ]}
+                series={[
+                  {
+                    label: selectedKpi?.kpi?.name || "KPI",
+                    data: aggregatedEvolutions.map((d) => d.value),
+                    color: "#3b82f6",
+                  },
+                ]}
+                height={330}
+                margin={{ left: 30, top: 20, bottom: 40, right: 20 }}
+              />
+            </Box>
+          ) : (
+            <Typography textAlign="center" color="text.secondary">
+              Nenhuma evolução registrada no período filtrado.
+            </Typography>
+          )}
+        </Paper>
+
+        {/* DIREITA: PERFORMANCE REVIEWS EM OUTRO PAPER (40%) */}
+        <Paper sx={{ flex: "0 0 40%", p: 4, borderRadius: 3 }}>
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+            mb={2}
+          >
+            <Typography variant="h6" fontWeight={700}>
+              Feedbacks
+            </Typography>
+
             <Button
-              key={k.id}
-              variant={selectedEmployeeKpiId === k.id ? "contained" : "outlined"}
-              onClick={() => setSelectedEmployeeKpiId(k.id)}
+              size="small"
+              variant="contained"
               sx={{
                 textTransform: "none",
                 borderRadius: 2,
+                backgroundColor: "#1e293b",
+              }}
+              disabled={!filterEmployee}
+              onClick={handleOpenReviewModal}
+            >
+              Nova avaliação
+            </Button>
+          </Box>
+
+          <Paper
+            elevation={0}
+            sx={{
+              borderRadius: 2,
+              border: "1px solid #e5e7eb",
+              maxHeight: 320,
+              overflow: "hidden",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <div style={{ flex: 1, overflowY: "auto" }}>
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="text-left px-3 py-2 font-semibold text-gray-700">
+                      Data
+                    </th>
+                    <th className="text-left px-3 py-2 font-semibold text-gray-700">
+                      Observação
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {!filterEmployee ? (
+                    <tr>
+                      <td
+                        colSpan={2}
+                        className="px-3 py-4 text-center text-gray-500"
+                      >
+                        Selecione um funcionário nos filtros para visualizar as
+                        avaliações.
+                      </td>
+                    </tr>
+                  ) : loadingReviews ? (
+                    <tr>
+                      <td
+                        colSpan={2}
+                        className="px-3 py-4 text-center text-gray-500"
+                      >
+                        Carregando avaliações...
+                      </td>
+                    </tr>
+                  ) : performanceReviews.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={2}
+                        className="px-3 py-4 text-center text-gray-500"
+                      >
+                        Nenhuma performance review registrada.
+                      </td>
+                    </tr>
+                  ) : (
+                    performanceReviews.map((r) => (
+                      <tr key={r.id} className="border-t">
+                        <td className="px-3 py-2">
+                          {format(parseISO(r.date), "dd/MM/yyyy")}
+                        </td>
+                        <td className="px-3 py-2">{r.observation}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* paginação da tabela */}
+            <Box
+              sx={{
+                borderTop: "1px solid #e5e7eb",
                 px: 2,
-                backgroundColor:
-                  selectedEmployeeKpiId === k.id ? "#1e293b" : "transparent",
-                color:
-                  selectedEmployeeKpiId === k.id ? "#fff" : "#1e293b",
-                borderColor: "#1e293b",
+                py: 1,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
               }}
             >
-              {k.employee?.person?.name} — {k.kpi?.name}
-            </Button>
-          ))}
-        </Box>
+              <Typography variant="caption" color="text.secondary">
+                Página {reviewPage} de {totalReviewPages} — {reviewTotal} registro(s)
+              </Typography>
 
-        {aggregatedEvolutions.length ? (
-          <Box sx={{ height: 350 }}>
-            <LineChart
-              xAxis={[
-                {
-                  data: xAxisDates,
-                  scaleType: "point",
-                  label: "Data",
-                },
-              ]}
-              series={[
-                {
-                  label: selectedKpi?.kpi?.name || "KPI",
-                  data: aggregatedEvolutions.map((d) => d.value),
-                  color: "#3b82f6",
-                },
-              ]}
-              height={330}
-              margin={{ left: 30, top: 20, bottom: 40, right: 20 }}
-            />
+              <Box display="flex" gap={1}>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  disabled={reviewPage <= 1}
+                  onClick={() => setReviewPage((p) => Math.max(1, p - 1))}
+                  sx={{ textTransform: "none" }}
+                >
+                  Anterior
+                </Button>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  disabled={reviewPage >= totalReviewPages}
+                  onClick={() =>
+                    setReviewPage((p) => Math.min(totalReviewPages, p + 1))
+                  }
+                  sx={{ textTransform: "none" }}
+                >
+                  Próxima
+                </Button>
+              </Box>
+            </Box>
+          </Paper>
+        </Paper>
+      </Box>
+
+      {/* MODAL NOVA PERFORMANCE REVIEW */}
+      <BaseModal
+        open={reviewModalOpen}
+        onClose={() => setReviewModalOpen(false)}
+        title="Nova Performance Review"
+        description="Registre uma avaliação para o funcionário selecionado."
+        footer={
+          <Box display="flex" justifyContent="flex-end" gap={1} width="100%">
+            <Button variant="outlined" onClick={() => setReviewModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              variant="contained"
+              sx={{ backgroundColor: "#1e293b" }}
+              onClick={handleCreateReview}
+              disabled={!reviewDate || !filterEmployee}
+            >
+              Salvar
+            </Button>
           </Box>
-        ) : (
-          <Typography textAlign="center" color="text.secondary">
-            Nenhuma evolução registrada no período filtrado.
-          </Typography>
-        )}
-      </Paper>
+        }
+      >
+        <Box display="flex" flexDirection="column" gap={2} mt={1}>
+          <TextField
+            label="Data"
+            type="date"
+            size="small"
+            InputLabelProps={{ shrink: true }}
+            value={reviewDate}
+            onChange={(e) => setReviewDate(e.target.value)}
+          />
+          <TextField
+            label="Observação"
+            size="small"
+            multiline
+            minRows={3}
+            value={reviewObservation}
+            onChange={(e) => setReviewObservation(e.target.value)}
+          />
+        </Box>
+      </BaseModal>
     </Box>
   );
 }

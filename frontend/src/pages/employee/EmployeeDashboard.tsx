@@ -18,8 +18,14 @@ import {
 } from "@mui/material";
 import { PieChart } from "@mui/x-charts/PieChart";
 import { LineChart } from "@mui/x-charts/LineChart";
+import { BaseModal } from "@/components/modals/BaseModal";
+
 import { useEmployeeKpis } from "@/hooks/employee-kpi/useEmployeeKpis";
 import { useEmployeeKpiEvolutions } from "@/hooks/employee-kpi/useEmployeeKpiEvolutions";
+import {
+  usePerformanceReviews,
+  PerformanceReview,
+} from "@/hooks/performance-review/usePerformanceReviews";
 
 import {
   eachDayOfInterval,
@@ -61,6 +67,10 @@ function getHeatColor(count: number): string {
 export default function EmployeeDashboard() {
   const { listEmployeeKpis } = useEmployeeKpis();
   const { listEmployeeKpiEvolutions } = useEmployeeKpiEvolutions();
+  const {
+    listPerformanceReviews,
+    createPerformanceReview,
+  } = usePerformanceReviews();
 
   const [loading, setLoading] = useState(true);
 
@@ -75,13 +85,25 @@ export default function EmployeeDashboard() {
 
   const [selectedKpiId, setSelectedKpiId] = useState<string | null>(null);
 
+  // 🔥 PERFORMANCE REVIEWS (tabela paginada)
+  const [performanceReviews, setPerformanceReviews] = useState<
+    PerformanceReview[]
+  >([]);
+  const [loadingReviews, setLoadingReviews] = useState(false);
+  const [reviewPage, setReviewPage] = useState(1);
+  const [reviewPageSize] = useState(5);
+  const [reviewTotal, setReviewTotal] = useState(0);
+
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [reviewDate, setReviewDate] = useState("");
+  const [reviewObservation, setReviewObservation] = useState("");
+
   // 🔥 Carregar KPIs + Evoluções (ajustado para retorno paginado)
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
 
       const [ekResult, evResult] = await Promise.all([
-        // pega "tudo" desse colaborador com um limite alto
         listEmployeeKpis({ page: 1, limit: 999 }),
         listEmployeeKpiEvolutions({ page: 1, limit: 999 }),
       ]);
@@ -98,6 +120,47 @@ export default function EmployeeDashboard() {
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // 🔥 CARREGAR PERFORMANCE REVIEWS PAGINADAS
+  async function fetchPerformanceReviews(page: number) {
+    try {
+      setLoadingReviews(true);
+
+      const res = await listPerformanceReviews({
+        page,
+        limit: reviewPageSize,
+      });
+
+      const data = ((res as any)?.data ?? res ?? []) as PerformanceReview[];
+
+      const total =
+        (res as any)?.total ??
+        (res as any)?.meta?.total ??
+        (res as any)?.meta?.totalItems ??
+        data.length;
+
+      const ordered = data
+        .slice()
+        .sort(
+          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+        );
+
+      setPerformanceReviews(ordered);
+      setReviewTotal(total);
+    } finally {
+      setLoadingReviews(false);
+    }
+  }
+
+  useEffect(() => {
+    fetchPerformanceReviews(reviewPage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reviewPage]);
+
+  const totalReviewPages = Math.max(
+    1,
+    Math.ceil((reviewTotal || 1) / reviewPageSize)
+  );
 
   // 🔥 Agrupa evoluções por KPI
   const groupedEvolutions = useMemo(() => {
@@ -118,20 +181,15 @@ export default function EmployeeDashboard() {
   // 🔥 FILTRA KPIs
   const filteredKpis = useMemo(() => {
     return kpis.filter((k) => {
-      // Filtro por tipo
       if (filterType && k.kpi?.evaluationType?.code !== filterType) return false;
-
-      // Filtro por KPI específica
       if (filterKpi && k.id !== filterKpi) return false;
 
-      // Filtro por data inicial
       if (filterStart && k.periodEnd) {
         const kpiEnd = parseISO(k.periodEnd);
         const filterStartDate = parseISO(filterStart);
         if (isBefore(kpiEnd, filterStartDate)) return false;
       }
 
-      // Filtro por data final
       if (filterEnd && k.periodStart) {
         const kpiStart = parseISO(k.periodStart);
         const filterEndDate = parseISO(filterEnd);
@@ -160,7 +218,6 @@ export default function EmployeeDashboard() {
 
     let evols = groupedEvolutions[selectedKpiId] || [];
 
-    // FILTRO START
     if (filterStart) {
       const start = parseISO(filterStart);
       evols = evols.filter((ev) => {
@@ -169,7 +226,6 @@ export default function EmployeeDashboard() {
       });
     }
 
-    // FILTRO END
     if (filterEnd) {
       const end = parseISO(filterEnd);
       evols = evols.filter((ev) => {
@@ -256,7 +312,6 @@ export default function EmployeeDashboard() {
   const heatmapDays = useMemo(() => {
     let evols = [...evolutions];
 
-    // Filtra por tipo
     if (filterType) {
       evols = evols.filter((ev) => {
         const k = kpis.find((kp) => kp.id === ev.employeeKpiId);
@@ -264,12 +319,10 @@ export default function EmployeeDashboard() {
       });
     }
 
-    // Filtra por KPI específica
     if (filterKpi) {
       evols = evols.filter((ev) => ev.employeeKpiId === filterKpi);
     }
 
-    // FILTRO START
     if (filterStart) {
       const start = parseISO(filterStart);
       evols = evols.filter((ev) => {
@@ -278,7 +331,6 @@ export default function EmployeeDashboard() {
       });
     }
 
-    // FILTRO END
     if (filterEnd) {
       const end = parseISO(filterEnd);
       evols = evols.filter((ev) => {
@@ -290,7 +342,6 @@ export default function EmployeeDashboard() {
     return evols;
   }, [evolutions, kpis, filterStart, filterEnd, filterKpi, filterType]);
 
-  // 🔥 Heatmap datas
   const start = startOfMonth(subMonths(new Date(), 2));
   const end = endOfMonth(new Date());
   const allDays = eachDayOfInterval({ start, end });
@@ -302,7 +353,6 @@ export default function EmployeeDashboard() {
     ).length,
   }));
 
-  // 🔥 Agrupamento semanal
   const firstWeekStart = startOfWeek(start, { weekStartsOn: 0 });
   const weeks: { day: Date; count: number }[][] = [];
   let current = firstWeekStart;
@@ -325,6 +375,14 @@ export default function EmployeeDashboard() {
         .map((d) => format(d, "MMM", { locale: ptBR }))
     )
   );
+
+  // 🔥 HANDLERS PERFORMANCE REVIEW
+  function handleOpenReviewModal() {
+    setReviewDate(format(new Date(), "yyyy-MM-dd"));
+    setReviewObservation("");
+    setReviewModalOpen(true);
+  }
+
 
   // 🔥 Loading
   if (loading) {
@@ -449,9 +507,6 @@ export default function EmployeeDashboard() {
             </Button>
           </Box>
         </Paper>
-
-        {/* LINHA 1: Pie + Progresso + Heatmap */}
-        {/* ... (resto do layout exatamente como você mandou, sem mudanças) ... */}
 
         {/* ==================== LINHA 1 ==================== */}
         <Box display="flex" gap={3} mb={4} flexWrap="nowrap">
@@ -659,84 +714,208 @@ export default function EmployeeDashboard() {
           </Paper>
         </Box>
 
-        {/* LINHA 2 — Gráfico de linha */}
-        <Paper
-          elevation={0}
-          sx={{
-            width: "100%",
-            p: 4,
-            borderRadius: 3,
-            backgroundColor: "#ffffff",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-            transition: ".2s",
-            "&:hover": { boxShadow: "0 4px 16px rgba(0,0,0,0.12)" },
-          }}
-        >
-          <Typography variant="h6" fontWeight={600} mb={3}>
-            Evolução das KPIs
-          </Typography>
+        {/* ==================== LINHA 2 — GRÁFICO (60%) + TABELA (40%) ==================== */}
+        <Box display="flex" gap={3}>
+          {/* ESQUERDA: GRÁFICO */}
+          <Paper
+            elevation={0}
+            sx={{
+              flex: "0 0 60%",
+              p: 4,
+              borderRadius: 3,
+              backgroundColor: "#ffffff",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+              transition: ".2s",
+              "&:hover": { boxShadow: "0 4px 16px rgba(0,0,0,0.12)" },
+            }}
+          >
+            <Typography variant="h6" fontWeight={600} mb={3}>
+              Evolução das KPIs
+            </Typography>
 
-          <Box display="flex" flexWrap="wrap" gap={1.5} mb={3}>
-            {filteredKpis.map((k) => (
-              <Button
-                key={k.id}
-                variant={selectedKpiId === k.id ? "contained" : "outlined"}
-                onClick={() => setSelectedKpiId(k.id)}
-                sx={{
-                  textTransform: "none",
-                  borderRadius: 8,
-                  fontWeight: 600,
-                  px: 2.5,
-                  borderColor: "#1e293b",
-                  color: selectedKpiId === k.id ? "white" : "#1e293b",
-                  backgroundColor:
-                    selectedKpiId === k.id ? "#1e293b" : "transparent",
-                  "&:hover": {
+            <Box display="flex" flexWrap="wrap" gap={1.5} mb={3}>
+              {filteredKpis.map((k) => (
+                <Button
+                  key={k.id}
+                  variant={selectedKpiId === k.id ? "contained" : "outlined"}
+                  onClick={() => setSelectedKpiId(k.id)}
+                  sx={{
+                    textTransform: "none",
+                    borderRadius: 8,
+                    fontWeight: 600,
+                    px: 2.5,
+                    borderColor: "#1e293b",
+                    color: selectedKpiId === k.id ? "white" : "#1e293b",
                     backgroundColor:
-                      selectedKpiId === k.id
-                        ? "#334155"
-                        : "rgba(0,0,0,0.04)",
-                  },
+                      selectedKpiId === k.id ? "#1e293b" : "transparent",
+                    "&:hover": {
+                      backgroundColor:
+                        selectedKpiId === k.id
+                          ? "#334155"
+                          : "rgba(0,0,0,0.04)",
+                    },
+                  }}
+                >
+                  {k.kpi?.name}
+                </Button>
+              ))}
+            </Box>
+
+            {aggregatedEvolutions.length > 0 ? (
+              <Box sx={{ width: "100%", height: 360 }}>
+                <LineChart
+                  xAxis={[
+                    {
+                      data: xAxisDates,
+                      scaleType: "point",
+                      label: "Data",
+                    },
+                  ]}
+                  series={lineData}
+                  height={340}
+                  margin={{ left: 40, right: 20, top: 30, bottom: 40 }}
+                  sx={{
+                    width: "100%",
+                    "& .MuiChartsAxis-line": {
+                      stroke: "#cbd5e1",
+                      strokeWidth: 0.4,
+                    },
+                    "& .MuiChartsGrid-line": {
+                      stroke: "#e2e8f0",
+                      strokeWidth: 0.3,
+                    },
+                  }}
+                />
+              </Box>
+            ) : (
+              <Typography color="text.secondary" textAlign="center" mt={2}>
+                Nenhuma evolução registrada para esta KPI no período filtrado.
+              </Typography>
+            )}
+          </Paper>
+
+          {/* DIREITA: TABELA DE PERFORMANCE REVIEWS */}
+          <Paper
+            elevation={0}
+            sx={{
+              flex: "0 0 40%",
+              p: 4,
+              borderRadius: 3,
+              backgroundColor: "#ffffff",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+              transition: ".2s",
+              "&:hover": { boxShadow: "0 4px 16px rgba(0,0,0,0.12)" },
+            }}
+          >
+            <Box
+              display="flex"
+              justifyContent="space-between"
+              alignItems="center"
+              mb={2}
+            >
+              <Typography variant="h6" fontWeight={700}>
+                Feedbacks
+              </Typography>
+            </Box>
+
+            <Paper
+              elevation={0}
+              sx={{
+                borderRadius: 2,
+                border: "1px solid #e5e7eb",
+                maxHeight: 320,
+                overflow: "hidden",
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
+              <div style={{ flex: 1, overflowY: "auto" }}>
+                <table className="w-full text-sm border-collapse">
+                  <thead>
+                    <tr className="bg-gray-50">
+                      <th className="text-left px-3 py-2 font-semibold text-gray-700">
+                        Data
+                      </th>
+                      <th className="text-left px-3 py-2 font-semibold text-gray-700">
+                        Observação
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loadingReviews ? (
+                      <tr>
+                        <td
+                          colSpan={2}
+                          className="px-3 py-4 text-center text-gray-500"
+                        >
+                          Carregando avaliações...
+                        </td>
+                      </tr>
+                    ) : performanceReviews.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={2}
+                          className="px-3 py-4 text-center text-gray-500"
+                        >
+                          Nenhuma performance review registrada.
+                        </td>
+                      </tr>
+                    ) : (
+                      performanceReviews.map((r) => (
+                        <tr key={r.id} className="border-t">
+                          <td className="px-3 py-2">
+                            {format(parseISO(r.date), "dd/MM/yyyy")}
+                          </td>
+                          <td className="px-3 py-2">{r.observation}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Paginação */}
+              <Box
+                sx={{
+                  borderTop: "1px solid #e5e7eb",
+                  px: 2,
+                  py: 1,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
                 }}
               >
-                {k.kpi?.name}
-              </Button>
-            ))}
-          </Box>
+                <Typography variant="caption" color="text.secondary">
+                  Página {reviewPage} de {totalReviewPages} — {reviewTotal}{" "}
+                  registro(s)
+                </Typography>
 
-          {aggregatedEvolutions.length > 0 ? (
-            <Box sx={{ width: "100%", height: 360 }}>
-              <LineChart
-                xAxis={[
-                  {
-                    data: xAxisDates,
-                    scaleType: "point",
-                    label: "Data",
-                  },
-                ]}
-                series={lineData}
-                width={undefined}
-                height={340}
-                margin={{ left: 40, right: 20, top: 30, bottom: 40 }}
-                sx={{
-                  width: "100%",
-                  "& .MuiChartsAxis-line": {
-                    stroke: "#cbd5e1",
-                    strokeWidth: 0.4,
-                  },
-                  "& .MuiChartsGrid-line": {
-                    stroke: "#e2e8f0",
-                    strokeWidth: 0.3,
-                  },
-                }}
-              />
-            </Box>
-          ) : (
-            <Typography color="text.secondary" textAlign="center" mt={2}>
-              Nenhuma evolução registrada para esta KPI no período filtrado.
-            </Typography>
-          )}
-        </Paper>
+                <Box display="flex" gap={1}>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    disabled={reviewPage <= 1}
+                    onClick={() => setReviewPage((p) => Math.max(1, p - 1))}
+                    sx={{ textTransform: "none" }}
+                  >
+                    Anterior
+                  </Button>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    disabled={reviewPage >= totalReviewPages}
+                    onClick={() =>
+                      setReviewPage((p) => Math.min(totalReviewPages, p + 1))
+                    }
+                    sx={{ textTransform: "none" }}
+                  >
+                    Próxima
+                  </Button>
+                </Box>
+              </Box>
+            </Paper>
+          </Paper>
+        </Box>
       </main>
     </div>
   );

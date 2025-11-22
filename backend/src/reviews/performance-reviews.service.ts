@@ -10,6 +10,8 @@ import {
 import { PerformanceReview } from './entities/performance-review.entity';
 import { CreatePerformanceReviewDto } from './dto/create-performance-review.dto';
 import { UpdatePerformanceReviewDto } from './dto/update-performance-review.dto';
+import { PerformanceReviewQueryDto } from './dto/performance-review-query.dto';
+import { applyScope } from '../common/utils/scoped-query.util';
 
 export type ReviewsFilters = {
   employeeId?: string;
@@ -25,29 +27,29 @@ export class PerformanceReviewsService {
     private readonly repo: Repository<PerformanceReview>,
   ) {}
 
-  async create(dto: CreatePerformanceReviewDto): Promise<PerformanceReview> {
-    const entity = this.repo.create(dto as Partial<PerformanceReview>);
+  async create(user: any, dto: CreatePerformanceReviewDto): Promise<PerformanceReview> {
+    const entity = this.repo.create({ leaderId: user.employeeId, ...dto } as Partial<PerformanceReview>);
     return this.repo.save(entity);
   }
 
-  async findAll(companyId: string, filters: ReviewsFilters = {}): Promise<PerformanceReview[]> {
-    const where: FindOptionsWhere<PerformanceReview> = { companyId };
+  async findAll(user: any, query: PerformanceReviewQueryDto) {
+    const where = applyScope(user, {}, { company: true, team: false, employee: true, department: false });
 
-    if (filters.employeeId) where.employeeId = filters.employeeId;
-    if (filters.leaderId) where.leaderId = filters.leaderId;
-
-    if (filters.startDate && filters.endDate) {
-      (where as any).date = Between(filters.startDate, filters.endDate);
-    } else if (filters.startDate) {
-      (where as any).date = MoreThanOrEqual(filters.startDate);
-    } else if (filters.endDate) {
-      (where as any).date = LessThanOrEqual(filters.endDate);
+    if (query.startDate && query.endDate) {
+      (where as any).date = Between(query.startDate, query.endDate);
+    } else if (query.startDate) {
+      (where as any).date = MoreThanOrEqual(query.startDate);
+    } else if (query.endDate) {
+      (where as any).date = LessThanOrEqual(query.endDate);
     }
 
-    return this.repo.find({
-      where,
-      order: { date: 'DESC' },
-    });
+    const page = Math.max(1, Number(query.page ?? 1));
+    const limit = Math.max(1, Number(query.limit ?? 10));
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await this.repo.findAndCount({ where, skip, take: limit });
+
+    return { page, limit, total, data };
   }
 
   async findOne(companyId: string, id: string): Promise<PerformanceReview> {

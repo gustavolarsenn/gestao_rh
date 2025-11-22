@@ -10,11 +10,13 @@ import {
   ParseUUIDPipe,
   UsePipes,
   ValidationPipe,
+  Req,
 } from '@nestjs/common';
 import { PerformanceReviewsService, ReviewsFilters } from './performance-reviews.service';
 import { CreatePerformanceReviewDto } from './dto/create-performance-review.dto';
 import { UpdatePerformanceReviewDto } from './dto/update-performance-review.dto';
 import { PerformanceReview } from './entities/performance-review.entity';
+import { PerformanceReviewQueryDto } from './dto/performance-review-query.dto';
 
 @Controller('performance-reviews')
 @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
@@ -22,20 +24,19 @@ export class PerformanceReviewsController {
   constructor(private readonly service: PerformanceReviewsService) {}
 
   @Post()
-  create(@Body() dto: CreatePerformanceReviewDto): Promise<PerformanceReview> {
-    return this.service.create(dto);
+  create(
+    @Req() req: any,
+    @Body() dto: CreatePerformanceReviewDto
+  ): Promise<PerformanceReview> {
+    return this.service.create(req.user, dto);
   }
 
   @Get()
   findAll(
-    @Query('companyId', ParseUUIDPipe) companyId: string,
-    @Query('employeeId') employeeId?: string,
-    @Query('leaderId') leaderId?: string,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
-  ): Promise<PerformanceReview[]> {
-    const filters: ReviewsFilters = { employeeId, leaderId, startDate, endDate };
-    return this.service.findAll(companyId, filters);
+    @Req() req: any,
+    @Query() query: PerformanceReviewQueryDto,
+  ) {
+    return this.service.findAll(req.user, query);
   }
 
   @Get(':id')

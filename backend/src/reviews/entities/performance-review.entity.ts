@@ -14,7 +14,6 @@ export class PerformanceReview extends TenantBaseEntity {
   @JoinColumn({ name: 'employeeId' })
   employee!: Employee;
 
-  // líder/avaliador
   @Column('uuid')
   leaderId!: string;
 

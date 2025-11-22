@@ -4,7 +4,7 @@ export class CreatePerformanceReviewDto {
   @IsUUID() companyId!: string;
 
   @IsUUID() employeeId!: string;  // avaliado
-  @IsUUID() leaderId!: string;    // avaliador (líder)
+  @IsUUID() @IsOptional() leaderId?: string;    // avaliador (líder)
 
   @IsOptional() @IsString()
   observation?: string;
