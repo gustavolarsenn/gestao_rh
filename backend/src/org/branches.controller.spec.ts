@@ -6,51 +6,104 @@ describe('BranchesController', () => {
   let controller: BranchesController;
   let service: jest.Mocked<BranchesService>;
 
-  const companyId = '11111111-1111-1111-1111-111111111111';
-  const id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
-
-  const mockEntity: any = { id, companyId, name: 'Filial SP' };
-
-  const serviceMock: jest.Mocked<BranchesService> = {
-    create: jest.fn(), findAll: jest.fn(), findOne: jest.fn(),
-    update: jest.fn(), remove: jest.fn(),
-  } as any;
-
   beforeEach(async () => {
-    Object.values(serviceMock).forEach((fn) => (fn as any).mockReset?.());
     const module: TestingModule = await Test.createTestingModule({
       controllers: [BranchesController],
-      providers: [{ provide: BranchesService, useValue: serviceMock }],
+      providers: [
+        {
+          provide: BranchesService,
+          useValue: {
+            create: jest.fn(),
+            findAll: jest.fn(),
+            findDistinctBranches: jest.fn(),
+            findOne: jest.fn(),
+            update: jest.fn(),
+            remove: jest.fn(),
+          },
+        },
+      ],
     }).compile();
 
     controller = module.get(BranchesController);
-    service = module.get(BranchesService);
+    service = module.get(BranchesService) as any;
   });
 
-  it('POST', async () => {
-    service.create.mockResolvedValue(mockEntity);
-    await expect(controller.create({ companyId, name: 'Filial SP' } as any))
-      .resolves.toEqual(mockEntity);
+  it('deve estar definido', () => {
+    expect(controller).toBeDefined();
   });
 
-  it('GET', async () => {
-    service.findAll.mockResolvedValue([mockEntity]);
-    await expect(controller.findAll(companyId)).resolves.toEqual([mockEntity]);
+  // CREATE
+  it('POST create', async () => {
+    const dto = { name: 'Filial Teste' } as any;
+    service.create.mockResolvedValue(dto);
+
+    const result = await controller.create(dto);
+
+    expect(service.create).toHaveBeenCalledWith(dto);
+    expect(result).toEqual(dto);
   });
 
-  it('GET :id', async () => {
-    service.findOne.mockResolvedValue(mockEntity);
-    await expect(controller.findOne(id, companyId)).resolves.toEqual(mockEntity);
+  // FIND ALL
+  it('GET findAll', async () => {
+    const req: any = { user: { id: 'u1', companyId: 'c1' } };
+    const query: any = {};
+
+    service.findAll.mockResolvedValue({
+      page: 1,
+      limit: 10,
+      total: 0,
+      data: [],
+    });
+
+    const result = await controller.findAll(req, query);
+
+    expect(service.findAll).toHaveBeenCalledWith(req.user, query);
+    expect(result).toEqual({
+      page: 1,
+      limit: 10,
+      total: 0,
+      data: [],
+    });
   });
 
-  it('PATCH :id', async () => {
-    service.update.mockResolvedValue({ ...mockEntity, name: 'Filial RJ' });
-    await expect(controller.update(id, companyId, { companyId, name: 'Filial RJ' } as any))
-      .resolves.toEqual({ ...mockEntity, name: 'Filial RJ' });
+  // DISTINCT
+  it('GET /distinct', async () => {
+    const req: any = { user: { companyId: 'c1' } };
+    service.findDistinctBranches.mockResolvedValue([{ id: 'b1' }] as any);
+
+    const result = await controller.findDistinct(req);
+
+    expect(service.findDistinctBranches).toHaveBeenCalledWith(req.user);
+    expect(result).toEqual([{ id: 'b1' }]);
   });
 
-  it('DELETE :id', async () => {
-    service.remove.mockResolvedValue(undefined as any);
-    await expect(controller.remove(id, companyId)).resolves.toBeUndefined();
+  // FIND ONE
+  it('GET findOne', async () => {
+    service.findOne.mockResolvedValue({ id: 'b1' } as any);
+
+    const result = await controller.findOne('b1', 'c1');
+
+    expect(service.findOne).toHaveBeenCalledWith('c1', 'b1');
+    expect(result).toEqual({ id: 'b1' });
+  });
+
+  // UPDATE
+  it('PATCH update', async () => {
+    const dto = { name: 'Updated' } as any;
+    service.update.mockResolvedValue({ id: 'b1' } as any);
+
+    const result = await controller.update('b1', 'c1', dto);
+
+    expect(service.update).toHaveBeenCalledWith('c1', 'b1', dto);
+    expect(result).toEqual({ id: 'b1' });
+  });
+
+  // REMOVE
+  it('DELETE remove', async () => {
+    service.remove.mockResolvedValue(undefined);
+
+    await controller.remove('b1', 'c1');
+
+    expect(service.remove).toHaveBeenCalledWith('c1', 'b1');
   });
 });

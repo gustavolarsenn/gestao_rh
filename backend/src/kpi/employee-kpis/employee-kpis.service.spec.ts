@@ -1,99 +1,175 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
+import { EmployeeKpisService } from './employee-kpis.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { EmployeeKpisService } from '../employee-kpis.service';
 import { EmployeeKPI } from '../entities/employee-kpi.entity';
-import {  KpiStatus } from '../entities/kpi.enums';
+import { ConflictException, NotFoundException, BadRequestException } from '@nestjs/common';
+import { KpiStatus } from '../entities/kpi.enums';
 
 describe('EmployeeKpisService', () => {
   let service: EmployeeKpisService;
   let repo: jest.Mocked<Repository<EmployeeKPI>>;
 
-  const companyId = '11111111-1111-1111-1111-111111111111';
-  const id = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
-
-  const entity: EmployeeKPI = Object.assign(new EmployeeKPI(), {
-    id,
-    companyId,
-    employeeId: 'emp-1',
-    kpiId: 'kpi-1',
-    evaluationTypeId: 'et-1',
-    periodStart: '2025-09-01',
-    periodEnd: '2025-09-30',
-    goal: '20',
-    achievedValue: '22',
-    status: KpiStatus.SUBMITTED,
-    submittedBy: 'user-1',
-    submittedDate: new Date(),
-  });
-
-  const repoMock: Partial<jest.Mocked<Repository<EmployeeKPI>>> = {
-    findOne: jest.fn(),
-    find: jest.fn(),
-    save: jest.fn(),
-    create: jest.fn(),
-    remove: jest.fn(),
-    merge: jest.fn(),
-  };
+  function mockRepo() {
+    return {
+      findOne: jest.fn(),
+      findAndCount: jest.fn(),
+      create: jest.fn((e) => e),
+      merge: jest.fn((e1, e2) => ({ ...e1, ...e2 })),
+      save: jest.fn((e) => Promise.resolve(e)),
+      remove: jest.fn(),
+    } as any;
+  }
 
   beforeEach(async () => {
-    Object.values(repoMock).forEach((fn) => (fn as any)?.mockReset?.());
-    const module: TestingModule = await Test.createTestingModule({
+    const module = await Test.createTestingModule({
       providers: [
         EmployeeKpisService,
-        { provide: getRepositoryToken(EmployeeKPI), useValue: repoMock },
+        { provide: getRepositoryToken(EmployeeKPI), useValue: mockRepo() },
       ],
     }).compile();
 
     service = module.get(EmployeeKpisService);
-    repo = module.get(getRepositoryToken(EmployeeKPI)) as jest.Mocked<Repository<EmployeeKPI>>;
+    repo = module.get(getRepositoryToken(EmployeeKPI));
   });
 
-  it('should be defined', () => {
+  it('deve estar definido', () => {
     expect(service).toBeDefined();
   });
 
-  it('create -> saves', async () => {
-    repo.create.mockReturnValue(entity);
-    repo.save.mockResolvedValue(entity);
-    const result = await service.create({
-      companyId,
-      employeeId: 'emp-1',
-      kpiId: 'kpi-1',
-      evaluationTypeId: 'et-1',
-      periodStart: '2025-09-01',
-      periodEnd: '2025-09-30',
-      submittedBy: 'user-1',
-    } as any);
+  // CREATE
+  it('create deve criar um registro', async () => {
+    repo.findOne.mockResolvedValue(null);
+
+    const dto: any = {
+      companyId: 'c1',
+      employeeId: 'e1',
+      teamId: 't1',
+      kpiId: 'k1',
+      periodStart: '2024-01-01',
+      periodEnd: '2024-01-31',
+      submittedBy: 'u1',
+    };
+
+    const result = await service.create(dto);
+
+    expect(repo.findOne).toHaveBeenCalled();
     expect(repo.create).toHaveBeenCalled();
-    expect(repo.save).toHaveBeenCalledWith(entity);
-    expect(result).toEqual(entity);
+    expect(repo.save).toHaveBeenCalled();
+    expect(result.companyId).toBe('c1');
   });
 
-  it('findAll -> list', async () => {
-    repo.find.mockResolvedValue([entity] as any);
-    const result = await service.findAll(companyId, { employeeId: 'emp-1' } as any);
-    expect(repo.find).toHaveBeenCalled();
-    expect(result).toEqual([entity]);
+  it('create deve lançar erro se unique já existir', async () => {
+    repo.findOne.mockResolvedValue({ id: 'exists' } as any);
+
+    await expect(
+      service.create({
+        companyId: 'c1',
+        employeeId: 'e1',
+        teamId: 't1',
+        kpiId: 'k1',
+        periodStart: '2024-01-01',
+        periodEnd: '2024-01-31',
+      } as any),
+    ).rejects.toBeInstanceOf(ConflictException);
   });
 
-  it('findOne -> ok', async () => {
-    repo.findOne.mockResolvedValue(entity as any);
-    const result = await service.findOne(companyId, id);
-    expect(result).toEqual(entity);
+  // FIND ALL
+  it('findAll deve retornar lista paginada', async () => {
+    repo.findAndCount.mockResolvedValue([[{ id: 'k1' } as any], 1]);
+
+    const result = await service.findAll(
+      { role: 'admin', companyId: 'c1' } as any,
+      { page: 1, limit: 10 } as any,
+    );
+
+    expect(result).toMatchObject({
+      page: 1,
+      limit: 10,
+      total: 1,
+      data: [{ id: 'k1' }],
+    });
   });
 
-  it('update -> merges', async () => {
-    repo.findOne.mockResolvedValue(entity as any);
-    repo.merge.mockReturnValue({ ...entity, achievedValue: '25' } as any);
-    repo.save.mockResolvedValue({ ...entity, achievedValue: '25' } as any);
-    const result = await service.update(companyId, id, { companyId, achievedValue: '25' } as any);
-    expect(result.achievedValue).toBe('25');
+  // FIND ONE
+  it('findOne deve retornar registro', async () => {
+    repo.findOne.mockResolvedValue({ id: 'k1' } as any);
+
+    const result = await service.findOne('c1', 'k1');
+
+    expect(repo.findOne).toHaveBeenCalled();
+    expect(result).toEqual({ id: 'k1' });
   });
 
-  it('remove -> deletes', async () => {
-    repo.findOne.mockResolvedValue(entity as any);
-    repo.remove.mockResolvedValue(entity as any);
-    await expect(service.remove(companyId, id)).resolves.toBeUndefined();
+  it('findOne deve lançar erro se não encontrado', async () => {
+    repo.findOne.mockResolvedValue(null);
+
+    await expect(service.findOne('c1', '404')).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  // UPDATE
+  it('update deve atualizar registro', async () => {
+    repo.findOne.mockResolvedValueOnce({ id: 'k1', companyId: 'c1' } as any);
+    repo.findOne.mockResolvedValueOnce(null);
+
+    const result = await service.update('c1', 'k1', { goal: '20' } as any);
+
+    expect(repo.merge).toHaveBeenCalled();
+    expect(repo.save).toHaveBeenCalled();
+    expect(result).toHaveProperty('goal', '20');
+  });
+
+  it('update deve lançar erro se unique duplicado', async () => {
+    repo.findOne.mockResolvedValueOnce({ id: 'k1', companyId: 'c1' } as any);
+    repo.findOne.mockResolvedValueOnce({ id: 'other' } as any);
+
+    await expect(
+      service.update('c1', 'k1', { employeeId: 'e2' } as any),
+    ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  // APPROVE
+  it('approve deve aprovar kpi', async () => {
+    repo.findOne.mockResolvedValue({ id: 'k1', status: KpiStatus.SUBMITTED } as any);
+
+    const result = await service.approve('c1', 'k1', 'u1');
+
+    expect(result.status).toBe(KpiStatus.APPROVED);
+    expect(repo.save).toHaveBeenCalled();
+  });
+
+  it('approve deve falhar se já rejeitado', async () => {
+    repo.findOne.mockResolvedValue({ id: 'k1', status: KpiStatus.REJECTED } as any);
+
+    await expect(
+      service.approve('c1', 'k1', 'u1'),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  // REJECT
+  it('reject deve rejeitar kpi', async () => {
+    repo.findOne.mockResolvedValue({ id: 'k1', status: KpiStatus.SUBMITTED } as any);
+
+    const result = await service.reject('c1', 'k1', 'u1', 'bad');
+
+    expect(result.status).toBe(KpiStatus.REJECTED);
+    expect(result.rejectionReason).toBe('bad');
+  });
+
+  it('reject deve falhar se já aprovado', async () => {
+    repo.findOne.mockResolvedValue({ id: 'k1', status: KpiStatus.APPROVED } as any);
+
+    await expect(
+      service.reject('c1', 'k1', 'u1'),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  // REMOVE
+  it('remove deve excluir registro', async () => {
+    repo.findOne.mockResolvedValue({ id: 'k1' } as any);
+
+    await service.remove('c1', 'k1');
+
+    expect(repo.remove).toHaveBeenCalled();
   });
 });

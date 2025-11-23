@@ -20,11 +20,11 @@ export class UserRolesService {
   }
 
   async findOne(id: string): Promise<UserRole> {
-    const row = await this.findOne(id);
+    const row = await this.repo.findOne({ where: { id } });
     if (!row) throw new NotFoundException('UserRole not found');
     return row;
   }
-
+  
   async update(id: string, dto: UpdateUserRoleDto): Promise<UserRole> {
     const role = await this.findOne(id);
     const merged = this.repo.merge(role, {

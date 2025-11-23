@@ -31,7 +31,6 @@ export function applyScope<
   entity: string = '',
 ): Partial<T> {
   const where: Record<string, any> = { ...baseWhere };
-
   switch (user.role) {
     case 'superAdmin':
       return where as Partial<T>;

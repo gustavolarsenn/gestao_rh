@@ -22,22 +22,16 @@ export default function DepartmentPage() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loadingTable, setLoadingTable] = useState(false);
 
-  // ================================
   // PAGINAÇÃO
-  // ================================
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const [total, setTotal] = useState(0);
   const pageCount = Math.ceil(total / limit);
 
-  // ================================
   // FILTRO
-  // ================================
   const [filterName, setFilterName] = useState("");
 
-  // ================================
   // LOAD DEPARTMENTS
-  // ================================
   async function loadDepartments() {
     setLoadingTable(true);
 
@@ -56,9 +50,7 @@ export default function DepartmentPage() {
     loadDepartments();
   }, [page, filterName]);
 
-  // ================================
   // CREATE MODAL
-  // ================================
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [name, setName] = useState("");
 
@@ -74,9 +66,7 @@ export default function DepartmentPage() {
     loadDepartments();
   };
 
-  // ================================
   // EDIT MODAL
-  // ================================
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedDept, setSelectedDept] = useState<Department | null>(null);
   const [editName, setEditName] = useState("");
@@ -90,10 +80,7 @@ export default function DepartmentPage() {
   const handleSave = async () => {
     if (!selectedDept) return;
 
-    await updateDepartment(selectedDept.id, {
-      name: editName,
-    });
-
+    await updateDepartment(selectedDept.id, { name: editName });
     setEditModalOpen(false);
     loadDepartments();
   };
@@ -106,15 +93,11 @@ export default function DepartmentPage() {
     loadDepartments();
   };
 
-  // ================================
-  // UI
-  // ================================
   return (
     <div className="flex min-h-screen bg-[#f7f7f9]">
       <Sidebar />
 
       <main className="flex-1 p-8">
-
         <Typography
           variant="h4"
           fontWeight={700}
@@ -150,6 +133,7 @@ export default function DepartmentPage() {
                 setPage(1);
               }}
               sx={{ flex: "1 1 200px" }}
+              inputProps={{ "data-testid": "filter-name-input" }}
             />
 
             <Button
@@ -164,6 +148,7 @@ export default function DepartmentPage() {
                 borderColor: "#1e293b",
                 color: "#1e293b",
               }}
+              data-testid="clear-filter-btn"
             >
               Limpar
             </Button>
@@ -177,6 +162,7 @@ export default function DepartmentPage() {
                 backgroundColor: "#1e293b",
                 color: "white",
               }}
+              data-testid="open-create-modal-btn"
             >
               Criar Departamento
             </Button>
@@ -185,7 +171,6 @@ export default function DepartmentPage() {
 
         {/* TABELA */}
         <Paper sx={{ p: 4, borderRadius: 3 }}>
-
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="bg-gray-50">
@@ -197,12 +182,17 @@ export default function DepartmentPage() {
 
             <tbody>
               {loadingTable && (
-                <tr>
-                  <td
-                    colSpan={1}
-                    className="py-6 text-center text-gray-500"
-                  >
+                <tr data-testid="loading-row">
+                  <td colSpan={1} className="py-6 text-center text-gray-500">
                     Carregando...
+                  </td>
+                </tr>
+              )}
+
+              {!loadingTable && departments.length === 0 && (
+                <tr data-testid="empty-row">
+                  <td colSpan={1} className="py-6 text-center text-gray-500">
+                    Nenhuma filial encontrada.
                   </td>
                 </tr>
               )}
@@ -213,6 +203,7 @@ export default function DepartmentPage() {
                     key={d.id}
                     className="border-b hover:bg-gray-100 cursor-pointer transition"
                     onClick={() => openEditModal(d)}
+                    data-testid="department-row"
                   >
                     <td className="px-4 py-3">{d.name}</td>
                   </tr>
@@ -237,6 +228,7 @@ export default function DepartmentPage() {
                 size="small"
                 disabled={page <= 1}
                 onClick={() => setPage((p) => p - 1)}
+                data-testid="prev-page-btn"
               >
                 Anterior
               </Button>
@@ -246,6 +238,7 @@ export default function DepartmentPage() {
                 size="small"
                 disabled={page >= pageCount}
                 onClick={() => setPage((p) => p + 1)}
+                data-testid="next-page-btn"
               >
                 Próxima
               </Button>
@@ -260,6 +253,7 @@ export default function DepartmentPage() {
         onClose={() => setCreateModalOpen(false)}
         title="Criar Departamento"
         description="Preencha os dados para cadastrar."
+        data-testid="create-department-modal"
         footer={
           <div className="flex justify-end gap-2">
             <Button variant="outlined" onClick={() => setCreateModalOpen(false)}>
@@ -268,6 +262,7 @@ export default function DepartmentPage() {
             <Button
               onClick={handleCreate}
               sx={{ backgroundColor: "#1e293b", color: "white" }}
+              data-testid="save-create-btn"
             >
               Criar
             </Button>
@@ -280,6 +275,7 @@ export default function DepartmentPage() {
             label="Nome"
             value={name}
             onChange={(e) => setName(e.target.value)}
+            inputProps={{ "data-testid": "department-name-input" }}
           />
         </div>
       </BaseModal>
@@ -290,6 +286,7 @@ export default function DepartmentPage() {
         onClose={() => setEditModalOpen(false)}
         title="Editar Departamento"
         description="Atualize ou remova."
+        data-testid="edit-department-modal"
         footer={
           <div className="flex justify-between w-full">
             <Button color="error" variant="outlined" onClick={handleDelete}>
@@ -298,6 +295,7 @@ export default function DepartmentPage() {
             <Button
               onClick={handleSave}
               sx={{ backgroundColor: "#1e293b", color: "white" }}
+              data-testid="save-edit-btn"
             >
               Salvar
             </Button>
@@ -310,6 +308,7 @@ export default function DepartmentPage() {
             label="Nome"
             value={editName}
             onChange={(e) => setEditName(e.target.value)}
+            inputProps={{ "data-testid": "department-edit-name-input" }}
           />
         </div>
       </BaseModal>

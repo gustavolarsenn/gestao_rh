@@ -9,19 +9,12 @@ import TeamMembersKpiDashboard from "./dashboard/TeamMembersKPIDashboard"; // PA
 export default function TeamDashboardTabs() {
   const [tab, setTab] = useState(0);
 
-  // ================================
-  // 🔥 RECUPERA O TIME DO JWT
-  // ================================
-
   return (
     <div className="flex min-h-screen bg-[#f7f7f9]">
       <Sidebar />
 
       <main className="flex-1 p-8">
 
-        {/* ============================================ */}
-        {/* TÍTULO */}
-        {/* ============================================ */}
         <Typography
           variant="h4"
           fontWeight={700}
@@ -31,9 +24,6 @@ export default function TeamDashboardTabs() {
           Dashboard do Time
         </Typography>
 
-        {/* ============================================ */}
-        {/* TABS */}
-        {/* ============================================ */}
         <Paper
           elevation={0}
           sx={{
@@ -73,9 +63,6 @@ export default function TeamDashboardTabs() {
           </Tabs>
         </Paper>
 
-        {/* ============================================ */}
-        {/* CONTEÚDO DAS ABAS */}
-        {/* ============================================ */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

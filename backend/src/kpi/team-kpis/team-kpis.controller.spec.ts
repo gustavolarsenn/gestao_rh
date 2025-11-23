@@ -1,74 +1,120 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { TeamKpisController } from './team-kpis.controller';
 import { TeamKpisService } from './team-kpis.service';
+import { KpiStatus } from '../entities/kpi.enums';
 
 describe('TeamKpisController', () => {
   let controller: TeamKpisController;
   let service: jest.Mocked<TeamKpisService>;
 
-  const companyId = '11111111-1111-1111-1111-111111111111';
-  const id = 'dddddddd-dddd-dddd-dddd-dddddddddddd';
-
-  const mockEntity: any = {
-    id,
-    companyId,
-    teamId: 'team-1',
-    kpiId: 'kpi-1',
-    periodStart: '2025-09-01',
-    periodEnd: '2025-09-30',
-  };
-
-  const serviceMock: jest.Mocked<TeamKpisService> = {
-    create: jest.fn(),
-    findAll: jest.fn(),
-    findOne: jest.fn(),
-    update: jest.fn(),
-    remove: jest.fn(),
-  } as any;
-
   beforeEach(async () => {
-    Object.values(serviceMock).forEach((fn) => (fn as any).mockReset?.());
-
     const module: TestingModule = await Test.createTestingModule({
       controllers: [TeamKpisController],
-      providers: [{ provide: TeamKpisService, useValue: serviceMock }],
+      providers: [
+        {
+          provide: TeamKpisService,
+          useValue: {
+            create: jest.fn(),
+            findAll: jest.fn(),
+            findOne: jest.fn(),
+            update: jest.fn(),
+            approve: jest.fn(),
+            reject: jest.fn(),
+            remove: jest.fn(),
+          },
+        },
+      ],
     }).compile();
 
     controller = module.get(TeamKpisController);
-    service = module.get(TeamKpisService);
+    service = module.get(TeamKpisService) as any;
   });
 
-  it('should be defined', () => {
+  it('deve estar definido', () => {
     expect(controller).toBeDefined();
   });
 
-  it('POST -> create', async () => {
-    service.create.mockResolvedValue(mockEntity);
-    await expect(controller.create({
-      companyId, teamId: 'team-1', kpiId: 'kpi-1', evaluationTypeId: 'et-1',
-      periodStart: '2025-09-01', periodEnd: '2025-09-30', submittedBy: 'user-1',
-    } as any)).resolves.toEqual(mockEntity);
+  // CREATE
+  it('POST create', async () => {
+    const dto = { teamId: 't1' } as any;
+    service.create.mockResolvedValue(dto);
+
+    const result = await controller.create(dto);
+
+    expect(service.create).toHaveBeenCalledWith(dto);
+    expect(result).toEqual(dto);
   });
 
-  it('GET -> findAll', async () => {
-    service.findAll.mockResolvedValue([mockEntity]);
-    await expect(controller.findAll(companyId, undefined, undefined, undefined))
-      .resolves.toEqual([mockEntity]);
+  // FIND ALL
+  it('GET findAll', async () => {
+    const req: any = { user: { id: 'u1', companyId: 'c1' } };
+    const query: any = {};
+
+    service.findAll.mockResolvedValue({
+      page: 1,
+      limit: 10,
+      total: 0,
+      data: [],
+    });
+
+    const result = await controller.findAll(query, req);
+
+    expect(service.findAll).toHaveBeenCalledWith(req.user, query);
+    expect(result).toEqual({
+      page: 1,
+      limit: 10,
+      total: 0,
+      data: [],
+    });
   });
 
-  it('GET :id -> findOne', async () => {
-    service.findOne.mockResolvedValue(mockEntity);
-    await expect(controller.findOne(id, companyId)).resolves.toEqual(mockEntity);
+  // FIND ONE
+  it('GET findOne', async () => {
+    service.findOne.mockResolvedValue({ id: 'tk1' } as any);
+
+    const result = await controller.findOne('tk1', 'c1');
+
+    expect(service.findOne).toHaveBeenCalledWith('c1', 'tk1');
+    expect(result).toEqual({ id: 'tk1' });
   });
 
-  it('PATCH :id -> update', async () => {
-    service.update.mockResolvedValue({ ...mockEntity, achievedValue: '120' });
-    await expect(controller.update(id, companyId, { companyId, achievedValue: '120' } as any))
-      .resolves.toEqual({ ...mockEntity, achievedValue: '120' });
+  // UPDATE
+  it('PATCH update', async () => {
+    const dto = { goal: '20' } as any;
+    service.update.mockResolvedValue({ id: 'tk1' } as any);
+
+    const result = await controller.update('tk1', 'c1', dto);
+
+    expect(service.update).toHaveBeenCalledWith('c1', 'tk1', dto);
+    expect(result).toEqual({ id: 'tk1' });
   });
 
-  it('DELETE :id -> remove', async () => {
-    service.remove.mockResolvedValue(undefined as any);
-    await expect(controller.remove(id, companyId)).resolves.toBeUndefined();
+  // APPROVE
+  it('POST approve', async () => {
+    service.approve.mockResolvedValue({ id: 'tk1', status: KpiStatus.APPROVED } as any);
+
+    const result = await controller.approve('tk1', 'c1', 'u1');
+
+    expect(service.approve).toHaveBeenCalledWith('c1', 'tk1', 'u1');
+    expect(result).toEqual({ id: 'tk1', status: KpiStatus.APPROVED });
+  });
+
+  // REJECT
+  it('POST reject', async () => {
+    service.reject.mockResolvedValue({ id: 'tk1', status: KpiStatus.REJECTED } as any);
+
+    const result = await controller.reject('tk1', 'c1', 'u1', 'Bad');
+
+    expect(service.reject).toHaveBeenCalledWith('c1', 'tk1', 'u1', 'Bad');
+    expect(result).toEqual({ id: 'tk1', status: KpiStatus.REJECTED });
+  });
+
+  // REMOVE
+  it('DELETE remove', async () => {
+    service.remove.mockResolvedValue(undefined);
+
+    await controller.remove('tk1', 'c1');
+
+    expect(service.remove).toHaveBeenCalledWith('c1', 'tk1');
   });
 });

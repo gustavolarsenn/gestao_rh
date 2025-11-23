@@ -6,51 +6,94 @@ describe('CompaniesController', () => {
   let controller: CompaniesController;
   let service: jest.Mocked<CompaniesService>;
 
-  const id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
-  const mockEntity: any = { id, name: 'Acme Inc.' };
-
-  const serviceMock: jest.Mocked<CompaniesService> = {
-    create: jest.fn(),
-    findAll: jest.fn(),
-    findOne: jest.fn(),
-    update: jest.fn(),
-    remove: jest.fn(),
-  } as any;
-
   beforeEach(async () => {
-    Object.values(serviceMock).forEach((fn) => (fn as any).mockReset?.());
     const module: TestingModule = await Test.createTestingModule({
       controllers: [CompaniesController],
-      providers: [{ provide: CompaniesService, useValue: serviceMock }],
+      providers: [
+        {
+          provide: CompaniesService,
+          useValue: {
+            create: jest.fn(),
+            findAll: jest.fn(),
+            findOne: jest.fn(),
+            update: jest.fn(),
+            remove: jest.fn(),
+          },
+        },
+      ],
     }).compile();
 
     controller = module.get(CompaniesController);
-    service = module.get(CompaniesService);
+    service = module.get(CompaniesService) as any;
   });
 
+  it('deve estar definido', () => {
+    expect(controller).toBeDefined();
+  });
+
+  // CREATE
   it('POST create', async () => {
-    service.create.mockResolvedValue(mockEntity);
-    await expect(controller.create({ name: 'Acme Inc.' } as any)).resolves.toEqual(mockEntity);
+    const dto = { name: 'ZPORT' } as any;
+    service.create.mockResolvedValue(dto);
+
+    const result = await controller.create(dto);
+
+    expect(service.create).toHaveBeenCalledWith(dto);
+    expect(result).toEqual(dto);
   });
 
+  // FIND ALL
   it('GET findAll', async () => {
-    service.findAll.mockResolvedValue([mockEntity]);
-    await expect(controller.findAll()).resolves.toEqual([mockEntity]);
+    const query: any = {};
+
+    service.findAll.mockResolvedValue({
+      data: [],
+      total: 0,
+      page: 1,
+      limit: 10,
+      pageCount: 0,
+    });
+
+    const result = await controller.findAll(query);
+
+    expect(service.findAll).toHaveBeenCalledWith(query);
+    expect(result).toEqual({
+      data: [],
+      total: 0,
+      page: 1,
+      limit: 10,
+      pageCount: 0,
+    });
   });
 
-  it('GET :id findOne', async () => {
-    service.findOne.mockResolvedValue(mockEntity);
-    await expect(controller.findOne(id)).resolves.toEqual(mockEntity);
+  // FIND ONE
+  it('GET findOne', async () => {
+    service.findOne.mockResolvedValue({ id: 'c1' } as any);
+
+    const result = await controller.findOne('c1');
+
+    expect(service.findOne).toHaveBeenCalledWith('c1');
+    expect(result).toEqual({ id: 'c1' });
   });
 
-  it('PATCH :id update', async () => {
-    service.update.mockResolvedValue({ ...mockEntity, name: 'Acme LLC' });
-    await expect(controller.update(id, { name: 'Acme LLC' } as any))
-      .resolves.toEqual({ ...mockEntity, name: 'Acme LLC' });
+  // UPDATE
+  it('PATCH update', async () => {
+    const dto = { name: 'Updated' } as any;
+
+    service.update.mockResolvedValue({ id: 'c1' } as any);
+
+    const result = await controller.update('c1', dto);
+
+    expect(service.update).toHaveBeenCalledWith('c1', dto);
+    expect(result).toEqual({ id: 'c1' });
   });
 
-  it('DELETE :id remove', async () => {
-    service.remove.mockResolvedValue(undefined as any);
-    await expect(controller.remove(id)).resolves.toBeUndefined();
+  // REMOVE
+  it('DELETE remove', async () => {
+    service.remove.mockResolvedValue(undefined);
+
+    await controller.remove('c1');
+
+    expect(service.remove).toHaveBeenCalledWith('c1');
   });
 });

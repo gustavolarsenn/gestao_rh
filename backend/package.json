@@ -25,7 +25,8 @@
     "migrations:revert": "typeorm-ts-node-commonjs migration:revert -d ./src/database/data-source.ts",
     "migrations:gen:dist": "typeorm migration:generate dist/database/migrations/AutoMigration -d ./dist/database/data-source.js -o",
     "migrations:run:dist": "typeorm migration:run -d ./dist/database/data-source.js",
-    "migrations:revert:dist": "typeorm migration:revert -d ./dist/database/data-source.js"
+    "migrations:revert:dist": "typeorm migration:revert -d ./dist/database/data-source.js",
+    "migrations:run:prod": "typeorm migration:run -d dist/database/data-source.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

@@ -1,0 +1,46 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: orgkpi-db
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    env_file:
+      - ./backend/.env.docker
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: orgkpi-backend
+    env_file:
+      - ./backend/.env.docker
+    depends_on:
+      - db
+    ports:
+      - "3000:3000"
+    environment:
+      TZ: America/Sao_Paulo
+
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Isso vai virar import.meta.env.VITE_API_URL no build
+        # Do ponto de vista do navegador, o backend está em localhost:3000
+        VITE_API_URL: "http://localhost:3000"
+    container_name: orgkpi-frontend
+    depends_on:
+      - backend
+    ports:
+      - "5173:80"
+    environment:
+      TZ: America/Sao_Paulo
+
+volumes:
+  db_data:

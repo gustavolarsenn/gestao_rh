@@ -1,77 +1,140 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
 import { TeamsService } from './teams.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Team } from './entities/team.entity';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 
 describe('TeamsService', () => {
   let service: TeamsService;
   let repo: jest.Mocked<Repository<Team>>;
 
-  const companyId = '11111111-1111-1111-1111-111111111111';
-  const id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
-
-  const entity: Team = Object.assign(new Team(), {
-    id, companyId, name: 'Plataforma',
-  });
-
-  const repoMock: Partial<jest.Mocked<Repository<Team>>> = {
-    findOne: jest.fn(), find: jest.fn(), save: jest.fn(),
-    create: jest.fn(), remove: jest.fn(), merge: jest.fn(),
-  };
+  function mockRepo() {
+    return {
+      findOne: jest.fn(),
+      findAndCount: jest.fn(),
+      find: jest.fn(),
+      create: jest.fn(e => e),
+      merge: jest.fn((a, b) => ({ ...a, ...b })),
+      save: jest.fn(e => Promise.resolve(e)),
+      remove: jest.fn(),
+    } as any;
+  }
 
   beforeEach(async () => {
-    Object.values(repoMock).forEach((fn) => (fn as any)?.mockReset?.());
-    const module: TestingModule = await Test.createTestingModule({
+    const module = await Test.createTestingModule({
       providers: [
         TeamsService,
-        { provide: getRepositoryToken(Team), useValue: repoMock },
+        { provide: getRepositoryToken(Team), useValue: mockRepo() },
       ],
     }).compile();
 
     service = module.get(TeamsService);
-    repo = module.get(getRepositoryToken(Team)) as jest.Mocked<Repository<Team>>;
+    repo = module.get(getRepositoryToken(Team));
   });
 
-  it('should be defined', () => {
+  it('deve estar definido', () => {
     expect(service).toBeDefined();
   });
 
-  it('create -> saves team', async () => {
-    repo.findOne.mockResolvedValue(null as any);
-    repo.create.mockReturnValue(entity);
-    repo.save.mockResolvedValue(entity);
-    const res = await service.create({ companyId, name: 'Plataforma' } as any);
+  // CREATE
+  it('create deve criar team', async () => {
+    repo.findOne.mockResolvedValue(null);
+
+    const dto: any = {
+      companyId: 'c1',
+      name: 'Team A',
+    };
+
+    const result = await service.create(dto);
+
     expect(repo.create).toHaveBeenCalled();
-    expect(repo.save).toHaveBeenCalledWith(entity);
-    expect(res).toEqual(entity);
+    expect(repo.save).toHaveBeenCalled();
+    expect(result.name).toBe('Team A');
   });
 
-  it('findAll -> list by company', async () => {
-    repo.find.mockResolvedValue([entity] as any);
-    const res = await service.findAll(companyId);
-    expect(repo.find).toHaveBeenCalledWith({ where: { companyId } });
-    expect(res).toEqual([entity]);
+  it('create deve lançar erro se nome já existir', async () => {
+    repo.findOne.mockResolvedValue({ id: 't1' } as any);
+
+    await expect(
+      service.create({
+        companyId: 'c1',
+        name: 'Team A',
+        description: 'Desc',
+      }),
+    ).rejects.toBeInstanceOf(ConflictException);
   });
 
-  it('findOne -> ok', async () => {
-    repo.findOne.mockResolvedValue(entity as any);
-    const res = await service.findOne(companyId, id);
-    expect(repo.findOne).toHaveBeenCalledWith({ where: { companyId, id } });
-    expect(res).toEqual(entity);
+  // FIND ALL (admin user)
+  it('findAll deve aplicar filtros com usuário admin', async () => {
+    repo.findAndCount.mockResolvedValue([[{ id: 't1' } as any], 1]);
+
+    const user = { role: 'admin', companyId: 'c1' } as any;
+
+    const result = await service.findAll(user, { page: '1', limit: '10' });
+
+    expect(result.total).toBe(1);
+    expect(result.data[0].id).toBe('t1');
   });
 
-  it('update -> merges', async () => {
-    repo.findOne.mockResolvedValue(entity as any);
-    repo.merge.mockReturnValue({ ...entity, name: 'Core' } as any);
-    repo.save.mockResolvedValue({ ...entity, name: 'Core' } as any);
-    const res = await service.update(companyId, id, { companyId, name: 'Core' } as any);
-    expect(res.name).toBe('Core');
+  // FIND ALL (gestor)
+  it('findAll deve filtrar por gestor', async () => {
+    repo.findAndCount.mockResolvedValue([[{ id: 'tX' } as any], 1]);
+
+    const user = { role: 'gestor', teamId: 't99', companyId: 'c1' } as any;
+
+    const result = await service.findAll(user, {});
+
+    expect(repo.findAndCount).toHaveBeenCalledWith({
+      where: { parentTeamId: 't99', companyId: 'c1' },
+      skip: 0,
+      take: 10,
+    });
+
+    expect(result.data[0]).toEqual({ id: 'tX' });
   });
 
-  it('remove -> deletes', async () => {
-    repo.findOne.mockResolvedValue(entity as any);
-    repo.remove.mockResolvedValue(entity as any);
-    await expect(service.remove(companyId, id)).resolves.toBeUndefined();
+  // FIND ONE
+  it('findOne deve retornar team', async () => {
+    repo.findOne.mockResolvedValue({ id: 't1' } as any);
+
+    const result = await service.findOne('c1', 't1');
+
+    expect(result).toEqual({ id: 't1' });
+  });
+
+  it('findOne deve lançar erro se não encontrar', async () => {
+    repo.findOne.mockResolvedValue(null);
+
+    await expect(service.findOne('c1', '404')).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  // UPDATE
+  it('update deve atualizar team', async () => {
+    repo.findOne.mockResolvedValueOnce({ id: 't1', name: 'Old', companyId: 'c1' } as any);
+    repo.findOne.mockResolvedValueOnce(null);
+
+    const result = await service.update('c1', 't1', { name: 'New' });
+
+    expect(repo.merge).toHaveBeenCalled();
+    expect(result.name).toBe('New');
+  });
+
+  it('update deve lançar erro se name já existir', async () => {
+    repo.findOne.mockResolvedValueOnce({ id: 't1', name: 'Old', companyId: 'c1' } as any);
+    repo.findOne.mockResolvedValueOnce({ id: 'other' } as any);
+
+    await expect(
+      service.update('c1', 't1', { name: 'Duplicado' }),
+    ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  // REMOVE
+  it('remove deve excluir team', async () => {
+    repo.findOne.mockResolvedValue({ id: 't1' } as any);
+
+    await service.remove('c1', 't1');
+
+    expect(repo.remove).toHaveBeenCalled();
   });
 });

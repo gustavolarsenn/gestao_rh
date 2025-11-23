@@ -1,8 +1,3 @@
-
-# Migrations
-src/database/migrations/*.ts
-src/database/migrations/*.js
-
 # compiled output
 /dist
 /node_modules

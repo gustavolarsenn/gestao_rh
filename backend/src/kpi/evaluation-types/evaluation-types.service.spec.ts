@@ -1,80 +1,143 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
 import { EvaluationTypesService } from './evaluation-types.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, ILike } from 'typeorm';
 import { EvaluationType } from '../entities/evaluation-type.entity';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 
 describe('EvaluationTypesService', () => {
   let service: EvaluationTypesService;
   let repo: jest.Mocked<Repository<EvaluationType>>;
 
-  const companyId = '11111111-1111-1111-1111-111111111111';
-  const id = 'aaaaaaa1-2222-3333-4444-555555555555';
-
-  const entity: EvaluationType = Object.assign(new EvaluationType(), {
-    id,
-    companyId,
-    name: 'Maior Melhor',
-    code: 'HIGHER_BETTER',
-    description: '...',
-  });
-
-  const repoMock: Partial<jest.Mocked<Repository<EvaluationType>>> = {
-    findOne: jest.fn(),
-    find: jest.fn(),
-    save: jest.fn(),
-    create: jest.fn(),
-    remove: jest.fn(),
-    merge: jest.fn(),
-  };
+  function mockRepo() {
+    return {
+      findOne: jest.fn(),
+      find: jest.fn(),
+      findAndCount: jest.fn(),
+      create: jest.fn((e) => e),
+      merge: jest.fn((e1, e2) => ({ ...e1, ...e2 })),
+      save: jest.fn((e) => Promise.resolve(e)),
+      remove: jest.fn(),
+    } as any;
+  }
 
   beforeEach(async () => {
-    Object.values(repoMock).forEach((fn) => (fn as any)?.mockReset?.());
-
-    const module: TestingModule = await Test.createTestingModule({
+    const module = await Test.createTestingModule({
       providers: [
         EvaluationTypesService,
-        { provide: getRepositoryToken(EvaluationType), useValue: repoMock },
+        { provide: getRepositoryToken(EvaluationType), useValue: mockRepo() },
       ],
     }).compile();
 
     service = module.get(EvaluationTypesService);
-    repo = module.get(getRepositoryToken(EvaluationType)) as jest.Mocked<Repository<EvaluationType>>;
+    repo = module.get(getRepositoryToken(EvaluationType));
   });
 
-  it('create -> saves', async () => {
-    repo.findOne.mockResolvedValue(null as any);
-    repo.create.mockReturnValue(entity);
-    repo.save.mockResolvedValue(entity);
-    const res = await service.create({ companyId, name: 'Maior Melhor', code: 'HIGHER_BETTER' } as any);
+  it('deve estar definido', () => {
+    expect(service).toBeDefined();
+  });
+
+  // CREATE
+  it('create deve criar tipo de avaliação', async () => {
+    repo.findOne.mockResolvedValue(null);
+
+    const dto: any = {
+      companyId: 'c1',
+      name: 'Percentual',
+      code: 'HIGHER_BETTER_PCT',
+    };
+
+    const result = await service.create(dto);
+
+    expect(repo.findOne).toHaveBeenCalled();
     expect(repo.create).toHaveBeenCalled();
-    expect(res).toEqual(entity);
+    expect(repo.save).toHaveBeenCalled();
+    expect(result.name).toBe('Percentual');
   });
 
-  it('findAll -> list', async () => {
-    repo.find.mockResolvedValue([entity] as any);
-    const res = await service.findAll(companyId);
-    expect(repo.find).toHaveBeenCalledWith({ where: { companyId } });
-    expect(res).toEqual([entity]);
+  it('create deve falhar se nome duplicado', async () => {
+    repo.findOne.mockResolvedValue({ id: 'dup' } as any);
+
+    await expect(
+      service.create({
+        companyId: 'c1',
+        name: 'Percentual',
+        code: 'HIGHER_BETTER_PCT',
+      } as any),
+    ).rejects.toBeInstanceOf(ConflictException);
   });
 
-  it('findOne -> ok', async () => {
-    repo.findOne.mockResolvedValue(entity as any);
-    const res = await service.findOne(companyId, id);
-    expect(res).toEqual(entity);
+  // FIND ALL
+  it('findAll deve retornar página paginada', async () => {
+    repo.findAndCount.mockResolvedValue([[{ id: 't1' } as any], 1]);
+
+    const result = await service.findAll(
+      { role: 'admin', companyId: 'c1' } as any,
+      { page: '1', limit: '10' },
+    );
+
+    expect(result).toMatchObject({
+      page: 1,
+      limit: 10,
+      total: 1,
+      data: [{ id: 't1' }],
+    });
   });
 
-  it('update -> merges', async () => {
-    repo.findOne.mockResolvedValue(entity as any);
-    repo.merge.mockReturnValue({ ...entity, description: 'upd' } as any);
-    repo.save.mockResolvedValue({ ...entity, description: 'upd' } as any);
-    const res = await service.update(companyId, id, { companyId, description: 'upd' } as any);
-    expect(res.description).toBe('upd');
+  // DISTINCT
+  it('findDistinct deve retornar lista', async () => {
+    repo.find.mockResolvedValue([{ id: 't1' }] as any);
+
+    const result = await service.findDistinctEvaluationTypes({ role: 'admin', companyId: 'c1' } as any);
+
+    expect(repo.find).toHaveBeenCalled();
+    expect(result).toEqual([{ id: 't1' }]);
   });
 
-  it('remove -> deletes', async () => {
-    repo.findOne.mockResolvedValue(entity as any);
-    repo.remove.mockResolvedValue(entity as any);
-    await expect(service.remove(companyId, id)).resolves.toBeUndefined();
+  // FIND ONE
+  it('findOne deve retornar registro', async () => {
+    repo.findOne.mockResolvedValue({ id: 't1' } as any);
+
+    const result = await service.findOne('c1', 't1');
+
+    expect(result).toEqual({ id: 't1' });
+  });
+
+  it('findOne deve falhar se não encontrado', async () => {
+    repo.findOne.mockResolvedValue(null);
+
+    await expect(service.findOne('c1', '404')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+  });
+
+  // UPDATE
+  it('update deve atualizar registro', async () => {
+    repo.findOne.mockResolvedValueOnce({ id: 't1', name: 'Old', companyId: 'c1' } as any);
+    repo.findOne.mockResolvedValueOnce(null); // nome não duplicado
+
+    const result = await service.update('c1', 't1', { name: 'New' } as any);
+
+    expect(repo.merge).toHaveBeenCalled();
+    expect(repo.save).toHaveBeenCalled();
+    expect(result.name).toBe('New');
+  });
+
+  it('update deve falhar caso nome exista', async () => {
+    repo.findOne.mockResolvedValueOnce({ id: 't1', name: 'Old', companyId: 'c1' } as any);
+    repo.findOne.mockResolvedValueOnce({ id: 't2' } as any);
+
+    await expect(
+      service.update('c1', 't1', { name: 'Duplicado' } as any),
+    ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  // REMOVE
+  it('remove deve deletar registro', async () => {
+    repo.findOne.mockResolvedValue({ id: 't1' } as any);
+
+    await service.remove('c1', 't1');
+
+    expect(repo.remove).toHaveBeenCalled();
   });
 });

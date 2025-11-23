@@ -1,85 +1,121 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { CareerPathsService } from './career-paths.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { CareerPathsService } from './career-paths.service';
 import { CareerPath } from './entities/career-path.entity';
+import { NotFoundException } from '@nestjs/common';
+
+const mockRepo = () => ({
+  create: jest.fn(),
+  save: jest.fn(),
+  find: jest.fn(),
+  findOne: jest.fn(),
+  merge: jest.fn(),
+  remove: jest.fn(),
+});
 
 describe('CareerPathsService', () => {
   let service: CareerPathsService;
-  let repo: jest.Mocked<Repository<CareerPath>>;
-
-  const companyId = '11111111-1111-1111-1111-111111111111';
-  const id = '44444444-4444-4444-4444-444444444444';
-
-  const entity: CareerPath = Object.assign(new CareerPath(), {
-    id,
-    companyId,
-    name: 'Engenharia → Sênior → Líder',
-    description: 'Trilha de carreira padrão',
-  });
-
-  const repoMock: Partial<jest.Mocked<Repository<CareerPath>>> = {
-    findOne: jest.fn(),
-    find: jest.fn(),
-    save: jest.fn(),
-    create: jest.fn(),
-    remove: jest.fn(),
-    merge: jest.fn(),
-  };
+  let repo: ReturnType<typeof mockRepo>;
 
   beforeEach(async () => {
-    Object.values(repoMock).forEach((fn) => (fn as any)?.mockReset?.());
-
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CareerPathsService,
-        { provide: getRepositoryToken(CareerPath), useValue: repoMock },
+        { provide: getRepositoryToken(CareerPath), useValue: mockRepo() },
       ],
     }).compile();
 
     service = module.get(CareerPathsService);
-    repo = module.get(getRepositoryToken(CareerPath)) as jest.Mocked<Repository<CareerPath>>;
+    repo = module.get(getRepositoryToken(CareerPath));
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
+  it('create', async () => {
+    const dto = {
+      name: 'Teste',
+      companyId: 'c1',
+      departmentId: 'd1',
+      currentRoleId: 'r1',
+      nextRoleId: 'r2',
+    };
 
-  it('create -> saves', async () => {
+    const entity = { id: 'p1', ...dto };
+
     repo.create.mockReturnValue(entity);
     repo.save.mockResolvedValue(entity);
-    const result = await service.create({ companyId, name: 'Trilha' } as any);
-    expect(repo.create).toHaveBeenCalled();
+
+    const result = await service.create(dto as any);
+
+    expect(repo.create).toHaveBeenCalledWith(dto);
     expect(repo.save).toHaveBeenCalledWith(entity);
     expect(result).toEqual(entity);
   });
 
-  it('findAll -> list by company', async () => {
-    repo.find.mockResolvedValue([entity] as any);
-    const result = await service.findAll(companyId);
-    expect(repo.find).toHaveBeenCalledWith({ where: { companyId } });
-    expect(result).toEqual([entity]);
+  it('findAll', async () => {
+    const mock = [{ id: 'p1' }];
+    repo.find.mockResolvedValue(mock);
+
+    const result = await service.findAll('c1', { departmentId: 'd1', currentRoleId: 'r1' });
+
+    expect(repo.find).toHaveBeenCalledWith({
+      where: {
+        companyId: 'c1',
+        department: { id: 'd1' },
+        currentRoleId: 'r1',
+      },
+      relations: ['department', 'currentRole', 'nextRole'],
+      order: { sortOrder: 'ASC', name: 'ASC' },
+    });
+
+    expect(result).toEqual(mock);
   });
 
-  it('findOne -> ok', async () => {
-    repo.findOne.mockResolvedValue(entity as any);
-    const result = await service.findOne(companyId, id);
-    expect(repo.findOne).toHaveBeenCalledWith({ where: { companyId, id } });
+  it('findOne - success', async () => {
+    const entity = { id: 'p1', companyId: 'c1' };
+    repo.findOne.mockResolvedValue(entity);
+
+    const result = await service.findOne('c1', 'p1');
+
+    expect(repo.findOne).toHaveBeenCalledWith({
+      where: { id: 'p1', companyId: 'c1' },
+      relations: ['department', 'currentRole', 'nextRole'],
+    });
     expect(result).toEqual(entity);
   });
 
-  it('update -> merges', async () => {
-    repo.findOne.mockResolvedValue(entity as any);
-    repo.merge.mockReturnValue({ ...entity, name: 'Nova Trilha' } as any);
-    repo.save.mockResolvedValue({ ...entity, name: 'Nova Trilha' } as any);
+  it('findOne - not found', async () => {
+    repo.findOne.mockResolvedValue(null);
 
-    const result = await service.update(companyId, id, { companyId, name: 'Nova Trilha' } as any);
-    expect(result.name).toBe('Nova Trilha');
+    await expect(service.findOne('c1', 'p1')).rejects.toThrow(NotFoundException);
   });
 
-  it('remove -> deletes', async () => {
-    repo.findOne.mockResolvedValue(entity as any);
-    repo.remove.mockResolvedValue(entity as any);
-    await expect(service.remove(companyId, id)).resolves.toBeUndefined();
+  it('update', async () => {
+    const existing = { id: 'p1', name: 'Old', companyId: 'c1' };
+    const merged = { ...existing, name: 'New' };
+
+    repo.findOne.mockResolvedValue(existing);
+    repo.merge.mockReturnValue(merged);
+    repo.save.mockResolvedValue(merged);
+
+    const result = await service.update('c1', 'p1', { name: 'New' });
+
+    expect(repo.merge).toHaveBeenCalledWith(existing, { name: 'New' });
+    expect(result).toEqual(merged);
+  });
+
+  it('remove', async () => {
+    const existing = { id: 'p1', companyId: 'c1' };
+
+    repo.findOne.mockResolvedValue(existing);
+    repo.remove.mockResolvedValue(existing);
+
+    await service.remove('c1', 'p1');
+
+    expect(repo.remove).toHaveBeenCalledWith(existing);
+  });
+
+  it('remove - not found', async () => {
+    repo.findOne.mockResolvedValue(null);
+
+    await expect(service.remove('c1', 'p1')).rejects.toThrow(NotFoundException);
   });
 });

@@ -1,129 +1,156 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
+import { PerformanceReviewsService } from './performance-reviews.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository, Between, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
-import { PerformanceReviewsService } from './performance-reviews.service';
 import { PerformanceReview } from './entities/performance-review.entity';
+import { NotFoundException } from '@nestjs/common';
 
 describe('PerformanceReviewsService', () => {
   let service: PerformanceReviewsService;
   let repo: jest.Mocked<Repository<PerformanceReview>>;
 
-  const companyId = '11111111-1111-1111-1111-111111111111';
-  const id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
-
-  const entity: PerformanceReview = Object.assign(new PerformanceReview(), {
-    id,
-    companyId,
-    employeeId: 'emp-1',
-    leaderId: 'emp-2',
-    observation: 'Ótimo desempenho no trimestre.',
-    date: '2025-09-01',
-  });
-
-  const repoMock: Partial<jest.Mocked<Repository<PerformanceReview>>> = {
-    findOne: jest.fn(),
-    find: jest.fn(),
-    save: jest.fn(),
-    create: jest.fn(),
-    remove: jest.fn(),
-    merge: jest.fn(),
-  };
+  function mockRepo() {
+    return {
+      findOne: jest.fn(),
+      findAndCount: jest.fn(),
+      create: jest.fn((e) => e),
+      merge: jest.fn((a, b) => ({ ...a, ...b })),
+      save: jest.fn((e) => Promise.resolve(e)),
+      remove: jest.fn(),
+    } as any;
+  }
 
   beforeEach(async () => {
-    Object.values(repoMock).forEach((fn) => (fn as any)?.mockReset?.());
-    const module: TestingModule = await Test.createTestingModule({
+    const module = await Test.createTestingModule({
       providers: [
         PerformanceReviewsService,
-        { provide: getRepositoryToken(PerformanceReview), useValue: repoMock },
+        { provide: getRepositoryToken(PerformanceReview), useValue: mockRepo() },
       ],
     }).compile();
 
     service = module.get(PerformanceReviewsService);
-    repo = module.get(getRepositoryToken(PerformanceReview)) as jest.Mocked<Repository<PerformanceReview>>;
+    repo = module.get(getRepositoryToken(PerformanceReview));
   });
 
-  it('should be defined', () => {
+  it('deve estar definido', () => {
     expect(service).toBeDefined();
   });
 
-  it('create -> saves', async () => {
-    repo.create.mockReturnValue(entity);
-    repo.save.mockResolvedValue(entity);
-    const res = await service.create({
-      companyId,
-      employeeId: 'emp-1',
-      leaderId: 'emp-2',
-      observation: 'Ótimo desempenho no trimestre.',
-      date: '2025-09-01',
+  // CREATE
+  it('create deve criar review com leaderId vindo do user', async () => {
+    const user = { employeeId: 'leader1' };
+    const dto = { employeeId: 'emp1', date: '2024-01-02' };
+
+    const result = await service.create(user, dto as any);
+
+    expect(repo.create).toHaveBeenCalledWith({
+      leaderId: user.employeeId,
+      ...dto,
     });
-    expect(repo.create).toHaveBeenCalled();
-    expect(repo.save).toHaveBeenCalledWith(entity);
-    expect(res).toEqual(entity);
+    expect(repo.save).toHaveBeenCalled();
+    expect(result.employeeId).toBe('emp1');
   });
 
-  it('findAll -> by company only', async () => {
-    repo.find.mockResolvedValue([entity] as any);
-    const res = await service.findAll(companyId, {});
-    expect(repo.find).toHaveBeenCalledWith({
-      where: { companyId },
-      order: { date: 'DESC' },
+  // FIND ALL (pagination + without filters)
+  it('findAll deve retornar lista paginada', async () => {
+    repo.findAndCount.mockResolvedValue([[{ id: 'rev1' } as any], 1]);
+
+    const result = await service.findAll(
+      { role: 'admin', companyId: 'c1' } as any,
+      { page: 1, limit: 10 } as any,
+    );
+
+    expect(repo.findAndCount).toHaveBeenCalled();
+    expect(result).toMatchObject({
+      page: 1,
+      limit: 10,
+      total: 1,
+      data: [{ id: 'rev1' }],
     });
-    expect(res).toEqual([entity]);
   });
 
-  it('findAll -> with filters', async () => {
-    repo.find.mockResolvedValue([entity] as any);
-    await service.findAll(companyId, {
-      employeeId: 'emp-1',
-      leaderId: 'emp-2',
-      startDate: '2025-09-01',
-      endDate: '2025-09-30',
-    });
+  // FIND ALL date filter: BETWEEN
+  it('findAll deve aplicar filtro BETWEEN quando startDate e endDate existem', async () => {
+    repo.findAndCount.mockResolvedValue([[], 0]);
 
-    // valida forma geral da chamada (Between etc.)
-    const call = (repo.find as jest.Mock).mock.calls[0][0];
-    expect(call.where.companyId).toBe(companyId);
-    expect(call.where.employeeId).toBe('emp-1');
-    expect(call.where.leaderId).toBe('emp-2');
-    // Between/MoreThanOrEqual/LessThanOrEqual são funções; checamos só que existe algum operador na chave date
-    expect(call.where.date).toBeDefined();
+    await service.findAll(
+      { role: 'admin', companyId: 'c1' } as any,
+      {
+        startDate: '2024-01-01',
+        endDate: '2024-01-31',
+      } as any,
+    );
+
+    const where = repo.findAndCount.mock.calls[0][0]!.where as any;
+
+    expect(where.date).toEqual(Between('2024-01-01', '2024-01-31'));
   });
 
-  it('findAll -> only startDate', async () => {
-    repo.find.mockResolvedValue([entity] as any);
-    await service.findAll(companyId, { startDate: '2025-09-01' });
-    const call = (repo.find as jest.Mock).mock.calls.pop()![0];
-    expect(call.where.date.type).toBe(MoreThanOrEqual('2025-09-01').type);
+  // START ONLY
+  it('findAll deve aplicar filtro >= quando só startDate existe', async () => {
+    repo.findAndCount.mockResolvedValue([[], 0]);
+
+    await service.findAll(
+      { role: 'admin', companyId: 'c1' } as any,
+      { startDate: '2024-01-01' } as any,
+    );
+
+    const where = repo.findAndCount.mock.calls[0][0]!.where as any;
+
+    expect(where.date).toEqual(MoreThanOrEqual('2024-01-01'));
   });
 
-  it('findAll -> only endDate', async () => {
-    repo.find.mockResolvedValue([entity] as any);
-    await service.findAll(companyId, { endDate: '2025-09-30' });
-    const call = (repo.find as jest.Mock).mock.calls.pop()![0];
-    expect(call.where.date.type).toBe(LessThanOrEqual('2025-09-30').type);
+  // END ONLY
+  it('findAll deve aplicar filtro <= quando só endDate existe', async () => {
+    repo.findAndCount.mockResolvedValue([[], 0]);
+
+    await service.findAll(
+      { role: 'admin', companyId: 'c1' } as any,
+      { endDate: '2024-01-31' } as any,
+    );
+
+    const where = repo.findAndCount.mock.calls[0][0]!.where as any;
+
+    expect(where.date).toEqual(LessThanOrEqual('2024-01-31'));
   });
 
-  it('findOne -> ok', async () => {
-    repo.findOne.mockResolvedValue(entity as any);
-    const res = await service.findOne(companyId, id);
-    expect(repo.findOne).toHaveBeenCalledWith({ where: { companyId, id } });
-    expect(res).toEqual(entity);
+  // FIND ONE
+  it('findOne deve retornar registro', async () => {
+    repo.findOne.mockResolvedValue({ id: 'rev1' } as any);
+
+    const result = await service.findOne('c1', 'rev1');
+
+    expect(repo.findOne).toHaveBeenCalled();
+    expect(result).toEqual({ id: 'rev1' });
   });
 
-  it('update -> merges and saves', async () => {
-    repo.findOne.mockResolvedValue(entity as any);
-    repo.merge.mockReturnValue({ ...entity, observation: 'Excelente entrega.' } as any);
-    repo.save.mockResolvedValue({ ...entity, observation: 'Excelente entrega.' } as any);
+  it('findOne deve falhar se não encontrado', async () => {
+    repo.findOne.mockResolvedValue(null);
 
-    const res = await service.update(companyId, id, { companyId, observation: 'Excelente entrega.' } as any);
+    await expect(service.findOne('c1', 'r404')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+  });
+
+  // UPDATE
+  it('update deve atualizar review', async () => {
+    repo.findOne.mockResolvedValue({ id: 'rev1', observation: null } as any);
+
+    const result = await service.update('c1', 'rev1', {
+      observation: 'updated',
+    } as any);
+
     expect(repo.merge).toHaveBeenCalled();
     expect(repo.save).toHaveBeenCalled();
-    expect(res.observation).toBe('Excelente entrega.');
+    expect(result.observation).toBe('updated');
   });
 
-  it('remove -> deletes', async () => {
-    repo.findOne.mockResolvedValue(entity as any);
-    repo.remove.mockResolvedValue(entity as any);
-    await expect(service.remove(companyId, id)).resolves.toBeUndefined();
+  // REMOVE
+  it('remove deve excluir review', async () => {
+    repo.findOne.mockResolvedValue({ id: 'rev1' } as any);
+
+    await service.remove('c1', 'rev1');
+
+    expect(repo.remove).toHaveBeenCalled();
   });
 });

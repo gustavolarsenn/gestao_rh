@@ -3,36 +3,52 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
 describe('AppController', () => {
-  let appController: AppController;
-
-  const serviceMock: Partial<AppService> = {
-    getInfo: () => ({
-      name: 'Organizational Performance API',
-      version: 'test',
-      docs: '/api',
-      status: 'ok' as const,
-      time: '2025-01-01T00:00:00.000Z',
-    }),
-  };
+  let controller: AppController;
+  let service: jest.Mocked<AppService>;
 
   beforeEach(async () => {
-    const app: TestingModule = await Test.createTestingModule({
+    const module: TestingModule = await Test.createTestingModule({
       controllers: [AppController],
-      providers: [{ provide: AppService, useValue: serviceMock }],
+      providers: [
+        {
+          provide: AppService,
+          useValue: {
+            getInfo: jest.fn(),
+          },
+        },
+      ],
     }).compile();
 
-    appController = app.get<AppController>(AppController);
+    controller = module.get(AppController);
+    service = module.get(AppService) as any;
   });
 
-  it('GET / -> getRoot retorna informações da API', () => {
-    const res = appController.getRoot();
-    expect(res.status).toBe('ok');
-    expect(res.name).toBe('Organizational Performance API');
+  it('deve estar definido', () => {
+    expect(controller).toBeDefined();
   });
 
-  it('GET /health -> retorna ok', () => {
-    const res = appController.getHealth();
-    expect(res.status).toBe('ok');
-    expect(typeof res.uptime).toBe('number');
+  it('GET / deve retornar getInfo()', () => {
+    const mockInfo = {
+      name: 'Organizational Performance API',
+      version: '1.0.0',
+      docs: '/api',
+      status: 'ok' as const,
+      time: new Date().toISOString(),
+    };
+
+    service.getInfo.mockReturnValue(mockInfo);
+
+    const result = controller.getRoot();
+
+    expect(service.getInfo).toHaveBeenCalled();
+    expect(result).toEqual(mockInfo);
+  });
+
+
+  it('GET /health deve retornar status ok', () => {
+    const result = controller.getHealth();
+
+    expect(result.status).toBe('ok');
+    expect(typeof result.uptime).toBe('number');
   });
 });
