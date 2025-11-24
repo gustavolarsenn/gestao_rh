@@ -390,14 +390,13 @@ describe("TeamsPage", () => {
     });
   });
 
-  // ===================== PAGINAÇÃO =====================
   it("avança para a próxima página", async () => {
+    // Garante que existem pelo menos 2 páginas (25 > 10)
     mockTeamsHook.listTeams.mockResolvedValue({
       data: Array.from({ length: 10 }).map((_, i) => ({
-        id: `teamX-${i}`,
+        id: `team-${i}`,
         name: `Time ${i}`,
-        description: "",
-        parentTeamId: null,
+        parentTeamId: undefined,
       })),
       total: 25,
     });
@@ -405,6 +404,18 @@ describe("TeamsPage", () => {
     renderWithRouter();
 
     const nextBtn = await screen.findByRole("button", { name: "Próxima" });
+
+    // Espera a primeira carga (page 1) e o botão habilitar
+    await waitFor(() => {
+      expect(mockTeamsHook.listTeams).toHaveBeenCalledWith({
+        page: 1,
+        limit: 10,
+        name: undefined,
+        parentTeamId: undefined,
+      });
+      expect(nextBtn).not.toBeDisabled();
+    });
+
     fireEvent.click(nextBtn);
 
     await waitFor(() => {
