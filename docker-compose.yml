@@ -33,7 +33,7 @@ services:
       args:
         # Isso vai virar import.meta.env.VITE_API_URL no build
         # Do ponto de vista do navegador, o backend está em localhost:3000
-        VITE_API_URL: "http://localhost:3000"
+        VITE_API_URL: "http://localhost:3000/api"
     container_name: orgkpi-frontend
     depends_on:
       - backend

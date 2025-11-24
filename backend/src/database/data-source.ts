@@ -9,12 +9,11 @@ export default new DataSource({
   type: 'postgres',
   url: process.env.DATABASE_URL,
   ssl: isSsl ? { rejectUnauthorized: false } : false,
-
+  synchronize: process.env.NODE_ENV !== 'production',
   entities: isProd ? ['dist/**/*.entity.js'] : ['src/**/*.entity.ts'],
   migrations: isProd
     ? ['dist/database/migrations/*.{js}']
     : ['src/database/migrations/*.{ts,js}'],
 
-  synchronize: false,
   logging: ['error', 'warn'],
 });

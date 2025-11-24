@@ -1,0 +1,47 @@
+name: CI + Sonar
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build-test-sonar:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Sonar gosta do histórico para analise de PR
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # ===== Backend =====
+      - name: Install backend deps
+        working-directory: backend
+        run: npm ci
+
+      - name: Backend tests + coverage
+        working-directory: backend
+        run: npm run test:cov
+
+      # ===== Frontend =====
+      - name: Install frontend deps
+        working-directory: frontend
+        run: npm ci
+
+      - name: Frontend tests + coverage
+        working-directory: frontend
+        run: npm run test:cov
+
+      # ===== SonarCloud Analysis =====
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}   # fornecido pelo GitHub
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}     # você cria no SonarCloud e adiciona nos secrets

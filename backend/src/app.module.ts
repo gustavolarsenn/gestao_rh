@@ -28,12 +28,11 @@ import { PersonsModule } from './person/persons.module';
         ssl: false,
 
         autoLoadEntities: true,
-        synchronize: false,
+        synchronize: cfg.get<string>('NODE_ENV') !== 'production',
         logging: ['error', 'warn'],
 
-        // 👇 importante pra prod
         migrations: ['dist/database/migrations/*.{js}'],
-        migrationsRun: false, // vamos rodar via CLI no container
+        migrationsRun: false,
       }),
     }),
 
