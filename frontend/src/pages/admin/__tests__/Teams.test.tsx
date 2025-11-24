@@ -405,6 +405,7 @@ describe("TeamsPage", () => {
 
     const nextBtn = await screen.findByRole("button", { name: "Próxima" });
 
+    
     // Espera a primeira carga (page 1) e o botão habilitar
     await waitFor(() => {
       expect(mockTeamsHook.listTeams).toHaveBeenCalledWith({
