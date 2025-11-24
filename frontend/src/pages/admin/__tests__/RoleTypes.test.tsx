@@ -8,7 +8,7 @@ import {
 import { MemoryRouter } from "react-router-dom";
 import { describe, it, beforeEach, afterEach, expect, vi } from "vitest";
 
-import RoleTypePage from "@/pages/admin/RoleTypes"; // ajuste o path se o nome do arquivo for outro
+import RoleTypePage from "@/pages/admin/RoleTypes";
 import { useRoleTypes } from "@/hooks/role-type/useRoleTypes";
 import { useDepartments } from "@/hooks/department/useDepartments";
 
@@ -107,7 +107,6 @@ describe("RoleTypePage", () => {
   it("filtra por departamento corretamente", async () => {
     renderWithRouter();
 
-    // No painel de filtros só existe 1 combobox: Departamento
     const comboBoxes = await screen.findAllByRole("combobox");
     const deptFilter = comboBoxes[0];
 
@@ -170,7 +169,7 @@ describe("RoleTypePage", () => {
     const nomeInputs = within(dialog).getAllByLabelText("Nome");
     const modalNameInput = nomeInputs[nomeInputs.length - 1];
 
-    const comboBoxes = within(dialog).getAllByRole("combobox"); // Departamento
+    const comboBoxes = within(dialog).getAllByRole("combobox");
     expect(modalNameInput).toBeInTheDocument();
     expect(comboBoxes.length).toBeGreaterThanOrEqual(1);
   });
@@ -290,18 +289,31 @@ describe("RoleTypePage", () => {
   // PAGINAÇÃO
   // =========================================
   it("avança para a próxima página", async () => {
+    // sobrescreve o mock para este teste
     mockRoleTypesHook.listRoleTypes.mockResolvedValue({
       data: Array.from({ length: 10 }).map((_, i) => ({
         id: `rtX-${i}`,
         name: `Tipo ${i}`,
         departmentId: "dep1",
       })),
-      total: 25,
+      total: 25, // garante pageCount >= 2
     });
 
     renderWithRouter();
 
     const nextBtn = await screen.findByRole("button", { name: "Próxima" });
+
+    // espera a primeira carga e o botão habilitar
+    await waitFor(() => {
+      expect(mockRoleTypesHook.listRoleTypes).toHaveBeenCalledWith({
+        page: 1,
+        limit: 10,
+        name: undefined,
+        departmentId: undefined,
+      });
+      expect(nextBtn).not.toBeDisabled();
+    });
+
     fireEvent.click(nextBtn);
 
     await waitFor(() => {
