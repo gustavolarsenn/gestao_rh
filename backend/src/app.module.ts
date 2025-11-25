@@ -16,6 +16,8 @@ import { GeoModule } from './geo/geo.module';
 import { DatabaseSeedModule } from './database/database.module';
 import { PersonsModule } from './person/persons.module';
 
+import { MonitoringModule } from './monitoring/monitoring.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -35,7 +37,6 @@ import { PersonsModule } from './person/persons.module';
         migrationsRun: false,
       }),
     }),
-
     AuthModule,
     UsersModule,
     PersonsModule,
@@ -46,6 +47,7 @@ import { PersonsModule } from './person/persons.module';
     PerformanceReviewsModule,
     GeoModule,
     DatabaseSeedModule,
+    MonitoringModule,
   ],
   controllers: [],
   providers: [

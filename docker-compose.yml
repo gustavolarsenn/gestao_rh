@@ -25,14 +25,12 @@ services:
     environment:
       TZ: America/Sao_Paulo
 
-
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        # Isso vai virar import.meta.env.VITE_API_URL no build
-        # Do ponto de vista do navegador, o backend está em localhost:3000
+        # Isso vira import.meta.env.VITE_API_URL no build
         VITE_API_URL: "http://localhost:3000/api"
     container_name: orgkpi-frontend
     depends_on:
@@ -42,5 +40,73 @@ services:
     environment:
       TZ: America/Sao_Paulo
 
+  # ===================== MONITORAMENTO =====================
+
+  prometheus:
+    image: prom/prometheus
+    container_name: orgkpi-prometheus
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+    ports:
+      - "9090:9090"
+    depends_on:
+      - backend
+      - cadvisor
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: orgkpi-cadvisor
+    privileged: true
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    ports:
+      - "8080:8080"
+
+  loki:
+    image: grafana/loki:2.9.0
+    container_name: orgkpi-loki
+    command: -config.file=/etc/loki/local-config.yaml
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./monitoring/loki/local-config.yaml:/etc/loki/local-config.yaml
+      - loki_data:/loki
+
+  promtail:
+    image: grafana/promtail:2.9.0
+    container_name: orgkpi-promtail
+    volumes:
+      # diretório com o config
+      - ./observability:/etc/promtail:ro
+      # logs dos containers (para ler stdout/stderr)
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: orgkpi-grafana
+    ports:
+      - "3001:3000"    # acessa em http://localhost:3001
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin   # troca depois
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+      - loki
+
 volumes:
   db_data:
+  grafana_data:
+  loki_data:
+  prometheus_data:
