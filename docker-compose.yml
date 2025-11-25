@@ -9,7 +9,7 @@ services:
     ports:
       - "5432:5432"
     env_file:
-      - ./backend/.env.docker
+      - ./backend/.env.${NODE_ENV}
 
   backend:
     build:
@@ -17,21 +17,21 @@ services:
       dockerfile: Dockerfile
     container_name: orgkpi-backend
     env_file:
-      - ./backend/.env.docker
+      - ./backend/.env.${NODE_ENV}
     depends_on:
       - db
     ports:
       - "3000:3000"
     environment:
       TZ: America/Sao_Paulo
+      NODE_ENV: ${NODE_ENV}
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        # Isso vira import.meta.env.VITE_API_URL no build
-        VITE_API_URL: "http://localhost:3000/api"
+        VITE_API_URL: ${VITE_API_URL}
     container_name: orgkpi-frontend
     depends_on:
       - backend
@@ -41,7 +41,6 @@ services:
       TZ: America/Sao_Paulo
 
   # ===================== MONITORAMENTO =====================
-
   prometheus:
     image: prom/prometheus
     container_name: orgkpi-prometheus
@@ -82,9 +81,7 @@ services:
     image: grafana/promtail:2.9.0
     container_name: orgkpi-promtail
     volumes:
-      # diretório com o config
       - ./observability:/etc/promtail:ro
-      # logs dos containers (para ler stdout/stderr)
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
     command: -config.file=/etc/promtail/config.yml
@@ -95,10 +92,10 @@ services:
     image: grafana/grafana:latest
     container_name: orgkpi-grafana
     ports:
-      - "3001:3000"    # acessa em http://localhost:3001
+      - "3001:3000"
     environment:
       - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin   # troca depois
+      - GF_SECURITY_ADMIN_PASSWORD=admin
     volumes:
       - grafana_data:/var/lib/grafana
     depends_on:
