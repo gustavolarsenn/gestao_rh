@@ -36,7 +36,7 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=yes gustavo@158.23.56.35 '
             set -e
-            cd ~/gestao_rh &&
+            cd /srv/apps/gestao_rh &&
             git fetch origin &&
             git reset --hard origin/main &&
             NODE_ENV=production VITE_API_URL=https://orgkpi.com.br/api docker compose up -d --build &&
