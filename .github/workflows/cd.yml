@@ -1,0 +1,35 @@
+name: Deploy to VPS
+
+on:
+  workflow_run:
+    workflows: ["CI + Sonar"]
+    types: [completed]
+
+jobs:
+  deploy:
+    if: >
+      ${{ github.event.workflow_run.conclusion == 'success'
+          && github.event.workflow_run.head_branch == 'main' }}
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Start SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Add VPS to known_hosts
+        run: |
+          ssh-keyscan -H orgkpi.com.br >> ~/.ssh/known_hosts
+          ssh-keyscan -H 158.23.56.35 >> ~/.ssh/known_hosts
+
+      - name: Deploy via SSH
+        run: |
+          ssh gustavo@orgkpi '
+            cd ~/gestao_rh &&
+            git fetch origin &&
+            git reset --hard origin/main &&
+            NODE_ENV=production VITE_API_URL=https://orgkpi.com.br/api docker compose up -d --build &&
+            docker image prune -f
+          '
