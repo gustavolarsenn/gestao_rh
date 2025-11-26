@@ -1,26 +1,20 @@
-name: Deploy to VPS
+name: CD
 
 on:
-  # Dispara AUTOMATICAMENTE quando o workflow "CI + Sonar" terminar na branch main
   workflow_run:
-    workflows: ["CI + Sonar"]
+    workflows: ["SonarCI"]
     branches: [ main ]
     types: [ completed ]
 
-  # Permite rodar o deploy manualmente pela aba "Actions"
   workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
-    # Regras:
-    # - Se for workflow_run: só roda se o CI tiver concluído com sucesso
-    # - Se for workflow_dispatch: sempre roda (deploy manual)
     if: |
       github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'workflow_run' &&
-       github.event.workflow_run.conclusion == 'success')
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
 
     steps:
       - name: Start SSH agent
@@ -37,15 +31,9 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=yes gustavo@158.23.56.35 '
             set -e
-
-            cd /srv/apps/gestao_rh &&
-
-            git fetch origin &&
-            git reset --hard origin/main &&
-
-            NODE_ENV=production \
-            VITE_API_URL=https://orgkpi.com.br/api \
-            docker compose up -d --build &&
-
+            cd /srv/apps/gestao_rh
+            git fetch origin
+            git reset --hard origin/main
+            NODE_ENV=production VITE_API_URL=https://orgkpi.com.br/api docker compose up -d --build
             docker image prune -f
           '
