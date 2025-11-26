@@ -1,18 +1,14 @@
 name: CD
 
 on:
-  # dispara automaticamente quando o CI terminar
   workflow_run:
     workflows: ["CI + Sonar"]
     types:
       - completed
-
-  # permite rodar manualmente pelo botão "Run workflow"
   workflow_dispatch:
 
 jobs:
   deploy:
-    # só roda automático se o CI tiver dado success E for branch main
     if: >
       ${{
         github.event_name == 'workflow_dispatch' ||
@@ -33,12 +29,12 @@ jobs:
 
       - name: Add VPS to known_hosts
         run: |
-          ssh-keyscan -H orgkpi.com.br >> ~/.ssh/known_hosts
+          mkdir -p ~/.ssh
           ssh-keyscan -H 158.23.56.35 >> ~/.ssh/known_hosts
 
       - name: Deploy via SSH
         run: |
-          ssh gustavo@orgkpi.com.br '
+          ssh -o StrictHostKeyChecking=yes gustavo@158.23.56.35 '
             set -e
             cd ~/gestao_rh &&
             git fetch origin &&
