@@ -1,26 +1,29 @@
-name: Deploy to VPS
+name: CD
 
 on:
-  # Roda automaticamente depois que o CI + Sonar terminar
+  # dispara automaticamente quando o CI terminar
   workflow_run:
     workflows: ["CI + Sonar"]
-    types: [completed]
+    types:
+      - completed
 
-  # Permite rodar manualmente (Actions -> Deploy to VPS -> Run workflow)
+  # permite rodar manualmente pelo botão "Run workflow"
   workflow_dispatch:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    # só roda automático se o CI tiver dado success E for branch main
+    if: >
+      ${{
+        github.event_name == 'workflow_dispatch' ||
+        (
+          github.event_name == 'workflow_run' &&
+          github.event.workflow_run.conclusion == 'success' &&
+          github.event.workflow_run.head_branch == 'main'
+        )
+      }}
 
-    # Regra:
-    # - Se veio de workflow_run -> só se o CI terminou com sucesso
-    # - Se veio de workflow_dispatch -> sempre roda
-    if: ${{ 
-      (github.event_name == 'workflow_run' &&
-       github.event.workflow_run.conclusion == 'success')
-      || github.event_name == 'workflow_dispatch'
-    }}
+    runs-on: ubuntu-latest
 
     steps:
       - name: Start SSH agent
@@ -35,18 +38,11 @@ jobs:
 
       - name: Deploy via SSH
         run: |
-          ssh gustavo@orgkpi '
+          ssh gustavo@orgkpi.com.br '
+            set -e
             cd ~/gestao_rh &&
-            echo "📥 Atualizando código..." &&
             git fetch origin &&
             git reset --hard origin/main &&
-
-            echo "🐳 Subindo containers..." &&
-            NODE_ENV=production VITE_API_URL=https://orgkpi.com.br/api docker compose down &&
             NODE_ENV=production VITE_API_URL=https://orgkpi.com.br/api docker compose up -d --build &&
-
-            echo "🧹 Limpando imagens antigas..." &&
-            docker image prune -f &&
-
-            echo "✅ Deploy finalizado."
+            docker image prune -f
           '
