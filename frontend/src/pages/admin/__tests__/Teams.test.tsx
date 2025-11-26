@@ -284,7 +284,11 @@ describe("TeamsPage", () => {
 
     const table = await screen.findByRole("table");
     const rows = within(table).getAllByRole("row");
-    const team1Row = rows[1];
+
+    const team1Row =
+      rows.find((row) =>
+        within(row).queryByText("Operações Santarém")
+      ) ?? rows[1];
 
     fireEvent.click(team1Row);
 
@@ -304,7 +308,11 @@ describe("TeamsPage", () => {
 
     const table = await screen.findByRole("table");
     const rows = within(table).getAllByRole("row");
-    const team1Row = rows[1];
+
+    const team1Row =
+      rows.find((row) =>
+        within(row).queryByText("Operações Santarém")
+      ) ?? rows[1];
 
     fireEvent.click(team1Row);
 
@@ -349,7 +357,11 @@ describe("TeamsPage", () => {
 
     const table = await screen.findByRole("table");
     const rows = within(table).getAllByRole("row");
-    const team1Row = rows[1];
+
+    const team1Row =
+      rows.find((row) =>
+        within(row).queryByText("Operações Santarém")
+      ) ?? rows[1];
 
     fireEvent.click(team1Row);
 
@@ -370,7 +382,11 @@ describe("TeamsPage", () => {
 
     const table = await screen.findByRole("table");
     const rows = within(table).getAllByRole("row");
-    const team1Row = rows[1];
+
+    const team1Row =
+      rows.find((row) =>
+        within(row).queryByText("Operações Santarém")
+      ) ?? rows[1];
 
     fireEvent.click(team1Row);
 
@@ -405,7 +421,6 @@ describe("TeamsPage", () => {
 
     const nextBtn = await screen.findByRole("button", { name: "Próxima" });
 
-    
     // Espera a primeira carga (page 1) e o botão habilitar
     await waitFor(() => {
       expect(mockTeamsHook.listTeams).toHaveBeenCalledWith({
