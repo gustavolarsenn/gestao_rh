@@ -36,6 +36,9 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=yes gustavo@158.23.56.35 '
             set -e
+            # Marca o repo como seguro para este usuário
+            git config --global --add safe.directory /srv/apps/gestao_rh
+
             cd /srv/apps/gestao_rh &&
             git fetch origin &&
             git reset --hard origin/main &&
