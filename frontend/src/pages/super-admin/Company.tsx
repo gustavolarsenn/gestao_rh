@@ -176,7 +176,7 @@ export default function CompanyPage() {
 
       <main className="flex-1 p-8">
         <Typography variant="h4" fontWeight={700} color="#1e293b" sx={{ mb: 4 }}>
-          Empresas (TESTE DEPLOY)
+          Empresas (NOVO TESTE DEPLOY)
         </Typography>
 
         {/* FILTERS */}
