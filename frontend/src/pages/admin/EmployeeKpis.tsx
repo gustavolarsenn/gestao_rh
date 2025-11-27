@@ -25,6 +25,7 @@ import {
   EvaluationType,
   EvaluationCode,
 } from "@/hooks/evaluation-type/useEvaluationTypes";
+import { PRIMARY_COLOR, PRIMARY_LIGHT, PRIMARY_LIGHT_BG, SECTION_BORDER_COLOR, primaryButtonSx } from '@/utils/utils';
 
 export default function EmployeeKpis() {
   const {
@@ -117,7 +118,7 @@ export default function EmployeeKpis() {
   }
 
   // ======================================================
-  // STATIC DATA (employees, kpis, evaluationTypes) - RODA UMA VEZ
+  // STATIC DATA (employees, kpis, evaluationTypes)
   // ======================================================
   useEffect(() => {
     async function loadStatic() {
@@ -132,7 +133,6 @@ export default function EmployeeKpis() {
       setEvaluationTypes(evalResult.data || []);
     }
     loadStatic();
-    // <- sem deps para não entrar em loop se os hooks não forem memoizados
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -279,7 +279,8 @@ export default function EmployeeKpis() {
             mb: 4,
             borderRadius: 3,
             backgroundColor: "#ffffff",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+            boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
+            border: `1px solid ${SECTION_BORDER_COLOR}`,
           }}
         >
           <Typography variant="h6" fontWeight={600} mb={3}>
@@ -375,10 +376,14 @@ export default function EmployeeKpis() {
               variant="outlined"
               sx={{
                 px: 4,
-                borderColor: "#1e293b",
-                color: "#1e293b",
+                borderColor: PRIMARY_COLOR,
+                color: PRIMARY_COLOR,
                 textTransform: "none",
                 fontWeight: 600,
+                "&:hover": {
+                  borderColor: PRIMARY_COLOR,
+                  backgroundColor: PRIMARY_LIGHT_BG,
+                },
               }}
               onClick={() => {
                 setFilterEmployeeId("");
@@ -398,10 +403,13 @@ export default function EmployeeKpis() {
               sx={{
                 px: 4,
                 ml: "auto",
-                backgroundColor: "#1e293b",
+                backgroundColor: PRIMARY_COLOR,
                 color: "white",
                 textTransform: "none",
                 fontWeight: 600,
+                "&:hover": {
+                  backgroundColor: PRIMARY_LIGHT,
+                },
               }}
             >
               Designar KPI
@@ -410,7 +418,14 @@ export default function EmployeeKpis() {
         </Paper>
 
         {/* TABLE */}
-        <Paper sx={{ p: 4, borderRadius: 3 }}>
+        <Paper
+          sx={{
+            p: 4,
+            borderRadius: 3,
+            boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
+            border: `1px solid ${SECTION_BORDER_COLOR}`,
+          }}
+        >
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="bg-gray-50">
@@ -470,8 +485,8 @@ export default function EmployeeKpis() {
                         {statusLabelMap[ek.status] || ek.status}
                       </td>
                       <td className="px-4 py-3 text-slate-700">
-                        {new Date(ek.periodStart).toLocaleDateString()}{" "}
-                        - {new Date(ek.periodEnd).toLocaleDateString()}
+                        {new Date(ek.periodStart).toLocaleDateString()} -{" "}
+                        {new Date(ek.periodEnd).toLocaleDateString()}
                       </td>
                     </tr>
                   );
@@ -481,7 +496,12 @@ export default function EmployeeKpis() {
           </table>
 
           {/* PAGINATION */}
-          <Box display="flex" justifyContent="space-between" alignItems="center" mt={3}>
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+            mt={3}
+          >
             <Typography variant="body2">
               Página {page} de {pageCount}
             </Typography>
@@ -492,6 +512,14 @@ export default function EmployeeKpis() {
                 size="small"
                 disabled={page <= 1}
                 onClick={() => setPage((p) => p - 1)}
+                sx={{
+                  borderColor: PRIMARY_COLOR,
+                  color: PRIMARY_COLOR,
+                  "&:hover": {
+                    borderColor: PRIMARY_COLOR,
+                    backgroundColor: PRIMARY_LIGHT_BG,
+                  },
+                }}
               >
                 Anterior
               </Button>
@@ -501,6 +529,14 @@ export default function EmployeeKpis() {
                 size="small"
                 disabled={page >= pageCount}
                 onClick={() => setPage((p) => p + 1)}
+                sx={{
+                  borderColor: PRIMARY_COLOR,
+                  color: PRIMARY_COLOR,
+                  "&:hover": {
+                    borderColor: PRIMARY_COLOR,
+                    backgroundColor: PRIMARY_LIGHT_BG,
+                  },
+                }}
               >
                 Próxima
               </Button>
@@ -517,13 +553,26 @@ export default function EmployeeKpis() {
         description="Preencha os dados para atribuir a KPI ao colaborador."
         footer={
           <div className="flex justify-end gap-2">
-            <Button variant="outlined" onClick={() => setCreateModalOpen(false)}>
+            <Button
+              variant="outlined"
+              onClick={() => setCreateModalOpen(false)}
+              sx={{
+                borderColor: PRIMARY_COLOR,
+                color: PRIMARY_COLOR,
+                textTransform: "none",
+                fontWeight: 600,
+                "&:hover": {
+                  borderColor: PRIMARY_COLOR,
+                  backgroundColor: PRIMARY_LIGHT_BG,
+                },
+              }}
+            >
               Cancelar
             </Button>
             <Button
               onClick={handleCreate}
               disabled={!employeeId || !kpiId || !periodStart || !goal}
-              sx={{ backgroundColor: "#1e293b", color: "white" }}
+              sx={primaryButtonSx}
             >
               Designar
             </Button>
@@ -614,13 +663,26 @@ export default function EmployeeKpis() {
         description="Atualize a meta ou status da KPI."
         footer={
           <div className="flex justify-between w-full">
-            <Button color="error" variant="outlined" onClick={handleDelete}>
+            <Button
+              color="error"
+              variant="outlined"
+              onClick={handleDelete}
+              sx={{ textTransform: "none", fontWeight: 600 }}
+            >
               Excluir
             </Button>
             <Button
               onClick={handleSave}
               disabled={loading}
-              sx={{ backgroundColor: "#1e293b", color: "white" }}
+              sx={{
+                backgroundColor: PRIMARY_COLOR,
+                color: "white",
+                textTransform: "none",
+                fontWeight: 600,
+                "&:hover": {
+                  backgroundColor: PRIMARY_LIGHT,
+                },
+              }}
             >
               {loading ? "Salvando..." : "Salvar alterações"}
             </Button>

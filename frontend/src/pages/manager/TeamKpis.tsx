@@ -25,6 +25,7 @@ import {
   EvaluationType,
   EvaluationCode,
 } from "@/hooks/evaluation-type/useEvaluationTypes";
+import { PRIMARY_COLOR, PRIMARY_LIGHT, PRIMARY_LIGHT_BG, SECTION_BORDER_COLOR, primaryButtonSx } from '@/utils/utils';
 
 export default function TeamKpis() {
   const {
@@ -36,7 +37,6 @@ export default function TeamKpis() {
     error,
   } = useTeamKpis();
 
-  // assumindo que o hook de teams/kpis/types expõe listas "distinct"
   const { listDistinctTeams } = useTeams();
   const { listDistinctKpis } = useKpis();
   const { listDistinctEvaluationTypes } = useEvaluationTypes();
@@ -251,7 +251,12 @@ export default function TeamKpis() {
 
       <main className="flex-1 p-8">
         {/* TITLE */}
-        <Typography variant="h4" fontWeight={700} color="#1e293b" sx={{ mb: 4 }}>
+        <Typography
+          variant="h4"
+          fontWeight={700}
+          color="#1e293b"
+          sx={{ mb: 4 }}
+        >
           KPIs de Times
         </Typography>
 
@@ -276,7 +281,8 @@ export default function TeamKpis() {
             mb: 4,
             borderRadius: 3,
             backgroundColor: "#ffffff",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+            boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
+            border: `1px solid ${SECTION_BORDER_COLOR}`,
           }}
         >
           <Typography variant="h6" fontWeight={600} mb={3}>
@@ -372,10 +378,14 @@ export default function TeamKpis() {
               variant="outlined"
               sx={{
                 px: 4,
-                borderColor: "#1e293b",
-                color: "#1e293b",
+                borderColor: PRIMARY_COLOR,
+                color: PRIMARY_COLOR,
                 textTransform: "none",
                 fontWeight: 600,
+                "&:hover": {
+                  borderColor: PRIMARY_COLOR,
+                  backgroundColor: PRIMARY_LIGHT_BG,
+                },
               }}
               onClick={() => {
                 setFilterTeamId("");
@@ -395,10 +405,13 @@ export default function TeamKpis() {
               sx={{
                 px: 4,
                 ml: "auto",
-                backgroundColor: "#1e293b",
+                backgroundColor: PRIMARY_COLOR,
                 color: "white",
                 textTransform: "none",
                 fontWeight: 600,
+                "&:hover": {
+                  backgroundColor: PRIMARY_LIGHT,
+                },
               }}
             >
               Designar KPI
@@ -407,7 +420,14 @@ export default function TeamKpis() {
         </Paper>
 
         {/* TABLE */}
-        <Paper sx={{ p: 4, borderRadius: 3 }}>
+        <Paper
+          sx={{
+            p: 4,
+            borderRadius: 3,
+            boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
+            border: `1px solid ${SECTION_BORDER_COLOR}`,
+          }}
+        >
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="bg-gray-50">
@@ -467,8 +487,8 @@ export default function TeamKpis() {
                         {statusLabelMap[tk.status] || tk.status}
                       </td>
                       <td className="px-4 py-3 text-slate-700">
-                        {new Date(tk.periodStart).toLocaleDateString()}{" "}
-                        - {new Date(tk.periodEnd).toLocaleDateString()}
+                        {new Date(tk.periodStart).toLocaleDateString()} -{" "}
+                        {new Date(tk.periodEnd).toLocaleDateString()}
                       </td>
                     </tr>
                   );
@@ -478,7 +498,12 @@ export default function TeamKpis() {
           </table>
 
           {/* PAGINATION */}
-          <Box display="flex" justifyContent="space-between" alignItems="center" mt={3}>
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+            mt={3}
+          >
             <Typography variant="body2">
               Página {page} de {pageCount}
             </Typography>
@@ -489,6 +514,14 @@ export default function TeamKpis() {
                 size="small"
                 disabled={page <= 1}
                 onClick={() => setPage((p) => p - 1)}
+                sx={{
+                  borderColor: PRIMARY_COLOR,
+                  color: PRIMARY_COLOR,
+                  "&:hover": {
+                    borderColor: PRIMARY_COLOR,
+                    backgroundColor: PRIMARY_LIGHT_BG,
+                  },
+                }}
               >
                 Anterior
               </Button>
@@ -498,6 +531,14 @@ export default function TeamKpis() {
                 size="small"
                 disabled={page >= pageCount}
                 onClick={() => setPage((p) => p + 1)}
+                sx={{
+                  borderColor: PRIMARY_COLOR,
+                  color: PRIMARY_COLOR,
+                  "&:hover": {
+                    borderColor: PRIMARY_COLOR,
+                    backgroundColor: PRIMARY_LIGHT_BG,
+                  },
+                }}
               >
                 Próxima
               </Button>
@@ -514,13 +555,26 @@ export default function TeamKpis() {
         description="Preencha os dados para atribuir a KPI ao time."
         footer={
           <div className="flex justify-end gap-2">
-            <Button variant="outlined" onClick={() => setCreateModalOpen(false)}>
+            <Button
+              variant="outlined"
+              onClick={() => setCreateModalOpen(false)}
+              sx={{
+                borderColor: PRIMARY_COLOR,
+                color: PRIMARY_COLOR,
+                textTransform: "none",
+                fontWeight: 600,
+                "&:hover": {
+                  borderColor: PRIMARY_COLOR,
+                  backgroundColor: PRIMARY_LIGHT_BG,
+                },
+              }}
+            >
               Cancelar
             </Button>
             <Button
               onClick={handleCreate}
               disabled={!teamId || !kpiId || !periodStart || !goal}
-              sx={{ backgroundColor: "#1e293b", color: "white" }}
+              sx={primaryButtonSx}
             >
               Designar
             </Button>
@@ -611,13 +665,26 @@ export default function TeamKpis() {
         description="Atualize a meta ou status desta KPI."
         footer={
           <div className="flex justify-between w-full">
-            <Button color="error" variant="outlined" onClick={handleDelete}>
+            <Button
+              color="error"
+              variant="outlined"
+              onClick={handleDelete}
+              sx={{ textTransform: "none", fontWeight: 600 }}
+            >
               Excluir
             </Button>
             <Button
               onClick={handleSave}
               disabled={loading}
-              sx={{ backgroundColor: "#1e293b", color: "white" }}
+              sx={{
+                backgroundColor: PRIMARY_COLOR,
+                color: "white",
+                textTransform: "none",
+                fontWeight: 600,
+                "&:hover": {
+                  backgroundColor: PRIMARY_LIGHT,
+                },
+              }}
             >
               {loading ? "Salvando..." : "Salvar alterações"}
             </Button>

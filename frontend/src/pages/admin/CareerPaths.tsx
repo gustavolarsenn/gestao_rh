@@ -24,7 +24,6 @@ import { useDepartments, Department } from "@/hooks/department/useDepartments";
 import { useRoles, Role } from "@/hooks/role/useRoles";
 import { useRoleTypes, RoleType } from "@/hooks/role-type/useRoleTypes";
 
-// ===== React Flow (para desenhar a trilha em Y) =====
 import ReactFlow, {
   Background,
   Node as FlowNode,
@@ -34,6 +33,7 @@ import ReactFlow, {
   NodeProps,
 } from "reactflow";
 import "reactflow/dist/style.css";
+import { PRIMARY_COLOR, PRIMARY_LIGHT, PRIMARY_LIGHT_BG, SECTION_BORDER_COLOR, primaryButtonSx } from '@/utils/utils';
 
 // ======================================================
 // NODE CUSTOMIZADO DO REACT FLOW (CÍRCULO + LABEL)
@@ -72,11 +72,9 @@ const CareerNode = memo(({ data }: NodeProps<CareerNodeData>) => {
         border: isHighlight ? "2px solid #a5b4fc" : "2px solid #7dd3fc",
       }}
     >
-      {/* Handles invisíveis, apenas para o React Flow saber onde conectar as linhas */}
       <Handle type="target" position={Position.Left} style={handleStyle} />
       <Handle type="source" position={Position.Right} style={handleStyle} />
 
-      {/* Label acima do círculo */}
       <div
         style={{
           position: "absolute",
@@ -338,7 +336,6 @@ export default function CareerPathsPage() {
   // VISUALIZAÇÃO EM LINHA (TRILHA + Y) - BASE DE DADOS
   // ======================================================
 
-  // mapa currentRoleId -> [paths], já ordenado por sortOrder
   const pathsByCurrentRole = useMemo(() => {
     const map = new Map<string, CareerPath[]>();
     for (const p of paths) {
@@ -357,7 +354,6 @@ export default function CareerPathsPage() {
     return map;
   }, [paths, rolesByDept]);
 
-  // pontos de entrada
   const entryRoleIds = useMemo(() => {
     const flagged = paths.filter((p) => p.isEntryPoint);
     if (flagged.length > 0) {
@@ -373,11 +369,6 @@ export default function CareerPathsPage() {
     return entries;
   }, [paths]);
 
-  /**
-   * Constrói:
-   *  - base: sequência linear de cargos (usando SEMPRE a 1ª ligação – menor sortOrder – como caminho principal)
-   *  - branchGroups: ramos alternativos, saindo de posições da base.
-   */
   function buildPathWithBranches(entryId: string) {
     const base: string[] = [entryId];
     const branchGroups: { baseIndex: number; branches: string[][] }[] = [];
@@ -448,7 +439,6 @@ export default function CareerPathsPage() {
       const nodes: FlowNode[] = [];
       const edges: FlowEdge[] = [];
 
-      // índices da base que possuem ramificações
       const branchingBaseIndexes = new Set<number>();
       branchGroups.forEach((g) => {
         if (g.branches.length > 0) branchingBaseIndexes.add(g.baseIndex);
@@ -468,7 +458,6 @@ export default function CareerPathsPage() {
         return { name, initials, isHighlight };
       };
 
-      // ---- nós da linha base ----
       base.forEach((roleId, idx) => {
         const nodeId = `p${pathIndex}-b-${idx}-${roleId}`;
         const isBranching = branchingBaseIndexes.has(idx);
@@ -499,7 +488,6 @@ export default function CareerPathsPage() {
         }
       });
 
-      // ---- ramos alternativos (Y) ----
       let branchRow = 1;
 
       branchGroups.forEach((group) => {
@@ -525,7 +513,6 @@ export default function CareerPathsPage() {
             });
 
             if (idx === 0) {
-              // primeira aresta: nó base -> 1º nó do ramo (tracejada)
               edges.push({
                 id: `e-${parentBaseId}-${nodeId}`,
                 source: parentBaseId,
@@ -537,7 +524,6 @@ export default function CareerPathsPage() {
                 },
               });
             } else if (previousNodeId) {
-              // continuação do ramo
               edges.push({
                 id: `e-${previousNodeId}-${nodeId}`,
                 source: previousNodeId,
@@ -581,7 +567,6 @@ export default function CareerPathsPage() {
       <Sidebar />
 
       <main className="flex-1 p-8">
-        {/* TITLE */}
         <Typography
           variant="h4"
           fontWeight={700}
@@ -605,7 +590,8 @@ export default function CareerPathsPage() {
             mb: 4,
             borderRadius: 3,
             backgroundColor: "#ffffff",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+            boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
+            border: `1px solid ${SECTION_BORDER_COLOR}`,
           }}
         >
           <Typography variant="h6" fontWeight={600} mb={3}>
@@ -631,14 +617,7 @@ export default function CareerPathsPage() {
 
             <Button
               size="large"
-              sx={{
-                px: 4,
-                ml: "auto",
-                backgroundColor: "#1e293b",
-                color: "white",
-                textTransform: "none",
-                fontWeight: 600,
-              }}
+              sx={primaryButtonSx}
               disabled={!selectedDepartmentId}
               onClick={handleOpenCreateModal}
             >
@@ -662,7 +641,15 @@ export default function CareerPathsPage() {
         {selectedDepartmentId && (
           <>
             {/* TABELA DE LIGAÇÕES */}
-            <Paper sx={{ p: 4, borderRadius: 3, mb: 4 }}>
+            <Paper
+              sx={{
+                p: 4,
+                borderRadius: 3,
+                mb: 4,
+                boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
+                border: `1px solid ${SECTION_BORDER_COLOR}`,
+              }}
+            >
               <Typography variant="h6" fontWeight={600} mb={3}>
                 Ligações de Carreira
               </Typography>
@@ -746,7 +733,8 @@ export default function CareerPathsPage() {
                 borderRadius: 3,
                 mb: 4,
                 backgroundColor: "#ffffff",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                boxShadow: "0 4px 12px rgba(15,23,42,0.10)",
+                border: `1px solid ${SECTION_BORDER_COLOR}`,
               }}
             >
               <Typography variant="h6" fontWeight={600} mb={2}>
@@ -946,13 +934,13 @@ export default function CareerPathsPage() {
                         Caminho principal
                       </Typography>
                     </div>
-                    
                   </div>
                 </div>
               )}
             </Paper>
           </>
         )}
+
         {/* ========== CREATE MODAL ========== */}
         <BaseModal
           open={createModalOpen}
@@ -964,11 +952,28 @@ export default function CareerPathsPage() {
               <Button
                 variant="outlined"
                 onClick={() => setCreateModalOpen(false)}
+                sx={{
+                  px: 4,
+                  borderColor: PRIMARY_COLOR,
+                  color: PRIMARY_COLOR,
+                  textTransform: "none",
+                  fontWeight: 600,
+                  "&:hover": {
+                    borderColor: PRIMARY_COLOR,
+                    backgroundColor: PRIMARY_LIGHT_BG,
+                  },
+                }}
               >
                 Cancelar
               </Button>
               <Button
-                sx={{ backgroundColor: "#1e293b", color: "white" }}
+                sx={{
+                  backgroundColor: PRIMARY_COLOR,
+                  color: "white",
+                  "&:hover": {
+                    backgroundColor: PRIMARY_LIGHT,
+                  },
+                }}
                 disabled={!canCreate || loading}
                 onClick={handleCreatePath}
               >
@@ -1093,11 +1098,21 @@ export default function CareerPathsPage() {
           description="Atualize ou remova a ligação selecionada."
           footer={
             <div className="flex justify-between w-full">
-              <Button variant="outlined" color="error" onClick={handleDelete}>
+              <Button
+                variant="outlined"
+                color="error"
+                onClick={handleDelete}
+              >
                 Excluir
               </Button>
               <Button
-                sx={{ backgroundColor: "#1e293b", color: "white" }}
+                sx={{
+                  backgroundColor: PRIMARY_COLOR,
+                  color: "white",
+                  "&:hover": {
+                    backgroundColor: PRIMARY_LIGHT,
+                  },
+                }}
                 disabled={!canSaveEdit || loading}
                 onClick={handleSaveEdit}
               >

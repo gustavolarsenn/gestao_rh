@@ -16,6 +16,7 @@ import { BaseModal } from "@/components/modals/BaseModal";
 import { useUsers, User } from "@/hooks/user/useUsers";
 import { useUserRoles, UserRole } from "@/hooks/user/useUserRoles";
 import { usePersons, Person } from "@/hooks/person/usePersons";
+import { PRIMARY_COLOR, PRIMARY_LIGHT, PRIMARY_LIGHT_BG, SECTION_BORDER_COLOR, primaryButtonSx } from '@/utils/utils';
 
 export default function Users() {
   const { listUsers, createUser, updateUser, deleteUser } = useUsers();
@@ -49,6 +50,7 @@ export default function Users() {
 
   useEffect(() => {
     if (selectPersonModalOpen) loadPersonsModal();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectPersonModalOpen, personNameSearch, personEmailSearch, personPage]);
 
   const personPageCount = Math.ceil(personTotal / personLimit);
@@ -84,10 +86,11 @@ export default function Users() {
       setUserRoles(roles);
     }
     loadInitial();
-  }, []);
+  }, [listUserRoles]);
 
   useEffect(() => {
     loadUsers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, filterName, filterEmail, filterRole]);
 
   // ============== CREATE MODAL ==============
@@ -162,7 +165,6 @@ export default function Users() {
       <Sidebar />
 
       <main className="flex-1 p-8">
-
         <Typography variant="h4" fontWeight={700} color="#1e293b" sx={{ mb: 4 }}>
           Usuários
         </Typography>
@@ -176,7 +178,8 @@ export default function Users() {
             mb: 4,
             borderRadius: 3,
             backgroundColor: "#ffffff",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+            boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
+            border: `1px solid ${SECTION_BORDER_COLOR}`,
           }}
         >
           <Typography variant="h6" fontWeight={600} mb={3}>
@@ -230,10 +233,14 @@ export default function Users() {
               variant="outlined"
               sx={{
                 px: 4,
-                borderColor: "#1e293b",
-                color: "#1e293b",
+                borderColor: PRIMARY_COLOR,
+                color: PRIMARY_COLOR,
                 textTransform: "none",
                 fontWeight: 600,
+                "&:hover": {
+                  borderColor: PRIMARY_COLOR,
+                  backgroundColor: PRIMARY_LIGHT_BG,
+                },
               }}
               onClick={() => {
                 setFilterName("");
@@ -251,8 +258,13 @@ export default function Users() {
               sx={{
                 px: 4,
                 ml: "auto",
-                backgroundColor: "#1e293b",
+                backgroundColor: PRIMARY_COLOR,
                 color: "white",
+                textTransform: "none",
+                fontWeight: 600,
+                "&:hover": {
+                  backgroundColor: PRIMARY_LIGHT,
+                },
               }}
             >
               Criar Usuário
@@ -261,13 +273,26 @@ export default function Users() {
         </Paper>
 
         {/* TABLE */}
-        <Paper sx={{ p: 4, borderRadius: 3 }}>
+        <Paper
+          sx={{
+            p: 4,
+            borderRadius: 3,
+            boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
+            border: `1px solid ${SECTION_BORDER_COLOR}`,
+          }}
+        >
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="bg-gray-50">
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">Nome</th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">Email</th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">Perfil</th>
+                <th className="text-left px-4 py-3 font-semibold text-gray-700">
+                  Nome
+                </th>
+                <th className="text-left px-4 py-3 font-semibold text-gray-700">
+                  Email
+                </th>
+                <th className="text-left px-4 py-3 font-semibold text-gray-700">
+                  Perfil
+                </th>
               </tr>
             </thead>
 
@@ -287,7 +312,12 @@ export default function Users() {
           </table>
 
           {/* PAGINATION */}
-          <Box display="flex" justifyContent="space-between" alignItems="center" mt={3}>
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+            mt={3}
+          >
             <Typography variant="body2">
               Página {page} de {usersPageCount || 1}
             </Typography>
@@ -297,6 +327,14 @@ export default function Users() {
                 variant="outlined"
                 size="small"
                 disabled={page <= 1}
+                sx={{
+                  borderColor: PRIMARY_COLOR,
+                  color: PRIMARY_COLOR,
+                  "&:hover": {
+                    borderColor: PRIMARY_COLOR,
+                    backgroundColor: PRIMARY_LIGHT_BG,
+                  },
+                }}
                 onClick={() => setPage((p) => p - 1)}
               >
                 Anterior
@@ -306,6 +344,14 @@ export default function Users() {
                 variant="outlined"
                 size="small"
                 disabled={page >= usersPageCount}
+                sx={{
+                  borderColor: PRIMARY_COLOR,
+                  color: PRIMARY_COLOR,
+                  "&:hover": {
+                    borderColor: PRIMARY_COLOR,
+                    backgroundColor: PRIMARY_LIGHT_BG,
+                  },
+                }}
                 onClick={() => setPage((p) => p + 1)}
               >
                 Próxima
@@ -323,10 +369,28 @@ export default function Users() {
         description="Selecione uma pessoa e defina o perfil."
         footer={
           <div className="flex justify-end gap-2">
-            <Button variant="outlined" onClick={() => setCreateModalOpen(false)}>
+            <Button
+              variant="outlined"
+              sx={{
+                px: 4,
+                borderColor: PRIMARY_COLOR,
+                color: PRIMARY_COLOR,
+                textTransform: "none",
+                fontWeight: 600,
+                "&:hover": {
+                  borderColor: PRIMARY_COLOR,
+                  backgroundColor: PRIMARY_LIGHT_BG,
+                },
+              }}
+              onClick={() => setCreateModalOpen(false)}
+            >
               Cancelar
             </Button>
-            <Button onClick={handleCreateUser} disabled={!selectedPersonId || !userRoleId || !password}>
+            <Button
+              onClick={handleCreateUser}
+              disabled={!selectedPersonId || !userRoleId || !password}
+              sx={primaryButtonSx}
+            >
               Criar
             </Button>
           </div>
@@ -383,7 +447,18 @@ export default function Users() {
             <Button color="error" variant="outlined" onClick={handleDeleteUser}>
               Excluir
             </Button>
-            <Button onClick={handleSaveUser}>Salvar</Button>
+            <Button
+              onClick={handleSaveUser}
+              sx={{
+                backgroundColor: PRIMARY_COLOR,
+                color: "white",
+                "&:hover": {
+                  backgroundColor: PRIMARY_LIGHT,
+                },
+              }}
+            >
+              Salvar
+            </Button>
           </div>
         }
       >
@@ -415,29 +490,37 @@ export default function Users() {
       >
         <div className="flex flex-col gap-4">
           <Box display="flex" gap={2}>
-          <TextField
-            size="small"
-            sx={{ flex: 1 }}
-            label="Nome"
-            value={personNameSearch}
-            onChange={(e) => {
-              setPersonNameSearch(e.target.value);
-              setPersonPage(1);
-            }}
-          />
-          <TextField
-            size="small"
-            sx={{ flex: 1 }}
-            label="Email"
-            value={personEmailSearch}
-            onChange={(e) => {
-              setPersonEmailSearch(e.target.value);
-              setPersonPage(1);
-            }}
-          />
+            <TextField
+              size="small"
+              sx={{ flex: 1 }}
+              label="Nome"
+              value={personNameSearch}
+              onChange={(e) => {
+                setPersonNameSearch(e.target.value);
+                setPersonPage(1);
+              }}
+            />
+            <TextField
+              size="small"
+              sx={{ flex: 1 }}
+              label="Email"
+              value={personEmailSearch}
+              onChange={(e) => {
+                setPersonEmailSearch(e.target.value);
+                setPersonPage(1);
+              }}
+            />
           </Box>
 
-          <Paper sx={{ maxHeight: 300, overflowY: "auto" }}>
+          <Paper
+            sx={{
+              maxHeight: 300,
+              overflowY: "auto",
+              borderRadius: 2,
+              boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
+              border: `1px solid ${SECTION_BORDER_COLOR}`,
+            }}
+          >
             {personsList.map((p) => (
               <div
                 key={p.id}
@@ -460,6 +543,14 @@ export default function Users() {
                 size="small"
                 variant="outlined"
                 disabled={personPage <= 1}
+                sx={{
+                  borderColor: PRIMARY_COLOR,
+                  color: PRIMARY_COLOR,
+                  "&:hover": {
+                    borderColor: PRIMARY_COLOR,
+                    backgroundColor: PRIMARY_LIGHT_BG,
+                  },
+                }}
                 onClick={() => setPersonPage((p) => p - 1)}
               >
                 Anterior
@@ -469,6 +560,14 @@ export default function Users() {
                 size="small"
                 variant="outlined"
                 disabled={personPage >= personPageCount}
+                sx={{
+                  borderColor: PRIMARY_COLOR,
+                  color: PRIMARY_COLOR,
+                  "&:hover": {
+                    borderColor: PRIMARY_COLOR,
+                    backgroundColor: PRIMARY_LIGHT_BG,
+                  },
+                }}
                 onClick={() => setPersonPage((p) => p + 1)}
               >
                 Próxima

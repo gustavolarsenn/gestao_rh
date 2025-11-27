@@ -1,15 +1,10 @@
 // src/pages/admin/Department.tsx
 import { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
-import {
-  Typography,
-  Paper,
-  Box,
-  TextField,
-  Button,
-} from "@mui/material";
+import { Typography, Paper, Box, TextField, Button } from "@mui/material";
 import { BaseModal } from "@/components/modals/BaseModal";
 import { useDepartments, Department } from "@/hooks/department/useDepartments";
+import { PRIMARY_COLOR, PRIMARY_LIGHT, PRIMARY_LIGHT_BG, SECTION_BORDER_COLOR, primaryButtonSx } from '@/utils/utils';
 
 export default function DepartmentPage() {
   const {
@@ -48,6 +43,7 @@ export default function DepartmentPage() {
 
   useEffect(() => {
     loadDepartments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, filterName]);
 
   // CREATE MODAL
@@ -116,7 +112,8 @@ export default function DepartmentPage() {
             mb: 4,
             borderRadius: 3,
             backgroundColor: "#ffffff",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+            boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
+            border: `1px solid ${SECTION_BORDER_COLOR}`,
           }}
         >
           <Typography variant="h6" fontWeight={600} mb={3}>
@@ -145,8 +142,14 @@ export default function DepartmentPage() {
               }}
               sx={{
                 px: 4,
-                borderColor: "#1e293b",
-                color: "#1e293b",
+                borderColor: PRIMARY_COLOR,
+                color: PRIMARY_COLOR,
+                textTransform: "none",
+                fontWeight: 600,
+                "&:hover": {
+                  borderColor: PRIMARY_COLOR,
+                  backgroundColor: PRIMARY_LIGHT_BG,
+                },
               }}
               data-testid="clear-filter-btn"
             >
@@ -159,8 +162,13 @@ export default function DepartmentPage() {
               sx={{
                 px: 4,
                 ml: "auto",
-                backgroundColor: "#1e293b",
+                backgroundColor: PRIMARY_COLOR,
                 color: "white",
+                textTransform: "none",
+                fontWeight: 600,
+                "&:hover": {
+                  backgroundColor: PRIMARY_LIGHT,
+                },
               }}
               data-testid="open-create-modal-btn"
             >
@@ -170,7 +178,14 @@ export default function DepartmentPage() {
         </Paper>
 
         {/* TABELA */}
-        <Paper sx={{ p: 4, borderRadius: 3 }}>
+        <Paper
+          sx={{
+            p: 4,
+            borderRadius: 3,
+            boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
+            border: `1px solid ${SECTION_BORDER_COLOR}`,
+          }}
+        >
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="bg-gray-50">
@@ -192,7 +207,7 @@ export default function DepartmentPage() {
               {!loadingTable && departments.length === 0 && (
                 <tr data-testid="empty-row">
                   <td colSpan={1} className="py-6 text-center text-gray-500">
-                    Nenhuma filial encontrada.
+                    Nenhum departamento encontrado.
                   </td>
                 </tr>
               )}
@@ -229,6 +244,14 @@ export default function DepartmentPage() {
                 disabled={page <= 1}
                 onClick={() => setPage((p) => p - 1)}
                 data-testid="prev-page-btn"
+                sx={{
+                  borderColor: PRIMARY_COLOR,
+                  color: PRIMARY_COLOR,
+                  "&:hover": {
+                    borderColor: PRIMARY_COLOR,
+                    backgroundColor: PRIMARY_LIGHT_BG,
+                  },
+                }}
               >
                 Anterior
               </Button>
@@ -239,6 +262,14 @@ export default function DepartmentPage() {
                 disabled={page >= pageCount}
                 onClick={() => setPage((p) => p + 1)}
                 data-testid="next-page-btn"
+                sx={{
+                  borderColor: PRIMARY_COLOR,
+                  color: PRIMARY_COLOR,
+                  "&:hover": {
+                    borderColor: PRIMARY_COLOR,
+                    backgroundColor: PRIMARY_LIGHT_BG,
+                  },
+                }}
               >
                 Próxima
               </Button>
@@ -256,12 +287,26 @@ export default function DepartmentPage() {
         data-testid="create-department-modal"
         footer={
           <div className="flex justify-end gap-2">
-            <Button variant="outlined" onClick={() => setCreateModalOpen(false)}>
+            <Button
+              variant="outlined"
+              onClick={() => setCreateModalOpen(false)}
+              sx={{
+                px: 4,
+                borderColor: PRIMARY_COLOR,
+                color: PRIMARY_COLOR,
+                textTransform: "none",
+                fontWeight: 600,
+                "&:hover": {
+                  borderColor: PRIMARY_COLOR,
+                  backgroundColor: PRIMARY_LIGHT_BG,
+                },
+              }}
+            >
               Cancelar
             </Button>
             <Button
               onClick={handleCreate}
-              sx={{ backgroundColor: "#1e293b", color: "white" }}
+              sx={primaryButtonSx}
               data-testid="save-create-btn"
             >
               Criar
@@ -289,12 +334,22 @@ export default function DepartmentPage() {
         data-testid="edit-department-modal"
         footer={
           <div className="flex justify-between w-full">
-            <Button color="error" variant="outlined" onClick={handleDelete}>
+            <Button
+              color="error"
+              variant="outlined"
+              onClick={handleDelete}
+            >
               Excluir
             </Button>
             <Button
               onClick={handleSave}
-              sx={{ backgroundColor: "#1e293b", color: "white" }}
+              sx={{
+                backgroundColor: PRIMARY_COLOR,
+                color: "white",
+                "&:hover": {
+                  backgroundColor: PRIMARY_LIGHT,
+                },
+              }}
               data-testid="save-edit-btn"
             >
               Salvar

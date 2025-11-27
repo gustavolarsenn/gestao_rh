@@ -12,6 +12,7 @@ interface AuthenticatedRequest extends Request {
     email: string;
     companyId: string;
     role?: string;
+    employeeId?: string;
   };
 }
 

@@ -28,6 +28,8 @@ import { useRoleTypes, RoleType } from "@/hooks/role-type/useRoleTypes";
 import { useRoles, Role } from "@/hooks/role/useRoles";
 import { useTeams, Team } from "@/hooks/team/useTeams";
 import { useBranches, Branch } from "@/hooks/branch/useBranches";
+import { format } from "date-fns";
+import { PRIMARY_COLOR, PRIMARY_LIGHT, PRIMARY_LIGHT_BG, SECTION_BORDER_COLOR, primaryButtonSx } from '@/utils/utils';
 
 export default function EmployeesPage() {
   const {
@@ -206,7 +208,6 @@ export default function EmployeesPage() {
 
     const newEmployee = await createEmployee(payload as any);
 
-    // reload lista paginada
     setPage(1);
     loadEmployees();
 
@@ -257,7 +258,6 @@ export default function EmployeesPage() {
       page,
       limit: historyLimit,
     });
-    // considerando que o hook retorna set paginado: { data, total }
     setEmployeeHistories(result.data);
     setHistoryTotal(result.total);
     setHistoryLoading(false);
@@ -326,6 +326,15 @@ export default function EmployeesPage() {
     return `R$ ${num.toFixed(2).replace(".", ",")}`;
   };
 
+  const formatDate = (date?: string | null) => {
+    if (!date) return "—";
+    try {
+      return format(new Date(date), "dd/MM/yyyy");
+    } catch {
+      return date;
+    }
+  };
+
   // ======================================================
   // UI
   // ======================================================
@@ -360,7 +369,8 @@ export default function EmployeesPage() {
             mb: 4,
             borderRadius: 3,
             backgroundColor: "#ffffff",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+            boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
+            border: `1px solid ${SECTION_BORDER_COLOR}`,
           }}
         >
           <Typography variant="h6" fontWeight={600} mb={3}>
@@ -441,10 +451,14 @@ export default function EmployeesPage() {
               variant="outlined"
               sx={{
                 px: 4,
-                borderColor: "#1e293b",
-                color: "#1e293b",
+                borderColor: PRIMARY_COLOR,
+                color: PRIMARY_COLOR,
                 textTransform: "none",
                 fontWeight: 600,
+                "&:hover": {
+                  borderColor: PRIMARY_COLOR,
+                  backgroundColor: PRIMARY_LIGHT_BG,
+                },
               }}
               onClick={() => {
                 setFilterName("");
@@ -463,10 +477,13 @@ export default function EmployeesPage() {
               sx={{
                 px: 4,
                 ml: "auto",
-                backgroundColor: "#1e293b",
+                backgroundColor: PRIMARY_COLOR,
                 color: "white",
                 textTransform: "none",
                 fontWeight: 600,
+                "&:hover": {
+                  backgroundColor: PRIMARY_LIGHT,
+                },
               }}
             >
               Cadastrar Funcionário
@@ -475,7 +492,14 @@ export default function EmployeesPage() {
         </Paper>
 
         {/* TABLE */}
-        <Paper sx={{ p: 4, borderRadius: 3 }}>
+        <Paper
+          sx={{
+            p: 4,
+            borderRadius: 3,
+            boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
+            border: `1px solid ${SECTION_BORDER_COLOR}`,
+          }}
+        >
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="bg-gray-50">
@@ -547,6 +571,14 @@ export default function EmployeesPage() {
                 size="small"
                 disabled={page <= 1}
                 onClick={() => setPage((p) => p - 1)}
+                sx={{
+                  borderColor: PRIMARY_COLOR,
+                  color: PRIMARY_COLOR,
+                  "&:hover": {
+                    borderColor: PRIMARY_COLOR,
+                    backgroundColor: PRIMARY_LIGHT_BG,
+                  },
+                }}
               >
                 Anterior
               </Button>
@@ -556,6 +588,14 @@ export default function EmployeesPage() {
                 size="small"
                 disabled={page >= employeesPageCount}
                 onClick={() => setPage((p) => p + 1)}
+                sx={{
+                  borderColor: PRIMARY_COLOR,
+                  color: PRIMARY_COLOR,
+                  "&:hover": {
+                    borderColor: PRIMARY_COLOR,
+                    backgroundColor: PRIMARY_LIGHT_BG,
+                  },
+                }}
               >
                 Próxima
               </Button>
@@ -572,7 +612,21 @@ export default function EmployeesPage() {
         description="Selecione uma pessoa e preencha os dados do vínculo."
         footer={
           <div className="flex justify-end gap-2">
-            <Button variant="outlined" onClick={() => setCreateModalOpen(false)}>
+            <Button
+              variant="outlined"
+              onClick={() => setCreateModalOpen(false)}
+              sx={{
+                px: 4,
+                borderColor: PRIMARY_COLOR,
+                color: PRIMARY_COLOR,
+                textTransform: "none",
+                fontWeight: 600,
+                "&:hover": {
+                  borderColor: PRIMARY_COLOR,
+                  backgroundColor: PRIMARY_LIGHT_BG,
+                },
+              }}
+            >
               Cancelar
             </Button>
             <Button
@@ -586,7 +640,7 @@ export default function EmployeesPage() {
                 !hiringDate ||
                 !wage
               }
-              sx={{ backgroundColor: "#1e293b", color: "white" }}
+              sx={primaryButtonSx}
             >
               Cadastrar
             </Button>
@@ -715,6 +769,7 @@ export default function EmployeesPage() {
         </div>
       </BaseModal>
 
+      {/* EDIT EMPLOYEE MODAL */}
       <BaseModal
         open={editModalOpen}
         onClose={() => setEditModalOpen(false)}
@@ -723,22 +778,31 @@ export default function EmployeesPage() {
         maxWidth="lg"
         footer={
           <div className="flex justify-between w-full">
-            <Button color="error" variant="outlined" onClick={handleDeleteEmployee}>
+            <Button
+              color="error"
+              variant="outlined"
+              onClick={handleDeleteEmployee}
+            >
               Excluir
             </Button>
             <Button
               onClick={handleSaveEmployee}
               disabled={loading}
-              sx={{ backgroundColor: "#1e293b", color: "white" }}
+              sx={{
+                backgroundColor: PRIMARY_COLOR,
+                color: "white",
+                "&:hover": {
+                  backgroundColor: PRIMARY_LIGHT,
+                },
+              }}
             >
               {loading ? "Salvando..." : "Salvar"}
             </Button>
           </div>
         }
       >
-        {/* AQUI A GENTE AUMENTA A LARGURA DO MODAL E CONTROLA AS COLUNAS */}
         <div className="flex flex-col gap-6 md:flex-row md:min-w-[980px]">
-          {/* LADO ESQUERDO: FORM (mantém tamanho mais próximo do original) */}
+          {/* ESQUERDA: FORM */}
           <div className="flex flex-col gap-4 flex-1 md:flex-[0_0_380px] max-w-md">
             <TextField
               size="small"
@@ -886,7 +950,7 @@ export default function EmployeesPage() {
             </FormControl>
           </div>
 
-          {/* LADO DIREITO: HISTÓRICO (usa o espaço extra) */}
+          {/* DIREITA: HISTÓRICO */}
           <div className="flex-1">
             <Typography
               variant="subtitle1"
@@ -959,8 +1023,12 @@ export default function EmployeesPage() {
                           <td className="px-2 py-2">{h.branch?.name || "—"}</td>
                           <td className="px-2 py-2">{h.team?.name || "—"}</td>
                           <td className="px-2 py-2">{formatWage(h.wage)}</td>
-                          <td className="px-2 py-2">{h.startDate || "—"}</td>
-                          <td className="px-2 py-2">{h.endDate || "—"}</td>
+                          <td className="px-2 py-2">
+                            {formatDate(h.startDate)}
+                          </td>
+                          <td className="px-2 py-2">
+                            {formatDate(h.endDate)}
+                          </td>
                         </tr>
                       ))
                     )}
@@ -985,6 +1053,14 @@ export default function EmployeesPage() {
                     size="small"
                     disabled={historyPage <= 1 || historyLoading}
                     onClick={() => setHistoryPage((p) => p - 1)}
+                    sx={{
+                      borderColor: PRIMARY_COLOR,
+                      color: PRIMARY_COLOR,
+                      "&:hover": {
+                        borderColor: PRIMARY_COLOR,
+                        backgroundColor: PRIMARY_LIGHT_BG,
+                      },
+                    }}
                   >
                     Anterior
                   </Button>
@@ -993,6 +1069,14 @@ export default function EmployeesPage() {
                     size="small"
                     disabled={historyPage >= historyPageCount || historyLoading}
                     onClick={() => setHistoryPage((p) => p + 1)}
+                    sx={{
+                      borderColor: PRIMARY_COLOR,
+                      color: PRIMARY_COLOR,
+                      "&:hover": {
+                        borderColor: PRIMARY_COLOR,
+                        backgroundColor: PRIMARY_LIGHT_BG,
+                      },
+                    }}
                   >
                     Próxima
                   </Button>

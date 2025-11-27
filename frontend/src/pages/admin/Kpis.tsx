@@ -20,6 +20,7 @@ import {
   EvaluationType,
   EvaluationCode,
 } from "@/hooks/evaluation-type/useEvaluationTypes";
+import { PRIMARY_COLOR, PRIMARY_LIGHT, PRIMARY_LIGHT_BG, SECTION_BORDER_COLOR, primaryButtonSx } from '@/utils/utils';
 
 export default function Kpis() {
   const { listKpis, createKpi, updateKpi, deleteKpi, loading, error } = useKpis();
@@ -82,9 +83,15 @@ export default function Kpis() {
 
   // helper para sufixo no select de tipo de avaliação
   const getEvalSuffix = (code: EvaluationCode) => {
-    if (code === EvaluationCode.HIGHER_BETTER_PCT || code === EvaluationCode.HIGHER_BETTER_SUM)
+    if (
+      code === EvaluationCode.HIGHER_BETTER_PCT ||
+      code === EvaluationCode.HIGHER_BETTER_SUM
+    )
       return "(↑ melhor)";
-    if (code === EvaluationCode.LOWER_BETTER_PCT || code === EvaluationCode.LOWER_BETTER_SUM)
+    if (
+      code === EvaluationCode.LOWER_BETTER_PCT ||
+      code === EvaluationCode.LOWER_BETTER_SUM
+    )
       return "(↓ melhor)";
     return "(Binário)";
   };
@@ -202,7 +209,8 @@ export default function Kpis() {
             mb: 4,
             borderRadius: 3,
             backgroundColor: "#ffffff",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+            boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
+            border: `1px solid ${SECTION_BORDER_COLOR}`,
           }}
         >
           <Typography variant="h6" fontWeight={600} mb={3}>
@@ -264,10 +272,14 @@ export default function Kpis() {
               variant="outlined"
               sx={{
                 px: 4,
-                borderColor: "#1e293b",
-                color: "#1e293b",
+                borderColor: PRIMARY_COLOR,
+                color: PRIMARY_COLOR,
                 textTransform: "none",
                 fontWeight: 600,
+                "&:hover": {
+                  borderColor: PRIMARY_COLOR,
+                  backgroundColor: PRIMARY_LIGHT_BG,
+                },
               }}
               onClick={() => {
                 setFilterName("");
@@ -285,10 +297,13 @@ export default function Kpis() {
               sx={{
                 px: 4,
                 ml: "auto",
-                backgroundColor: "#1e293b",
+                backgroundColor: PRIMARY_COLOR,
                 color: "white",
                 textTransform: "none",
                 fontWeight: 600,
+                "&:hover": {
+                  backgroundColor: PRIMARY_LIGHT,
+                },
               }}
             >
               Criar KPI
@@ -297,7 +312,14 @@ export default function Kpis() {
         </Paper>
 
         {/* TABLE */}
-        <Paper sx={{ p: 4, borderRadius: 3 }}>
+        <Paper
+          sx={{
+            p: 4,
+            borderRadius: 3,
+            boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
+            border: `1px solid ${SECTION_BORDER_COLOR}`,
+          }}
+        >
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="bg-gray-50">
@@ -349,7 +371,9 @@ export default function Kpis() {
                       <td className="px-4 py-3">{kpi.name}</td>
                       <td className="px-4 py-3 text-slate-700">{deptName}</td>
                       <td className="px-4 py-3 text-slate-700">
-                        {evalType ? `${evalType.name} ${getEvalSuffix(evalType.code)}` : "—"}
+                        {evalType
+                          ? `${evalType.name} ${getEvalSuffix(evalType.code)}`
+                          : "—"}
                       </td>
                       <td className="px-4 py-3 text-slate-700">{kpi.unit}</td>
                     </tr>
@@ -360,7 +384,12 @@ export default function Kpis() {
           </table>
 
           {/* PAGINATION */}
-          <Box display="flex" justifyContent="space-between" alignItems="center" mt={3}>
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+            mt={3}
+          >
             <Typography variant="body2">
               Página {page} de {pageCount}
             </Typography>
@@ -371,6 +400,14 @@ export default function Kpis() {
                 size="small"
                 disabled={page <= 1}
                 onClick={() => setPage((p) => p - 1)}
+                sx={{
+                  borderColor: PRIMARY_COLOR,
+                  color: PRIMARY_COLOR,
+                  "&:hover": {
+                    borderColor: PRIMARY_COLOR,
+                    backgroundColor: PRIMARY_LIGHT_BG,
+                  },
+                }}
               >
                 Anterior
               </Button>
@@ -380,6 +417,14 @@ export default function Kpis() {
                 size="small"
                 disabled={page >= pageCount}
                 onClick={() => setPage((p) => p + 1)}
+                sx={{
+                  borderColor: PRIMARY_COLOR,
+                  color: PRIMARY_COLOR,
+                  "&:hover": {
+                    borderColor: PRIMARY_COLOR,
+                    backgroundColor: PRIMARY_LIGHT_BG,
+                  },
+                }}
               >
                 Próxima
               </Button>
@@ -396,7 +441,20 @@ export default function Kpis() {
         description="Preencha os dados da métrica."
         footer={
           <div className="flex justify-end gap-2">
-            <Button variant="outlined" onClick={() => setCreateModalOpen(false)}>
+            <Button
+              variant="outlined"
+              onClick={() => setCreateModalOpen(false)}
+              sx={{
+                borderColor: PRIMARY_COLOR,
+                color: PRIMARY_COLOR,
+                textTransform: "none",
+                fontWeight: 600,
+                "&:hover": {
+                  borderColor: PRIMARY_COLOR,
+                  backgroundColor: PRIMARY_LIGHT_BG,
+                },
+              }}
+            >
               Cancelar
             </Button>
             <Button
@@ -404,7 +462,7 @@ export default function Kpis() {
               disabled={
                 !name || !createDepartmentId || !createEvaluationTypeId || !unit
               }
-              sx={{ backgroundColor: "#1e293b", color: "white" }}
+              sx={primaryButtonSx}
             >
               Criar
             </Button>
@@ -475,13 +533,26 @@ export default function Kpis() {
         description="Atualize as informações da métrica ou exclua o registro."
         footer={
           <div className="flex justify-between w-full">
-            <Button color="error" variant="outlined" onClick={handleDelete}>
+            <Button
+              color="error"
+              variant="outlined"
+              onClick={handleDelete}
+              sx={{ textTransform: "none", fontWeight: 600 }}
+            >
               Excluir
             </Button>
             <Button
               onClick={handleSave}
               disabled={loading}
-              sx={{ backgroundColor: "#1e293b", color: "white" }}
+              sx={{
+                backgroundColor: PRIMARY_COLOR,
+                color: "white",
+                textTransform: "none",
+                fontWeight: 600,
+                "&:hover": {
+                  backgroundColor: PRIMARY_LIGHT,
+                },
+              }}
             >
               {loading ? "Salvando..." : "Salvar alterações"}
             </Button>

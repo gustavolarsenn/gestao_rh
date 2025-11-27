@@ -7,6 +7,12 @@ import { useTeamKpiEvolutions } from "@/hooks/team-kpi/useTeamKpiEvolutions";
 import { rateKPI } from "@/utils/rateKPI";
 import { Paper, Typography } from "@mui/material";
 
+// Paleta unificada
+const PRIMARY_COLOR = "#0369a1";
+const PRIMARY_LIGHT = "#0ea5e9";
+const PRIMARY_LIGHT_BG = "#e0f2ff";
+const SECTION_BORDER_COLOR = "#e2e8f0";
+
 export default function TeamKpiReviewSection() {
   const { listTeamKpis } = useTeamKpis();
   const { listTeamKpiEvolutions, updateTeamKpiEvolution } =
@@ -69,13 +75,14 @@ export default function TeamKpiReviewSection() {
         p: 4,
         borderRadius: 3,
         backgroundColor: "#ffffff",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+        boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
+        border: `1px solid ${SECTION_BORDER_COLOR}`,
       }}
     >
       <Typography
         variant="h6"
         fontWeight={600}
-        color="#151E3F"
+        color="#1e293b"
         sx={{ mb: 3 }}
       >
         KPIs de Times
@@ -83,10 +90,10 @@ export default function TeamKpiReviewSection() {
 
       <table className="w-full text-sm border-collapse">
         <thead>
-          <tr className="bg-gray-100 text-left">
-            <th className="p-2">Time</th>
-            <th className="p-2 text-center">Qtde. KPIs</th>
-            <th className="p-2 text-center">Ações</th>
+          <tr className="bg-slate-50 text-left">
+            <th className="p-2 text-slate-700">Time</th>
+            <th className="p-2 text-center text-slate-700">Qtde. KPIs</th>
+            <th className="p-2 text-center text-slate-700">Ações</th>
           </tr>
         </thead>
         <tbody>
@@ -96,7 +103,7 @@ export default function TeamKpiReviewSection() {
 
             return (
               <React.Fragment key={team.id}>
-                <tr className="border-b hover:bg-gray-50">
+                <tr className="border-b hover:bg-slate-50 transition">
                   <td className="p-2">{team.name}</td>
                   <td className="p-2 text-center">{tKpis.length}</td>
                   <td className="p-2 text-center">
@@ -106,6 +113,7 @@ export default function TeamKpiReviewSection() {
                       onClick={() =>
                         setExpandedTeamId(isExpanded ? null : team.id)
                       }
+                      className="border-[#0369a1] text-[#0369a1] hover:bg-[#e0f2ff]"
                     >
                       {isExpanded ? "Recolher" : "Ver KPIs"}
                     </Button>
@@ -119,18 +127,26 @@ export default function TeamKpiReviewSection() {
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.25 }}
-                      className="bg-gray-50"
+                      className="bg-slate-50"
                     >
                       <td colSpan={3} className="p-3">
                         {tKpis.length > 0 ? (
-                          <table className="w-full text-xs border-collapse bg-white rounded-md shadow-sm">
+                          <table className="w-full text-xs border-collapse bg-white rounded-md shadow-sm border border-slate-200">
                             <thead>
-                              <tr className="bg-gray-200">
-                                <th className="p-2"></th>
-                                <th className="p-2 text-left">KPI</th>
-                                <th className="p-2 text-left">Meta</th>
-                                <th className="p-2 text-left">Atingido</th>
-                                <th className="p-2 text-center">Ações</th>
+                              <tr className="bg-slate-100">
+                                <th className="p-2 w-10"></th>
+                                <th className="p-2 text-left text-slate-700">
+                                  KPI
+                                </th>
+                                <th className="p-2 text-left text-slate-700">
+                                  Meta
+                                </th>
+                                <th className="p-2 text-left text-slate-700">
+                                  Atingido
+                                </th>
+                                <th className="p-2 text-center text-slate-700">
+                                  Ações
+                                </th>
                               </tr>
                             </thead>
                             <tbody>
@@ -142,27 +158,30 @@ export default function TeamKpiReviewSection() {
 
                                 return (
                                   <React.Fragment key={kpi.id}>
-                                    <tr className="border-b">
+                                    <tr className="border-b last:border-b-0">
                                       <td className="py-2 px-3">
                                         <span
                                           className={`inline-block w-3 h-3 rounded-full mr-2 ${
                                             !kpi.achievedValue
-                                              ? "bg-gray-300"
+                                              ? "bg-slate-300"
                                               : rateKPI(
                                                   Number(kpi.achievedValue),
                                                   Number(kpi.goal),
-                                                  kpi.kpi?.evaluationType?.code || ""
+                                                  kpi.kpi?.evaluationType
+                                                    ?.code || ""
                                                 )
-                                              ? "bg-green-500"
-                                              : "bg-red-500"
+                                              ? "bg-emerald-500"
+                                              : "bg-rose-500"
                                           }`}
                                         />
                                       </td>
-                                      <td className="p-2">
+                                      <td className="p-2 text-slate-800">
                                         {kpi.kpi?.name ?? "—"}
                                       </td>
-                                      <td className="p-2">{kpi.goal}</td>
-                                      <td className="p-2">
+                                      <td className="p-2 text-slate-700">
+                                        {kpi.goal}
+                                      </td>
+                                      <td className="p-2 text-slate-700">
                                         {kpi.achievedValue ?? "—"}
                                       </td>
                                       <td className="p-2 text-center">
@@ -174,6 +193,7 @@ export default function TeamKpiReviewSection() {
                                               expanded ? null : kpi.id
                                             )
                                           }
+                                          className="border-[#0369a1] text-[#0369a1] hover:bg-[#e0f2ff]"
                                         >
                                           {expanded ? "Ocultar" : "Evoluções"}
                                         </Button>
@@ -189,18 +209,22 @@ export default function TeamKpiReviewSection() {
                                       >
                                         <td
                                           colSpan={5}
-                                          className="p-2 px-4 bg-gray-100"
+                                          className="p-2 px-4 bg-slate-50"
                                         >
                                           {evols.length > 0 ? (
-                                            <table className="w-full text-xs bg-white rounded shadow-sm">
+                                            <table className="w-full text-xs bg-white rounded shadow-sm border border-slate-200">
                                               <thead>
-                                                <tr className="bg-gray-100 text-left">
-                                                  <th className="p-2">
+                                                <tr className="bg-slate-100 text-left">
+                                                  <th className="p-2 text-slate-700">
                                                     Valor / Observação
                                                   </th>
-                                                  <th className="p-2">Status</th>
-                                                  <th className="p-2">Data</th>
-                                                  <th className="p-2 text-center">
+                                                  <th className="p-2 text-slate-700">
+                                                    Status
+                                                  </th>
+                                                  <th className="p-2 text-slate-700">
+                                                    Data
+                                                  </th>
+                                                  <th className="p-2 text-center text-slate-700">
                                                     Ações
                                                   </th>
                                                 </tr>
@@ -211,15 +235,15 @@ export default function TeamKpiReviewSection() {
                                                     key={ev.id}
                                                     className="border-t"
                                                   >
-                                                    <td className="p-2">
+                                                    <td className="p-2 text-slate-800">
                                                       {
                                                         ev.achievedValueEvolution
                                                       }
                                                     </td>
-                                                    <td className="p-2">
+                                                    <td className="p-2 text-slate-700">
                                                       {ev.status}
                                                     </td>
-                                                    <td className="p-2">
+                                                    <td className="p-2 text-slate-700">
                                                       {ev.submittedDate
                                                         ? new Date(
                                                             ev.submittedDate
@@ -235,13 +259,14 @@ export default function TeamKpiReviewSection() {
                                                             onClick={() =>
                                                               handleApprove(ev)
                                                             }
-                                                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                                                            className="bg-[#0369a1] hover:bg-[#0ea5e9] text-white"
                                                           >
                                                             Aprovar
                                                           </Button>
                                                           <Button
                                                             size="sm"
-                                                            variant="destructive"
+                                                            variant="outline"
+                                                            className="border-rose-500 text-rose-600 hover:bg-rose-50"
                                                             onClick={() =>
                                                               handleReject(ev)
                                                             }
@@ -256,7 +281,7 @@ export default function TeamKpiReviewSection() {
                                               </tbody>
                                             </table>
                                           ) : (
-                                            <p className="text-gray-500 text-sm italic">
+                                            <p className="text-slate-500 text-sm italic">
                                               Nenhuma evolução registrada.
                                             </p>
                                           )}
@@ -269,8 +294,8 @@ export default function TeamKpiReviewSection() {
                             </tbody>
                           </table>
                         ) : (
-                          <p className="text-gray-500 text-sm italic">
-                            Nenhum KPI atribuída.
+                          <p className="text-slate-500 text-sm italic">
+                            Nenhuma KPI atribuída.
                           </p>
                         )}
                       </td>
@@ -291,10 +316,19 @@ export default function TeamKpiReviewSection() {
         description="Explique o motivo da rejeição desta evolução."
         footer={
           <div className="flex justify-end w-full gap-2">
-            <Button variant="outline" onClick={() => setModalOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setModalOpen(false)}
+              className="border-[#0369a1] text-[#0369a1] hover:bg-[#e0f2ff]"
+            >
               Cancelar
             </Button>
-            <Button onClick={handleConfirmRejection}>Confirmar</Button>
+            <Button
+              onClick={handleConfirmRejection}
+              className="bg-[#0369a1] hover:bg-[#0ea5e9] text-white"
+            >
+              Confirmar
+            </Button>
           </div>
         }
       >
@@ -302,7 +336,7 @@ export default function TeamKpiReviewSection() {
           value={rejectionReason}
           onChange={(e) => setRejectionReason(e.target.value)}
           placeholder="Descreva o motivo..."
-          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm min-h-[100px]"
+          className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm min-h-[100px] focus:outline-none focus:ring-2 focus:ring-[#0ea5e9] focus:border-[#0ea5e9]"
         />
       </BaseModal>
     </Paper>

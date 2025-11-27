@@ -17,6 +17,10 @@ import { useBranches, type Branch } from "@/hooks/branch/useBranches";
 import { useStates } from "@/hooks/geo/useStates";
 import { useCities } from "@/hooks/geo/useCities";
 
+// utils de formatação
+import { onlyDigits, formatCnpj, formatCep } from "@/utils/format";
+import { PRIMARY_COLOR, PRIMARY_LIGHT, PRIMARY_LIGHT_BG, SECTION_BORDER_COLOR, primaryButtonSx } from '@/utils/utils';
+
 export default function Branch() {
   const { createBranch, listBranches, updateBranch, deleteBranch, loading, error } =
     useBranches();
@@ -41,7 +45,7 @@ export default function Branch() {
   const pageCount = Math.ceil(total / limit) || 1;
 
   const [filterName, setFilterName] = useState("");
-  const [filterCnpj, setFilterCnpj] = useState("");
+  const [filterCnpj, setFilterCnpj] = useState(""); // só dígitos
   const [filterStateId, setFilterStateId] = useState("");
   const [filterCityId, setFilterCityId] = useState("");
   const [loadingTable, setLoadingTable] = useState(false);
@@ -53,7 +57,7 @@ export default function Branch() {
       page,
       limit,
       name: filterName || undefined,
-      cnpj: filterCnpj || undefined,
+      cnpj: filterCnpj || undefined, // já limpo
       stateId: filterStateId || undefined,
       cityId: filterCityId || undefined,
     });
@@ -89,8 +93,8 @@ export default function Branch() {
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
   const [branchName, setBranchName] = useState("");
-  const [cnpj, setCnpj] = useState("");
-  const [zipCode, setZipCode] = useState("");
+  const [cnpj, setCnpj] = useState("");       // só dígitos
+  const [zipCode, setZipCode] = useState(""); // só dígitos
   const [address, setAddress] = useState("");
   const [addressNumber, setAddressNumber] = useState("");
   const [stateId, setStateId] = useState("");
@@ -103,10 +107,10 @@ export default function Branch() {
   const handleCreateBranch = async () => {
     setMessage("");
 
-    const newBranch = await createBranch({
+    await createBranch({
       name: branchName,
-      cnpj,
-      zipCode,
+      cnpj,      // limpo
+      zipCode,   // limpo
       address,
       addressNumber,
       cityId,
@@ -134,8 +138,8 @@ export default function Branch() {
   const [editModalOpen, setEditModalOpen] = useState(false);
 
   const [editName, setEditName] = useState("");
-  const [editCnpj, setEditCnpj] = useState("");
-  const [editZipCode, setEditZipCode] = useState("");
+  const [editCnpj, setEditCnpj] = useState("");       // só dígitos
+  const [editZipCode, setEditZipCode] = useState(""); // só dígitos
   const [editAddress, setEditAddress] = useState("");
   const [editAddressNumber, setEditAddressNumber] = useState("");
   const [editStateId, setEditStateId] = useState("");
@@ -148,8 +152,8 @@ export default function Branch() {
   const openEditModal = (branch: Branch) => {
     setSelectedBranch(branch);
     setEditName(branch.name);
-    setEditCnpj(branch.cnpj);
-    setEditZipCode(branch.zipCode);
+    setEditCnpj(onlyDigits(branch.cnpj || ""));
+    setEditZipCode(onlyDigits(branch.zipCode || ""));
     setEditAddress(branch.address);
     setEditAddressNumber(branch.addressNumber);
 
@@ -166,8 +170,8 @@ export default function Branch() {
 
     const updated = await updateBranch(selectedBranch.id, {
       name: editName,
-      cnpj: editCnpj,
-      zipCode: editZipCode,
+      cnpj: editCnpj,          // limpo
+      zipCode: editZipCode,    // limpo
       address: editAddress,
       addressNumber: editAddressNumber,
       cityId: editCityId,
@@ -222,7 +226,8 @@ export default function Branch() {
             mb: 4,
             borderRadius: 3,
             backgroundColor: "#ffffff",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+            boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
+            border: `1px solid ${SECTION_BORDER_COLOR}`, // igual aos cards/sidebar
           }}
         >
           <Typography variant="h6" fontWeight={600} mb={3}>
@@ -244,9 +249,9 @@ export default function Branch() {
             <TextField
               size="small"
               label="CNPJ"
-              value={filterCnpj}
+              value={formatCnpj(filterCnpj)}
               onChange={(e) => {
-                setFilterCnpj(e.target.value);
+                setFilterCnpj(onlyDigits(e.target.value));
                 setPage(1);
               }}
               sx={{ flex: "1 1 200px" }}
@@ -300,10 +305,14 @@ export default function Branch() {
               variant="outlined"
               sx={{
                 px: 4,
-                borderColor: "#1e293b",
-                color: "#1e293b",
+                borderColor: PRIMARY_COLOR,
+                color: PRIMARY_COLOR,
                 textTransform: "none",
                 fontWeight: 600,
+                "&:hover": {
+                  borderColor: PRIMARY_COLOR,
+                  backgroundColor: PRIMARY_LIGHT_BG,
+                },
               }}
               onClick={() => {
                 setFilterName("");
@@ -322,10 +331,13 @@ export default function Branch() {
               sx={{
                 px: 4,
                 ml: "auto",
-                backgroundColor: "#1e293b",
+                backgroundColor: PRIMARY_COLOR,
                 color: "white",
                 textTransform: "none",
                 fontWeight: 600,
+                "&:hover": {
+                  backgroundColor: PRIMARY_LIGHT,
+                },
               }}
             >
               Criar Filial
@@ -334,7 +346,14 @@ export default function Branch() {
         </Paper>
 
         {/* TABLE */}
-        <Paper sx={{ p: 4, borderRadius: 3 }}>
+        <Paper
+          sx={{
+            p: 4,
+            borderRadius: 3,
+            boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
+            border: `1px solid ${SECTION_BORDER_COLOR}`, // igual aos cards/sidebar
+          }}
+        >
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="bg-gray-50">
@@ -368,7 +387,9 @@ export default function Branch() {
                     onClick={() => openEditModal(branch)}
                   >
                     <td className="px-4 py-3">{branch.name}</td>
-                    <td className="px-4 py-3">{branch.cnpj}</td>
+                    <td className="px-4 py-3">
+                      {formatCnpj(branch.cnpj || "")}
+                    </td>
                   </tr>
                 ))
               )}
@@ -376,7 +397,12 @@ export default function Branch() {
           </table>
 
           {/* PAGINATION */}
-          <Box display="flex" justifyContent="space-between" alignItems="center" mt={3}>
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+            mt={3}
+          >
             <Typography variant="body2">
               Página {page} de {pageCount}
             </Typography>
@@ -386,6 +412,14 @@ export default function Branch() {
                 variant="outlined"
                 size="small"
                 disabled={page <= 1}
+                sx={{
+                  borderColor: PRIMARY_COLOR,
+                  color: PRIMARY_COLOR,
+                  "&:hover": {
+                    borderColor: PRIMARY_COLOR,
+                    backgroundColor: PRIMARY_LIGHT_BG,
+                  },
+                }}
                 onClick={() => setPage((p) => p - 1)}
               >
                 Anterior
@@ -395,6 +429,14 @@ export default function Branch() {
                 variant="outlined"
                 size="small"
                 disabled={page >= pageCount}
+                sx={{
+                  borderColor: PRIMARY_COLOR,
+                  color: PRIMARY_COLOR,
+                  "&:hover": {
+                    borderColor: PRIMARY_COLOR,
+                    backgroundColor: PRIMARY_LIGHT_BG,
+                  },
+                }}
                 onClick={() => setPage((p) => p + 1)}
               >
                 Próxima
@@ -412,7 +454,10 @@ export default function Branch() {
         description="Preencha os dados da nova filial."
         footer={
           <div className="flex justify-end gap-2">
-            <Button variant="outlined" onClick={() => setCreateModalOpen(false)}>
+            <Button
+              variant="outlined"
+              onClick={() => setCreateModalOpen(false)}
+            >
               Cancelar
             </Button>
             <Button
@@ -426,7 +471,7 @@ export default function Branch() {
                 !stateId ||
                 !cityId
               }
-              sx={{ backgroundColor: "#1e293b", color: "white" }}
+              sx={primaryButtonSx}
             >
               Criar
             </Button>
@@ -443,14 +488,14 @@ export default function Branch() {
           <TextField
             size="small"
             label="CNPJ"
-            value={cnpj}
-            onChange={(e) => setCnpj(e.target.value)}
+            value={formatCnpj(cnpj)}
+            onChange={(e) => setCnpj(onlyDigits(e.target.value))}
           />
           <TextField
             size="small"
             label="CEP"
-            value={zipCode}
-            onChange={(e) => setZipCode(e.target.value)}
+            value={formatCep(zipCode)}
+            onChange={(e) => setZipCode(onlyDigits(e.target.value))}
           />
           <TextField
             size="small"
@@ -484,7 +529,11 @@ export default function Branch() {
               </Select>
             </FormControl>
 
-            <FormControl size="small" sx={{ flex: 1 }} disabled={!stateId}>
+            <FormControl
+              size="small"
+              sx={{ flex: 1 }}
+              disabled={!stateId}
+            >
               <InputLabel>Cidade</InputLabel>
               <Select
                 label="Cidade"
@@ -516,7 +565,13 @@ export default function Branch() {
             <Button
               onClick={handleSaveBranch}
               disabled={loading}
-              sx={{ backgroundColor: "#1e293b", color: "white" }}
+              sx={{
+                backgroundColor: PRIMARY_COLOR,
+                color: "white",
+                "&:hover": {
+                  backgroundColor: PRIMARY_LIGHT,
+                },
+              }}
             >
               {loading ? "Salvando..." : "Salvar alterações"}
             </Button>
@@ -533,14 +588,14 @@ export default function Branch() {
           <TextField
             size="small"
             label="CNPJ"
-            value={editCnpj}
-            onChange={(e) => setEditCnpj(e.target.value)}
+            value={formatCnpj(editCnpj)}
+            onChange={(e) => setEditCnpj(onlyDigits(e.target.value))}
           />
           <TextField
             size="small"
             label="CEP"
-            value={editZipCode}
-            onChange={(e) => setEditZipCode(e.target.value)}
+            value={formatCep(editZipCode)}
+            onChange={(e) => setEditZipCode(onlyDigits(e.target.value))}
           />
           <TextField
             size="small"
@@ -575,7 +630,11 @@ export default function Branch() {
               </Select>
             </FormControl>
 
-            <FormControl size="small" sx={{ flex: 1 }} disabled={!editStateId}>
+            <FormControl
+              size="small"
+              sx={{ flex: 1 }}
+              disabled={!editStateId}
+            >
               <InputLabel>Cidade</InputLabel>
               <Select
                 label="Cidade"

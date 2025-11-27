@@ -15,6 +15,7 @@ import { BaseModal } from "@/components/modals/BaseModal";
 
 import { useRoleTypes, RoleType } from "@/hooks/role-type/useRoleTypes";
 import { useDepartments, Department } from "@/hooks/department/useDepartments";
+import { PRIMARY_COLOR, PRIMARY_LIGHT, PRIMARY_LIGHT_BG, SECTION_BORDER_COLOR, primaryButtonSx } from '@/utils/utils';
 
 export default function RoleTypePage() {
   const { listRoleTypes, createRoleType, updateRoleType, deleteRoleType } =
@@ -38,7 +39,7 @@ export default function RoleTypePage() {
 
   const [loadingTable, setLoadingTable] = useState(false);
 
-  // Load distinct departments (no modal anymore)
+  // Load distinct departments
   useEffect(() => {
     async function loadDeps() {
       const res = await listDistinctDepartments();
@@ -66,6 +67,7 @@ export default function RoleTypePage() {
 
   useEffect(() => {
     loadRoleTypes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, filterName, filterDept]);
 
   // ================================================================
@@ -83,6 +85,8 @@ export default function RoleTypePage() {
     });
 
     setCreateModalOpen(false);
+    setName("");
+    setDepartmentId("");
     setPage(1);
     loadRoleTypes();
   };
@@ -91,7 +95,9 @@ export default function RoleTypePage() {
   // EDIT MODAL
   // ================================================================
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [selectedRoleType, setSelectedRoleType] = useState<RoleType | null>(null);
+  const [selectedRoleType, setSelectedRoleType] = useState<RoleType | null>(
+    null
+  );
 
   const openEditModal = (rt: RoleType) => {
     setSelectedRoleType(rt);
@@ -129,7 +135,12 @@ export default function RoleTypePage() {
 
       <main className="flex-1 p-8">
         {/* TITLE */}
-        <Typography variant="h4" fontWeight={700} color="#1e293b" sx={{ mb: 4 }}>
+        <Typography
+          variant="h4"
+          fontWeight={700}
+          color="#1e293b"
+          sx={{ mb: 4 }}
+        >
           Tipos de Função
         </Typography>
 
@@ -141,7 +152,8 @@ export default function RoleTypePage() {
             mb: 4,
             borderRadius: 3,
             backgroundColor: "#ffffff",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+            boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
+            border: `1px solid ${SECTION_BORDER_COLOR}`,
           }}
         >
           <Typography variant="h6" fontWeight={600} mb={3}>
@@ -184,10 +196,14 @@ export default function RoleTypePage() {
               variant="outlined"
               sx={{
                 px: 4,
-                borderColor: "#1e293b",
-                color: "#1e293b",
+                borderColor: PRIMARY_COLOR,
+                color: PRIMARY_COLOR,
                 textTransform: "none",
                 fontWeight: 600,
+                "&:hover": {
+                  borderColor: PRIMARY_COLOR,
+                  backgroundColor: PRIMARY_LIGHT_BG,
+                },
               }}
               onClick={() => {
                 setFilterName("");
@@ -203,8 +219,13 @@ export default function RoleTypePage() {
               sx={{
                 px: 4,
                 ml: "auto",
-                backgroundColor: "#1e293b",
+                backgroundColor: PRIMARY_COLOR,
                 color: "white",
+                textTransform: "none",
+                fontWeight: 600,
+                "&:hover": {
+                  backgroundColor: PRIMARY_LIGHT,
+                },
               }}
               onClick={() => setCreateModalOpen(true)}
             >
@@ -214,7 +235,14 @@ export default function RoleTypePage() {
         </Paper>
 
         {/* TABLE */}
-        <Paper sx={{ p: 4, borderRadius: 3 }}>
+        <Paper
+          sx={{
+            p: 4,
+            borderRadius: 3,
+            boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
+            border: `1px solid ${SECTION_BORDER_COLOR}`,
+          }}
+        >
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="bg-gray-50">
@@ -257,7 +285,12 @@ export default function RoleTypePage() {
           </table>
 
           {/* PAGINATION */}
-          <Box display="flex" justifyContent="space-between" alignItems="center" mt={3}>
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+            mt={3}
+          >
             <Typography variant="body2">
               Página {page} de {pageCount || 1}
             </Typography>
@@ -268,6 +301,14 @@ export default function RoleTypePage() {
                 size="small"
                 disabled={page <= 1}
                 onClick={() => setPage((p) => p - 1)}
+                sx={{
+                  borderColor: PRIMARY_COLOR,
+                  color: PRIMARY_COLOR,
+                  "&:hover": {
+                    borderColor: PRIMARY_COLOR,
+                    backgroundColor: PRIMARY_LIGHT_BG,
+                  },
+                }}
               >
                 Anterior
               </Button>
@@ -276,6 +317,14 @@ export default function RoleTypePage() {
                 size="small"
                 disabled={page >= pageCount}
                 onClick={() => setPage((p) => p + 1)}
+                sx={{
+                  borderColor: PRIMARY_COLOR,
+                  color: PRIMARY_COLOR,
+                  "&:hover": {
+                    borderColor: PRIMARY_COLOR,
+                    backgroundColor: PRIMARY_LIGHT_BG,
+                  },
+                }}
               >
                 Próxima
               </Button>
@@ -291,11 +340,25 @@ export default function RoleTypePage() {
           description="Preencha os dados."
           footer={
             <div className="flex justify-end gap-2">
-              <Button variant="outlined" onClick={() => setCreateModalOpen(false)}>
+              <Button
+                variant="outlined"
+                onClick={() => setCreateModalOpen(false)}
+                sx={{
+                  px: 4,
+                  borderColor: PRIMARY_COLOR,
+                  color: PRIMARY_COLOR,
+                  textTransform: "none",
+                  fontWeight: 600,
+                  "&:hover": {
+                    borderColor: PRIMARY_COLOR,
+                    backgroundColor: PRIMARY_LIGHT_BG,
+                  },
+                }}
+              >
                 Cancelar
               </Button>
               <Button
-                sx={{ backgroundColor: "#1e293b", color: "white" }}
+                sx={primaryButtonSx}
                 onClick={handleCreate}
                 disabled={!name || !departmentId}
               >
@@ -337,12 +400,22 @@ export default function RoleTypePage() {
           description="Atualize ou remova o registro."
           footer={
             <div className="flex justify-between w-full">
-              <Button variant="outlined" color="error" onClick={handleDelete}>
+              <Button
+                variant="outlined"
+                color="error"
+                onClick={handleDelete}
+              >
                 Excluir
               </Button>
 
               <Button
-                sx={{ backgroundColor: "#1e293b", color: "white" }}
+                sx={{
+                  backgroundColor: PRIMARY_COLOR,
+                  color: "white",
+                  "&:hover": {
+                    backgroundColor: PRIMARY_LIGHT,
+                  },
+                }}
                 onClick={handleSave}
                 disabled={!name || !departmentId}
               >

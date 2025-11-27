@@ -17,6 +17,10 @@ import { usePersons, Person } from "@/hooks/person/usePersons";
 import { useStates } from "@/hooks/geo/useStates";
 import { useCities } from "@/hooks/geo/useCities";
 
+// utils de formatação
+import { onlyDigits, formatCpf, formatCep, formatPhone } from "@/utils/format";
+import { PRIMARY_COLOR, PRIMARY_LIGHT, PRIMARY_LIGHT_BG, SECTION_BORDER_COLOR, primaryButtonSx } from '@/utils/utils';
+
 export default function Persons() {
   const { listPersons, createPerson, updatePerson, deletePerson } = usePersons();
   const { listStates } = useStates();
@@ -40,7 +44,7 @@ export default function Persons() {
   // ================================
   const [filterName, setFilterName] = useState("");
   const [filterEmail, setFilterEmail] = useState("");
-  const [filterCpf, setFilterCpf] = useState("");
+  const [filterCpf, setFilterCpf] = useState(""); // só dígitos
   const [filterState, setFilterState] = useState("");
   const [filterCity, setFilterCity] = useState("");
 
@@ -71,7 +75,7 @@ export default function Persons() {
       limit,
       name: filterName || undefined,
       email: filterEmail || undefined,
-      cpf: filterCpf || undefined,
+      cpf: filterCpf || undefined, // já limpo
       cityId: filterCity || undefined,
     };
 
@@ -84,6 +88,7 @@ export default function Persons() {
 
   useEffect(() => {
     loadPersons();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, filterName, filterEmail, filterCpf, filterState, filterCity]);
 
   // ================================
@@ -94,11 +99,11 @@ export default function Persons() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [birthDate, setBirthDate] = useState("");
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState("");      // só dígitos
   const [address, setAddress] = useState("");
   const [addressNumber, setAddressNumber] = useState("");
-  const [zipCode, setZipCode] = useState("");
-  const [cpf, setCpf] = useState("");
+  const [zipCode, setZipCode] = useState("");  // só dígitos
+  const [cpf, setCpf] = useState("");          // só dígitos
   const [stateId, setStateId] = useState("");
   const [cityId, setCityId] = useState("");
 
@@ -111,15 +116,27 @@ export default function Persons() {
       name,
       email,
       birthDate,
-      phone,
+      phone,      // limpo
       address,
       addressNumber,
-      zipCode,
-      cpf,
+      zipCode,    // limpo
+      cpf,        // limpo
       cityId,
     });
 
     setCreateModalOpen(false);
+
+    // limpa formulário
+    setName("");
+    setEmail("");
+    setBirthDate("");
+    setPhone("");
+    setAddress("");
+    setAddressNumber("");
+    setZipCode("");
+    setCpf("");
+    setStateId("");
+    setCityId("");
 
     // reload page 1
     setPage(1);
@@ -134,7 +151,9 @@ export default function Persons() {
 
   const [editData, setEditData] = useState<Partial<Person>>({});
   const [editStateId, setEditStateId] = useState("");
-  const [editCities, setEditCities] = useState<{ id: string; name: string; stateId: string }[]>([]);
+  const [editCities, setEditCities] = useState<
+    { id: string; name: string; stateId: string }[]
+  >([]);
 
   const openEditModal = async (p: Person) => {
     setSelectedPerson(p);
@@ -142,12 +161,12 @@ export default function Persons() {
     setEditData({
       name: p.name,
       email: p.email,
-      cpf: p.cpf,
+      cpf: onlyDigits(p.cpf || ""),
       birthDate: p.birthDate || "",
-      phone: p.phone || "",
+      phone: onlyDigits(p.phone || ""),
       address: p.address || "",
       addressNumber: p.addressNumber || "",
-      zipCode: p.zipCode || "",
+      zipCode: onlyDigits(p.zipCode || ""),
       cityId: p.cityId,
     });
 
@@ -163,7 +182,12 @@ export default function Persons() {
   const handleSave = async () => {
     if (!selectedPerson) return;
 
-    await updatePerson(selectedPerson.id, editData);
+    await updatePerson(selectedPerson.id, {
+      ...editData,
+      cpf: (editData.cpf as string) || "",
+      zipCode: (editData.zipCode as string) || "",
+      phone: (editData.phone as string) || "",
+    });
 
     setEditModalOpen(false);
     loadPersons();
@@ -175,8 +199,6 @@ export default function Persons() {
     await deletePerson(selectedPerson.id);
 
     setEditModalOpen(false);
-
-    // reload
     loadPersons();
   };
 
@@ -188,7 +210,6 @@ export default function Persons() {
       <Sidebar />
 
       <main className="flex-1 p-8">
-
         <Typography variant="h4" fontWeight={700} color="#1e293b" sx={{ mb: 4 }}>
           Pessoas
         </Typography>
@@ -202,7 +223,8 @@ export default function Persons() {
             mb: 4,
             borderRadius: 3,
             backgroundColor: "#ffffff",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+            boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
+            border: `1px solid ${SECTION_BORDER_COLOR}`,
           }}
         >
           <Typography variant="h6" fontWeight={600} mb={3}>
@@ -235,9 +257,9 @@ export default function Persons() {
             <TextField
               size="small"
               label="CPF"
-              value={filterCpf}
+              value={formatCpf(filterCpf)}
               onChange={(e) => {
-                setFilterCpf(e.target.value);
+                setFilterCpf(onlyDigits(e.target.value));
                 setPage(1);
               }}
               sx={{ flex: "1 1 200px" }}
@@ -288,10 +310,14 @@ export default function Persons() {
               variant="outlined"
               sx={{
                 px: 4,
-                borderColor: "#1e293b",
-                color: "#1e293b",
+                borderColor: PRIMARY_COLOR,
+                color: PRIMARY_COLOR,
                 textTransform: "none",
                 fontWeight: 600,
+                "&:hover": {
+                  borderColor: PRIMARY_COLOR,
+                  backgroundColor: PRIMARY_LIGHT_BG,
+                },
               }}
               onClick={() => {
                 setFilterName("");
@@ -311,8 +337,13 @@ export default function Persons() {
               sx={{
                 px: 4,
                 ml: "auto",
-                backgroundColor: "#1e293b",
+                backgroundColor: PRIMARY_COLOR,
                 color: "white",
+                textTransform: "none",
+                fontWeight: 600,
+                "&:hover": {
+                  backgroundColor: PRIMARY_LIGHT,
+                },
               }}
             >
               Cadastrar Pessoa
@@ -321,7 +352,14 @@ export default function Persons() {
         </Paper>
 
         {/* TABLE */}
-        <Paper sx={{ p: 4, borderRadius: 3 }}>
+        <Paper
+          sx={{
+            p: 4,
+            borderRadius: 3,
+            boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
+            border: `1px solid ${SECTION_BORDER_COLOR}`,
+          }}
+        >
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="bg-gray-50">
@@ -360,12 +398,16 @@ export default function Persons() {
                     >
                       <td className="px-4 py-3">{p.name}</td>
                       <td className="px-4 py-3">{p.email}</td>
-                      <td className="px-4 py-3">{p.cpf}</td>
+                      <td className="px-4 py-3">{formatCpf(p.cpf || "")}</td>
                       <td className="px-4 py-3">{p.birthDate ? p.birthDate : "-"}</td>
-                      <td className="px-4 py-3">{p.phone || "-"}</td>
+                      <td className="px-4 py-3">
+                        {p.phone ? formatPhone(p.phone) : "-"}
+                      </td>
                       <td className="px-4 py-3">{p.address || "-"}</td>
                       <td className="px-4 py-3">{p.addressNumber || "-"}</td>
-                      <td className="px-4 py-3">{p.zipCode || "-"}</td>
+                      <td className="px-4 py-3">
+                        {p.zipCode ? formatCep(p.zipCode) : "-"}
+                      </td>
                       <td className="px-4 py-3">{state?.name || "-"}</td>
                       <td className="px-4 py-3">{city?.name || "-"}</td>
                     </tr>
@@ -385,6 +427,14 @@ export default function Persons() {
                 variant="outlined"
                 size="small"
                 disabled={page <= 1}
+                sx={{
+                  borderColor: PRIMARY_COLOR,
+                  color: PRIMARY_COLOR,
+                  "&:hover": {
+                    borderColor: PRIMARY_COLOR,
+                    backgroundColor: PRIMARY_LIGHT_BG,
+                  },
+                }}
                 onClick={() => setPage((p) => p - 1)}
               >
                 Anterior
@@ -394,6 +444,14 @@ export default function Persons() {
                 variant="outlined"
                 size="small"
                 disabled={page >= pageCount}
+                sx={{
+                  borderColor: PRIMARY_COLOR,
+                  color: PRIMARY_COLOR,
+                  "&:hover": {
+                    borderColor: PRIMARY_COLOR,
+                    backgroundColor: PRIMARY_LIGHT_BG,
+                  },
+                }}
                 onClick={() => setPage((p) => p + 1)}
               >
                 Próxima
@@ -414,32 +472,80 @@ export default function Persons() {
                 variant="outlined"
                 sx={{
                   px: 4,
-                  borderColor: "#1e293b",
-                  color: "#1e293b",
+                  borderColor: PRIMARY_COLOR,
+                  color: PRIMARY_COLOR,
                   textTransform: "none",
                   fontWeight: 600,
+                  "&:hover": {
+                    borderColor: PRIMARY_COLOR,
+                    backgroundColor: PRIMARY_LIGHT_BG,
+                  },
                 }}
                 onClick={() => setCreateModalOpen(false)}
               >
                 Cancelar
               </Button>
 
-              <Button sx={{ backgroundColor: "#1e293b", color: "white" }} onClick={handleCreate}>
+              <Button
+                sx={primaryButtonSx}
+                onClick={handleCreate}
+              >
                 Criar
               </Button>
             </div>
           }
         >
           <div className="flex flex-col gap-4">
-            <TextField size="small" label="Nome" value={name} onChange={(e) => setName(e.target.value)} />
-            <TextField size="small" label="E-mail" value={email} onChange={(e) => setEmail(e.target.value)} />
-            <TextField size="small" label="CPF" value={cpf} onChange={(e) => setCpf(e.target.value)} />
-            <TextField size="small" type="date" label="Nascimento" InputLabelProps={{ shrink: true }}
-              value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
-            <TextField size="small" label="Telefone" value={phone} onChange={(e) => setPhone(e.target.value)} />
-            <TextField size="small" label="Endereço" value={address} onChange={(e) => setAddress(e.target.value)} />
-            <TextField size="small" label="Número" value={addressNumber} onChange={(e) => setAddressNumber(e.target.value)} />
-            <TextField size="small" label="CEP" value={zipCode} onChange={(e) => setZipCode(e.target.value)} />
+            <TextField
+              size="small"
+              label="Nome"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+            <TextField
+              size="small"
+              label="E-mail"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <TextField
+              size="small"
+              label="CPF"
+              value={formatCpf(cpf)}
+              onChange={(e) => setCpf(onlyDigits(e.target.value))}
+            />
+            <TextField
+              size="small"
+              type="date"
+              label="Nascimento"
+              InputLabelProps={{ shrink: true }}
+              value={birthDate}
+              onChange={(e) => setBirthDate(e.target.value)}
+            />
+            <TextField
+              size="small"
+              label="Telefone"
+              value={formatPhone(phone)}
+              onChange={(e) => setPhone(onlyDigits(e.target.value))}
+            />
+            <TextField
+              size="small"
+              label="Endereço"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+            />
+            <TextField
+              size="small"
+              label="Número"
+              value={addressNumber}
+              onChange={(e) => setAddressNumber(e.target.value)}
+            />
+            <TextField
+              size="small"
+              label="CEP"
+              value={formatCep(zipCode)}
+              onChange={(e) => setZipCode(onlyDigits(e.target.value))}
+            />
 
             <Box display="flex" gap={3}>
               <FormControl size="small" sx={{ flex: 1 }}>
@@ -492,7 +598,16 @@ export default function Persons() {
               <Button variant="outlined" color="error" onClick={handleDelete}>
                 Excluir
               </Button>
-              <Button sx={{ backgroundColor: "#1e293b", color: "white" }} onClick={handleSave}>
+              <Button
+                sx={{
+                  backgroundColor: PRIMARY_COLOR,
+                  color: "white",
+                  "&:hover": {
+                    backgroundColor: PRIMARY_LIGHT,
+                  },
+                }}
+                onClick={handleSave}
+              >
                 Salvar
               </Button>
             </div>
@@ -503,19 +618,28 @@ export default function Persons() {
               size="small"
               label="Nome"
               value={editData.name || ""}
-              onChange={(e) => setEditData({ ...editData, name: e.target.value })}
+              onChange={(e) =>
+                setEditData({ ...editData, name: e.target.value })
+              }
             />
             <TextField
               size="small"
               label="E-mail"
               value={editData.email || ""}
-              onChange={(e) => setEditData({ ...editData, email: e.target.value })}
+              onChange={(e) =>
+                setEditData({ ...editData, email: e.target.value })
+              }
             />
             <TextField
               size="small"
               label="CPF"
-              value={editData.cpf || ""}
-              onChange={(e) => setEditData({ ...editData, cpf: e.target.value })}
+              value={formatCpf((editData.cpf as string) || "")}
+              onChange={(e) =>
+                setEditData({
+                  ...editData,
+                  cpf: onlyDigits(e.target.value),
+                })
+              }
             />
 
             <TextField
@@ -524,35 +648,51 @@ export default function Persons() {
               label="Nascimento"
               InputLabelProps={{ shrink: true }}
               value={editData.birthDate || ""}
-              onChange={(e) => setEditData({ ...editData, birthDate: e.target.value })}
+              onChange={(e) =>
+                setEditData({ ...editData, birthDate: e.target.value })
+              }
             />
 
             <TextField
               size="small"
               label="Telefone"
-              value={editData.phone || ""}
-              onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
+              value={formatPhone((editData.phone as string) || "")}
+              onChange={(e) =>
+                setEditData({
+                  ...editData,
+                  phone: onlyDigits(e.target.value),
+                })
+              }
             />
 
             <TextField
               size="small"
               label="Endereço"
               value={editData.address || ""}
-              onChange={(e) => setEditData({ ...editData, address: e.target.value })}
+              onChange={(e) =>
+                setEditData({ ...editData, address: e.target.value })
+              }
             />
 
             <TextField
               size="small"
               label="Número"
               value={editData.addressNumber || ""}
-              onChange={(e) => setEditData({ ...editData, addressNumber: e.target.value })}
+              onChange={(e) =>
+                setEditData({ ...editData, addressNumber: e.target.value })
+              }
             />
 
             <TextField
               size="small"
               label="CEP"
-              value={editData.zipCode || ""}
-              onChange={(e) => setEditData({ ...editData, zipCode: e.target.value })}
+              value={formatCep((editData.zipCode as string) || "")}
+              onChange={(e) =>
+                setEditData({
+                  ...editData,
+                  zipCode: onlyDigits(e.target.value),
+                })
+              }
             />
 
             <Box display="flex" gap={3}>
@@ -562,8 +702,9 @@ export default function Persons() {
                   label="Estado"
                   value={editStateId}
                   onChange={(e) => {
-                    setEditStateId(e.target.value);
-                    setEditCities(cities.filter((c) => c.stateId === e.target.value));
+                    const newStateId = e.target.value;
+                    setEditStateId(newStateId);
+                    setEditCities(cities.filter((c) => c.stateId === newStateId));
                     setEditData({ ...editData, cityId: "" });
                   }}
                 >
@@ -580,9 +721,11 @@ export default function Persons() {
                 <InputLabel>Cidade</InputLabel>
                 <Select
                   label="Cidade"
-                  value={editData.cityId || ""}
+                  value={(editData.cityId as string) || ""}
                   disabled={!editStateId}
-                  onChange={(e) => setEditData({ ...editData, cityId: e.target.value })}
+                  onChange={(e) =>
+                    setEditData({ ...editData, cityId: e.target.value })
+                  }
                 >
                   <MenuItem value="">Selecione</MenuItem>
                   {editCities.map((c) => (

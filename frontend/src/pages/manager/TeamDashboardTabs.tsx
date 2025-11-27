@@ -1,10 +1,12 @@
-import { useState, useEffect } from "react";
-import { Box, Paper, Typography, Tabs, Tab, CircularProgress } from "@mui/material";
+import { useState } from "react";
+import { Box, Paper, Typography, Tabs, Tab } from "@mui/material";
 import Sidebar from "@/components/Sidebar";
 import { motion } from "framer-motion";
 
 import TeamKpisDashboard from "./dashboard/TeamKPIDashboard";   // PARTE A
 import TeamMembersKpiDashboard from "./dashboard/TeamMembersKPIDashboard"; // PARTE B
+
+const PRIMARY_COLOR = "#0369a1";
 
 export default function TeamDashboardTabs() {
   const [tab, setTab] = useState(0);
@@ -14,7 +16,6 @@ export default function TeamDashboardTabs() {
       <Sidebar />
 
       <main className="flex-1 p-8">
-
         <Typography
           variant="h4"
           fontWeight={700}
@@ -38,8 +39,8 @@ export default function TeamDashboardTabs() {
             value={tab}
             onChange={(_, newValue) => setTab(newValue)}
             sx={{
-              '& .MuiTabs-indicator': {
-                backgroundColor: '#1e293b',
+              "& .MuiTabs-indicator": {
+                backgroundColor: PRIMARY_COLOR,
               },
             }}
             textColor="inherit"
@@ -48,34 +49,34 @@ export default function TeamDashboardTabs() {
               label="KPIs do Time"
               sx={{
                 fontWeight: 600,
-                color: '#1e293b',
-                '&.Mui-selected': { color: '#1e293b' },
+                color: "#1e293b",
+                "&.Mui-selected": { color: PRIMARY_COLOR },
               }}
             />
             <Tab
               label="KPIs por Funcionário"
               sx={{
                 fontWeight: 600,
-                color: '#1e293b',
-                '&.Mui-selected': { color: '#1e293b' },
+                color: "#1e293b",
+                "&.Mui-selected": { color: PRIMARY_COLOR },
               }}
             />
           </Tabs>
         </Paper>
 
         <motion.div
+          key={tab}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.2 }}
-          key={tab}
         >
-        <Box sx={{ display: tab === 0 ? "block" : "none" }}>
-          <TeamKpisDashboard />
-        </Box>
+          <Box sx={{ display: tab === 0 ? "block" : "none" }}>
+            <TeamKpisDashboard />
+          </Box>
 
-        <Box sx={{ display: tab === 1 ? "block" : "none" }}>
-          <TeamMembersKpiDashboard />
-        </Box>
+          <Box sx={{ display: tab === 1 ? "block" : "none" }}>
+            <TeamMembersKpiDashboard />
+          </Box>
         </motion.div>
       </main>
     </div>

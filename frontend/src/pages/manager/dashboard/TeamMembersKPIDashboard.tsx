@@ -620,7 +620,8 @@ export default function TeamMembersKpiDashboard() {
                   {week.map((d, di) => (
                     <Tooltip
                       key={di}
-                      title={`${format(d.day, "dd/MM")}: ${d.count} evolução(es)`}                    >
+                      title={`${format(d.day, "dd/MM")}: ${d.count} evolução(es)`}                    
+                    >
                       <Box
                         sx={{
                           width: 20,
@@ -683,7 +684,8 @@ export default function TeamMembersKpiDashboard() {
                   {
                     label: selectedKpi?.kpi?.name || "KPI",
                     data: aggregatedEvolutions.map((d) => d.value),
-                    color: "#3b82f6",
+                    // 🔹 COR ALTERADA AQUI
+                    color: "#1e293b",
                   },
                 ]}
                 height={330}

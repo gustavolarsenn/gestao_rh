@@ -45,6 +45,7 @@ import {
 } from "date-fns";
 
 import { ptBR } from "date-fns/locale";
+import { PRIMARY_COLOR, PRIMARY_LIGHT, PRIMARY_LIGHT_BG, SECTION_BORDER_COLOR, primaryButtonSx } from '@/utils/utils';
 
 // 🎨 Cor por progresso
 function colorByProgress(achieved: number, goal: number): string {
@@ -495,12 +496,14 @@ export default function EmployeeDashboard() {
               }}
               sx={{
                 px: 4,
-                borderRadius: 2,
-                borderColor: "#1e293b",
-                color: "#1e293b",
+                borderColor: PRIMARY_COLOR,
+                color: PRIMARY_COLOR,
                 textTransform: "none",
                 fontWeight: 600,
-                "&:hover": { backgroundColor: "rgba(0,0,0,0.04)" },
+                "&:hover": {
+                  borderColor: PRIMARY_COLOR,
+                  backgroundColor: PRIMARY_LIGHT_BG,
+                },
               }}
             >
               Limpar

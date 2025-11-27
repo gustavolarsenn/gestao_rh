@@ -11,6 +11,11 @@ import {
 } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/auth/useAuth";
+import orgkpiLogo from "@/assets/orgkpi.png";
+
+// cores inspiradas nas barras do gráfico da logo
+const ORGKPI_BLUE_DARK = "#0369a1";   // azul mais escuro (principal)
+const ORGKPI_BLUE_LIGHT = "#0ea5e9";  // azul mais claro
 
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
@@ -19,6 +24,7 @@ export default function Sidebar() {
   const { user, logout } = useAuth();
 
   const userLevel = user?.level || 1; // 1 = user comum, 2 = manager, 3+ = admin
+  const sidebarWidth = collapsed ? "80px" : "260px";
 
   const menuStructure = [
     {
@@ -58,7 +64,11 @@ export default function Sidebar() {
       items: [
         { to: "/manager/evaluation-types", label: "Tipos de Avaliação", level: 2 },
         { to: "/manager/kpis", label: "KPIs", level: 2 },
-        { to: "/manager/employee-kpis", label: "Designar KPIs de Funcionários", level: 2 },
+        {
+          to: "/manager/employee-kpis",
+          label: "Designar KPIs de Funcionários",
+          level: 2,
+        },
         { to: "/manager/kpi-review", label: "Revisão de KPIs", level: 2 },
         { to: "/manager/team-kpis", label: "Designar KPIs de Time", level: 2 },
         { to: "/manager/team-dashboard", label: "Dashboard de Time", level: 2 },
@@ -80,108 +90,136 @@ export default function Sidebar() {
   }
 
   return (
-    <>
-      {/* Sidebar fixo */}
-      <aside
-        className={`fixed top-0 left-0 h-screen bg-[#232C33] text-[#F2F3D9]
+    <aside
+      className="
+        fixed inset-y-0 left-0
+        bg-white text-slate-800
         flex flex-col shadow-md z-50
         transition-[width] duration-200 ease-in-out
-        ${collapsed ? "w-[80px]" : "w-[240px]"}
-      `}
-      >
-        {/* Cabeçalho */}
-        <div className="flex items-center justify-between px-4 py-4 border-b border-[#3f4755]">
-          {!collapsed && (
-            <h2 className="text-lg font-bold text-[#F2F3D9] whitespace-nowrap">
-              OrgKPI
-            </h2>
-          )}
-          <button
-            onClick={() => setCollapsed((prev) => !prev)}
-            className="text-[#F2F3D9] hover:text-[#3f4755] transition-transform duration-150"
-          >
-            {collapsed ? <FiChevronRight /> : <FiChevronLeft />}
-          </button>
-        </div>
-
-        {/* Menus */}
-        <nav className="flex-1 mt-4 overflow-y-auto overflow-x-hidden scroll-smooth scrollbar-thin scrollbar-thumb-[#3f4755] scrollbar-track-[#232C33] will-change-transform">
-          {menuStructure
-            .filter((menu) => userLevel >= menu.level)
-            .map((menu) => {
-              const isOpen = openMenus.includes(menu.label);
-              return (
-                <div key={menu.label}>
-                  <button
-                    onClick={() => toggleMenu(menu.label)}
-                    className={`flex items-center w-full px-4 py-2 gap-3 text-left hover:bg-[#3f4755] ${
-                      collapsed ? "justify-center" : ""
-                    }`}
-                  >
-                    <menu.icon className="text-[18px]" />
-                    {!collapsed && (
-                      <span className="text-sm font-semibold text-[#F2F3D9]">
-                        {menu.label}
-                      </span>
-                    )}
-                  </button>
-
-                  <AnimatePresence>
-                    {!collapsed && isOpen && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: 0.15 }}
-                        className="ml-4 mt-1 space-y-1"
-                      >
-                        {menu.items
-                          .filter((item) => userLevel >= item.level)
-                          .map(({ to, label }) => (
-                            <NavLink
-                              key={to}
-                              to={to}
-                              className={({ isActive }) =>
-                                [
-                                  "block text-sm px-6 py-1.5 rounded-md mx-2 transition-colors",
-                                  isActive
-                                    ? "bg-white text-[#151E3F]"
-                                    : "text-[#F2F3D9]/80 hover:bg-[#3f4755] hover:text-white",
-                                ].join(" ")
-                              }
-                            >
-                              {label}
-                            </NavLink>
-                          ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              );
-            })}
-        </nav>
-
-        {/* Logout */}
-        <div
-          className="mt-auto border-t border-[#3f4755] px-4 py-3 cursor-pointer hover:bg-[#3f4755] transition-colors"
-          onClick={handleLogout}
-        >
-          <div className="flex items-center gap-3 text-[#F2F3D9]/80 hover:text-white">
-            <FiLogOut className="text-[18px]" />
-            {!collapsed && <span className="text-sm font-medium">Sair</span>}
-          </div>
-        </div>
-      </aside>
-
-      {/* Conteúdo principal */}
+        relative
+      "
+      style={{ width: sidebarWidth }}
+    >
+      {/* FAIXA COM GRADIENTE NA BORDA DIREITA */}
       <div
-        className={`transition-[margin-left] duration-200 ease-in-out
-        min-h-screen bg-[#fefefe]
-        ${collapsed ? "ml-[80px]" : "ml-[240px]"}
-      `}
-      >
-        {/* Conteúdo das páginas */}
+        className="absolute top-0 right-0 h-full w-[2.5px]"
+        style={{
+          backgroundImage: `linear-gradient(to bottom, ${ORGKPI_BLUE_LIGHT}, ${ORGKPI_BLUE_DARK})`,
+        }}
+      />
+
+      {/* Cabeçalho: logo + botão de collapse */}
+      <div className="flex items-center justify-between px-4 pt-4 pb-3">
+        <div className="flex items-center gap-2">
+          <img
+            src={orgkpiLogo}
+            alt="OrgKPI"
+            className="h-9 w-auto object-contain"
+          />
+          {!collapsed && (
+            <span className="text-sm font-semibold text-slate-800">
+            </span>
+          )}
+        </div>
+
+        <button
+          onClick={() => setCollapsed((prev) => !prev)}
+          className="ml-2 flex h-7 w-7 items-center justify-center rounded-full border text-xs
+                     border-[#dbeafe] text-[#64748b] hover:bg-[#eff6ff] hover:text-[#0f172a]
+                     transition-colors bg-white"
+        >
+          {collapsed ? (
+            <FiChevronRight className="text-[14px]" />
+          ) : (
+            <FiChevronLeft className="text-[14px]" />
+          )}
+        </button>
       </div>
-    </>
+
+      {/* Divisor */}
+      {!collapsed && <div className="mx-4 mb-3 h-px bg-slate-100" />}
+
+      {/* Título MENU PRINCIPAL */}
+      {!collapsed && (
+        <p className="px-4 mb-2 text-[11px] font-semibold tracking-[0.18em] text-slate-400">
+          MENU PRINCIPAL
+        </p>
+      )}
+
+      {/* Menus (scroll próprio, com padding embaixo para não ficar colado no Sair) */}
+      <nav className="mt-1 flex-1 overflow-y-auto overflow-x-hidden scroll-smooth scrollbar-thin scrollbar-thumb-[#bae6fd] scrollbar-track-transparent pb-4">
+        {menuStructure
+          .filter((menu) => userLevel >= menu.level)
+          .map((menu) => {
+            const isOpen = openMenus.includes(menu.label);
+            const Icon = menu.icon;
+            return (
+              <div key={menu.label} className="mb-1">
+                <button
+                  onClick={() => toggleMenu(menu.label)}
+                  className={`
+                    flex items-center w-full px-4 py-2 gap-3 text-left
+                    text-[13px] font-medium
+                    ${collapsed ? "justify-center" : "justify-start"}
+                    text-slate-600 hover:bg-slate-50 hover:text-slate-900
+                    transition-colors
+                  `}
+                >
+                  <Icon className="text-[18px] text-[#64748b]" />
+                  {!collapsed && (
+                    <span className="whitespace-nowrap">{menu.label}</span>
+                  )}
+                </button>
+
+                <AnimatePresence>
+                  {!collapsed && isOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.15 }}
+                      className="mt-1 space-y-1"
+                    >
+                      {menu.items
+                        .filter((item) => userLevel >= item.level)
+                        .map(({ to, label }) => (
+                          <NavLink
+                            key={to}
+                            to={to}
+                            className={({ isActive }) =>
+                              [
+                                "flex items-center rounded-full mx-3 px-4 py-2 text-[13px] transition-colors",
+                                isActive
+                                  ? "bg-[#e0f2ff] text-[#0369a1] font-medium"
+                                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
+                              ].join(" ")
+                            }
+                          >
+                            <span className="truncate">{label}</span>
+                          </NavLink>
+                        ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            );
+          })}
+      </nav>
+
+      {/* Logout – agora logo após o menu (sem mt-auto) */}
+      <div
+        className="border-t border-slate-100 px-4 py-3 cursor-pointer hover:bg-slate-50 transition-colors"
+        onClick={handleLogout}
+      >
+        <div
+          className={`flex items-center gap-3 text-slate-500 hover:text-slate-800 ${
+            collapsed ? "justify-center" : ""
+          }`}
+        >
+          <FiLogOut className="text-[18px]" />
+          {!collapsed && <span className="text-sm font-medium">Sair</span>}
+        </div>
+      </div>
+    </aside>
   );
 }

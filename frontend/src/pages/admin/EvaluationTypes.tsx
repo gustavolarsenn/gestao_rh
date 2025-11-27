@@ -19,6 +19,7 @@ import {
   EvaluationCode,
 } from "@/hooks/evaluation-type/useEvaluationTypes";
 import { useDepartments, Department } from "@/hooks/department/useDepartments";
+import { PRIMARY_COLOR, PRIMARY_LIGHT, PRIMARY_LIGHT_BG, SECTION_BORDER_COLOR, primaryButtonSx } from '@/utils/utils';
 
 export default function EvaluationTypesPage() {
   const {
@@ -70,7 +71,6 @@ export default function EvaluationTypesPage() {
 
   useEffect(() => {
     async function loadStatic() {
-      // departments vem paginado
       const deptResult = await listDepartments({ page: 1, limit: 999 });
       setDepartments(deptResult.data || []);
     }
@@ -231,7 +231,8 @@ export default function EvaluationTypesPage() {
             mb: 4,
             borderRadius: 3,
             backgroundColor: "#ffffff",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+            boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
+            border: `1px solid ${SECTION_BORDER_COLOR}`,
           }}
         >
           <Typography variant="h6" fontWeight={600} mb={3}>
@@ -293,10 +294,14 @@ export default function EvaluationTypesPage() {
               variant="outlined"
               sx={{
                 px: 4,
-                borderColor: "#1e293b",
-                color: "#1e293b",
+                borderColor: PRIMARY_COLOR,
+                color: PRIMARY_COLOR,
                 textTransform: "none",
                 fontWeight: 600,
+                "&:hover": {
+                  borderColor: PRIMARY_COLOR,
+                  backgroundColor: PRIMARY_LIGHT_BG,
+                },
               }}
               onClick={() => {
                 setFilterName("");
@@ -314,10 +319,13 @@ export default function EvaluationTypesPage() {
               sx={{
                 px: 4,
                 ml: "auto",
-                backgroundColor: "#1e293b",
+                backgroundColor: PRIMARY_COLOR,
                 color: "white",
                 textTransform: "none",
                 fontWeight: 600,
+                "&:hover": {
+                  backgroundColor: PRIMARY_LIGHT,
+                },
               }}
             >
               Criar Tipo de Métrica
@@ -326,7 +334,14 @@ export default function EvaluationTypesPage() {
         </Paper>
 
         {/* TABLE */}
-        <Paper sx={{ p: 4, borderRadius: 3 }}>
+        <Paper
+          sx={{
+            p: 4,
+            borderRadius: 3,
+            boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
+            border: `1px solid ${SECTION_BORDER_COLOR}`,
+          }}
+        >
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="bg-gray-50">
@@ -368,7 +383,8 @@ export default function EvaluationTypesPage() {
                     <td className="px-4 py-3">{type.name}</td>
                     <td className="px-4 py-3 text-slate-700">
                       {type.department?.name ||
-                        departments.find((d) => d.id === type.departmentId)?.name ||
+                        departments.find((d) => d.id === type.departmentId)
+                          ?.name ||
                         "—"}
                     </td>
                     <td className="px-4 py-3 text-slate-700">
@@ -384,7 +400,12 @@ export default function EvaluationTypesPage() {
           </table>
 
           {/* PAGINATION */}
-          <Box display="flex" justifyContent="space-between" alignItems="center" mt={3}>
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+            mt={3}
+          >
             <Typography variant="body2">
               Página {page} de {pageCount}
             </Typography>
@@ -395,6 +416,14 @@ export default function EvaluationTypesPage() {
                 size="small"
                 disabled={page <= 1}
                 onClick={() => setPage((p) => p - 1)}
+                sx={{
+                  borderColor: PRIMARY_COLOR,
+                  color: PRIMARY_COLOR,
+                  "&:hover": {
+                    borderColor: PRIMARY_COLOR,
+                    backgroundColor: PRIMARY_LIGHT_BG,
+                  },
+                }}
               >
                 Anterior
               </Button>
@@ -404,6 +433,14 @@ export default function EvaluationTypesPage() {
                 size="small"
                 disabled={page >= pageCount}
                 onClick={() => setPage((p) => p + 1)}
+                sx={{
+                  borderColor: PRIMARY_COLOR,
+                  color: PRIMARY_COLOR,
+                  "&:hover": {
+                    borderColor: PRIMARY_COLOR,
+                    backgroundColor: PRIMARY_LIGHT_BG,
+                  },
+                }}
               >
                 Próxima
               </Button>
@@ -420,13 +457,26 @@ export default function EvaluationTypesPage() {
         description="Preencha os dados do tipo de métrica."
         footer={
           <div className="flex justify-end gap-2">
-            <Button variant="outlined" onClick={() => setCreateModalOpen(false)}>
+            <Button
+              variant="outlined"
+              onClick={() => setCreateModalOpen(false)}
+              sx={{
+                borderColor: PRIMARY_COLOR,
+                color: PRIMARY_COLOR,
+                textTransform: "none",
+                fontWeight: 600,
+                "&:hover": {
+                  borderColor: PRIMARY_COLOR,
+                  backgroundColor: PRIMARY_LIGHT_BG,
+                },
+              }}
+            >
               Cancelar
             </Button>
             <Button
               onClick={handleCreate}
               disabled={!name || !departmentId || !code}
-              sx={{ backgroundColor: "#1e293b", color: "white" }}
+              sx={primaryButtonSx}
             >
               Criar
             </Button>
@@ -490,13 +540,26 @@ export default function EvaluationTypesPage() {
         description="Atualize as informações ou exclua o registro."
         footer={
           <div className="flex justify-between w-full">
-            <Button color="error" variant="outlined" onClick={handleDelete}>
+            <Button
+              color="error"
+              variant="outlined"
+              onClick={handleDelete}
+              sx={{ textTransform: "none", fontWeight: 600 }}
+            >
               Excluir
             </Button>
             <Button
               onClick={handleSave}
               disabled={loading}
-              sx={{ backgroundColor: "#1e293b", color: "white" }}
+              sx={{
+                backgroundColor: PRIMARY_COLOR,
+                color: "white",
+                textTransform: "none",
+                fontWeight: 600,
+                "&:hover": {
+                  backgroundColor: PRIMARY_LIGHT,
+                },
+              }}
             >
               {loading ? "Salvando..." : "Salvar alterações"}
             </Button>

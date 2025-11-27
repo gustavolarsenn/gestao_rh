@@ -17,6 +17,7 @@ import { BaseModal } from "@/components/modals/BaseModal";
 import { useTeams, Team } from "@/hooks/team/useTeams";
 import { useTeamMembers, TeamMember } from "@/hooks/team-member/useTeamMembers";
 import { format } from "date-fns";
+import { PRIMARY_COLOR, PRIMARY_LIGHT, PRIMARY_LIGHT_BG, SECTION_BORDER_COLOR, primaryButtonSx } from '@/utils/utils';
 
 export default function TeamsPage() {
   const {
@@ -94,7 +95,6 @@ export default function TeamsPage() {
       parentTeamId: filterParentTeamId || undefined,
     });
 
-    // assumindo mesmo formato de retorno de Roles: { data, total }
     setTeams(result.data);
     setTotal(result.total);
 
@@ -137,11 +137,9 @@ export default function TeamsPage() {
         parentTeamId: parentTeamId || null,
       });
 
-      // reload lista paginada (vai respeitar filtros atuais)
       setPage(1);
       loadTeams();
 
-      // atualiza opções de time pai
       setAllTeamsOptions((prev) => {
         if (prev.some((t) => t.id === newTeam.id)) return prev;
         return [...prev, newTeam];
@@ -202,7 +200,6 @@ export default function TeamsPage() {
     await deleteTeam(selectedTeam.id);
     setTeams((prev) => prev.filter((t) => t.id !== selectedTeam.id));
     setEditModalOpen(false);
-    // opcional: recarregar contagem total
     loadTeams();
   };
 
@@ -259,7 +256,8 @@ export default function TeamsPage() {
             mb: 4,
             borderRadius: 3,
             backgroundColor: "#ffffff",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+            boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
+            border: `1px solid ${SECTION_BORDER_COLOR}`,
           }}
         >
           <Typography variant="h6" fontWeight={600} mb={3}>
@@ -302,10 +300,14 @@ export default function TeamsPage() {
               variant="outlined"
               sx={{
                 px: 4,
-                borderColor: "#1e293b",
-                color: "#1e293b",
+                borderColor: PRIMARY_COLOR,
+                color: PRIMARY_COLOR,
                 textTransform: "none",
                 fontWeight: 600,
+                "&:hover": {
+                  borderColor: PRIMARY_COLOR,
+                  backgroundColor: PRIMARY_LIGHT_BG,
+                },
               }}
               onClick={() => {
                 setFilterName("");
@@ -321,10 +323,13 @@ export default function TeamsPage() {
               sx={{
                 px: 4,
                 ml: "auto",
-                backgroundColor: "#1e293b",
+                backgroundColor: PRIMARY_COLOR,
                 color: "white",
                 textTransform: "none",
                 fontWeight: 600,
+                "&:hover": {
+                  backgroundColor: PRIMARY_LIGHT,
+                },
               }}
               onClick={() => setCreateModalOpen(true)}
             >
@@ -334,11 +339,20 @@ export default function TeamsPage() {
         </Paper>
 
         {/* TABLE */}
-        <Paper sx={{ p: 4, borderRadius: 3 }}>
+        <Paper
+          sx={{
+            p: 4,
+            borderRadius: 3,
+            boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
+            border: `1px solid ${SECTION_BORDER_COLOR}`,
+          }}
+        >
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="bg-gray-50">
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">Nome</th>
+                <th className="text-left px-4 py-3 font-semibold text-gray-700">
+                  Nome
+                </th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-700">
                   Descrição
                 </th>
@@ -398,6 +412,14 @@ export default function TeamsPage() {
                 size="small"
                 disabled={page <= 1}
                 onClick={() => setPage((prev) => prev - 1)}
+                sx={{
+                  borderColor: PRIMARY_COLOR,
+                  color: PRIMARY_COLOR,
+                  "&:hover": {
+                    borderColor: PRIMARY_COLOR,
+                    backgroundColor: PRIMARY_LIGHT_BG,
+                  },
+                }}
               >
                 Anterior
               </Button>
@@ -406,6 +428,14 @@ export default function TeamsPage() {
                 size="small"
                 disabled={page >= pageCount}
                 onClick={() => setPage((prev) => prev + 1)}
+                sx={{
+                  borderColor: PRIMARY_COLOR,
+                  color: PRIMARY_COLOR,
+                  "&:hover": {
+                    borderColor: PRIMARY_COLOR,
+                    backgroundColor: PRIMARY_LIGHT_BG,
+                  },
+                }}
               >
                 Próxima
               </Button>
@@ -421,11 +451,25 @@ export default function TeamsPage() {
           description="Preencha os dados."
           footer={
             <div className="flex justify-end gap-2">
-              <Button variant="outlined" onClick={() => setCreateModalOpen(false)}>
+              <Button
+                variant="outlined"
+                onClick={() => setCreateModalOpen(false)}
+                sx={{
+                  px: 4,
+                  borderColor: PRIMARY_COLOR,
+                  color: PRIMARY_COLOR,
+                  textTransform: "none",
+                  fontWeight: 600,
+                  "&:hover": {
+                    borderColor: PRIMARY_COLOR,
+                    backgroundColor: PRIMARY_LIGHT_BG,
+                  },
+                }}
+              >
                 Cancelar
               </Button>
               <Button
-                sx={{ backgroundColor: "#1e293b", color: "white" }}
+                sx={primaryButtonSx}
                 onClick={handleCreate}
                 disabled={!name}
               >
@@ -477,11 +521,21 @@ export default function TeamsPage() {
           description="Atualize informações ou veja os membros vinculados."
           footer={
             <div className="flex justify-between w-full">
-              <Button variant="outlined" color="error" onClick={handleDelete}>
+              <Button
+                variant="outlined"
+                color="error"
+                onClick={handleDelete}
+              >
                 Excluir
               </Button>
               <Button
-                sx={{ backgroundColor: "#1e293b", color: "white" }}
+                sx={{
+                  backgroundColor: PRIMARY_COLOR,
+                  color: "white",
+                  "&:hover": {
+                    backgroundColor: PRIMARY_LIGHT,
+                  },
+                }}
                 onClick={handleSave}
                 disabled={!editName}
               >
@@ -595,7 +649,15 @@ export default function TeamsPage() {
                           <Button
                             size="small"
                             variant="outlined"
-                            sx={{ textTransform: "none" }}
+                            sx={{
+                              textTransform: "none",
+                              borderColor: PRIMARY_COLOR,
+                              color: PRIMARY_COLOR,
+                              "&:hover": {
+                                borderColor: PRIMARY_COLOR,
+                                backgroundColor: PRIMARY_LIGHT_BG,
+                              },
+                            }}
                             onClick={() => handleMakeLeader(m)}
                           >
                             Tornar Líder

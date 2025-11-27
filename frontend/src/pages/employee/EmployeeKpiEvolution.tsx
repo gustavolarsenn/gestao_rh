@@ -23,6 +23,7 @@ import {
 } from "@/hooks/employee-kpi/useEmployeeKpiEvolutions";
 
 import { rateKPI } from "@/utils/rateKPI";
+import { PRIMARY_COLOR, PRIMARY_LIGHT, PRIMARY_LIGHT_BG, SECTION_BORDER_COLOR, primaryButtonSx } from '@/utils/utils';
 
 export default function EmployeeKpiEvolution() {
   const { listEmployeeKpis } = useEmployeeKpis();
@@ -266,11 +267,14 @@ export default function EmployeeKpiEvolution() {
               variant="outlined"
               sx={{
                 px: 4,
-                borderColor: "#1e293b",
-                color: "#1e293b",
+                borderColor: PRIMARY_COLOR,
+                color: PRIMARY_COLOR,
                 textTransform: "none",
                 fontWeight: 600,
-                ml: "auto",
+                "&:hover": {
+                  borderColor: PRIMARY_COLOR,
+                  backgroundColor: PRIMARY_LIGHT_BG,
+                },
               }}
               onClick={() => {
                 setFilterKpiId("");
@@ -375,8 +379,8 @@ export default function EmployeeKpiEvolution() {
                             variant="outlined"
                             size="small"
                             sx={{
-                              borderColor: "#C16E70",
-                              color: "#C16E70",
+                              borderColor: PRIMARY_COLOR,
+                              color: PRIMARY_COLOR,
                               textTransform: "none",
                             }}
                             onClick={(e) => {
@@ -534,7 +538,7 @@ export default function EmployeeKpiEvolution() {
             <Button
               onClick={handleSaveEvolution}
               disabled={loading || !achievedValueEvolution}
-              sx={{ backgroundColor: "#1e293b", color: "white" }}
+              sx={primaryButtonSx}
             >
               {loading ? "Salvando..." : "Salvar"}
             </Button>

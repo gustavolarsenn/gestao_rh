@@ -6,6 +6,12 @@ import Sidebar from "@/components/Sidebar";
 import EmployeeKpiReviewSection from "./components/EmployeeKpiReviewSection";
 import TeamKpiReviewSection from "./components/TeamKpiReviewSection";
 
+// Paleta unificada
+const PRIMARY_COLOR = "#0369a1";
+const PRIMARY_LIGHT = "#0ea5e9";
+const PRIMARY_LIGHT_BG = "#e0f2ff";
+const BORDER_COLOR = "#e2e8f0";
+
 export default function KpiReview() {
   const [tab, setTab] = useState(0);
 
@@ -31,7 +37,8 @@ export default function KpiReview() {
             p: 2,
             borderRadius: 3,
             backgroundColor: "#ffffff",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+            boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
+            border: `1px solid ${BORDER_COLOR}`,
             mb: 4,
           }}
         >
@@ -40,7 +47,9 @@ export default function KpiReview() {
             onChange={(_, newValue) => setTab(newValue)}
             sx={{
               "& .MuiTabs-indicator": {
-                backgroundColor: "#1e293b",
+                backgroundColor: PRIMARY_COLOR,
+                height: 3,
+                borderRadius: 999,
               },
             }}
             textColor="inherit"
@@ -49,16 +58,28 @@ export default function KpiReview() {
               label="KPIs de Funcionários"
               sx={{
                 fontWeight: 600,
-                color: "#1e293b",
-                "&.Mui-selected": { color: "#1e293b" },
+                textTransform: "none",
+                color: "#64748b",
+                "&.Mui-selected": {
+                  color: PRIMARY_COLOR,
+                },
+                "&:hover": {
+                  backgroundColor: PRIMARY_LIGHT_BG,
+                },
               }}
             />
             <Tab
               label="KPIs de Times"
               sx={{
                 fontWeight: 600,
-                color: "#1e293b",
-                "&.Mui-selected": { color: "#1e293b" },
+                textTransform: "none",
+                color: "#64748b",
+                "&.Mui-selected": {
+                  color: PRIMARY_COLOR,
+                },
+                "&:hover": {
+                  backgroundColor: PRIMARY_LIGHT_BG,
+                },
               }}
             />
           </Tabs>

@@ -36,6 +36,7 @@ import {
   isEqual,
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { PRIMARY_COLOR, PRIMARY_LIGHT, PRIMARY_LIGHT_BG, SECTION_BORDER_COLOR, primaryButtonSx } from '@/utils/utils';
 
 // ==========================
 // 💠 FUNÇÕES DE COR
@@ -325,13 +326,15 @@ export default function TeamKpisDashboard() {
             size="small"
             variant="outlined"
             sx={{
-              px: 3,
-              borderRadius: 2,
-              borderColor: "#1e293b",
-              color: "#1e293b",
+              px: 4,
+              borderColor: PRIMARY_COLOR,
+              color: PRIMARY_COLOR,
               textTransform: "none",
               fontWeight: 600,
-              "&:hover": { backgroundColor: "rgba(0,0,0,0.04)" },
+              "&:hover": {
+                borderColor: PRIMARY_COLOR,
+                backgroundColor: PRIMARY_LIGHT_BG,
+              },
             }}
             onClick={() => {
               setFilterStart("");
@@ -541,7 +544,8 @@ export default function TeamKpisDashboard() {
                 {
                   label: selectedKpi?.kpi?.name || "KPI",
                   data: aggregatedEvolutions.map((d) => d.value),
-                  color: "#3b82f6",
+                  // 🔹 ÚNICA MUDANÇA DE COR AQUI
+                  color: "#1e293b",
                 },
               ]}
               height={330}
