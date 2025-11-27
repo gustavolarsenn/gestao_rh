@@ -192,7 +192,6 @@ export default function CompanyPage() {
     setEditCities(cities.filter((c) => c.stateId === editStateId));
   }, [editStateId, cities]);
 
-  // ------------------- UI ------------------
   return (
     <div className="flex min-h-screen bg-[#f7f7f9]">
       <Sidebar />
@@ -212,7 +211,7 @@ export default function CompanyPage() {
             borderRadius: 3,
             backgroundColor: "#ffffff",
             boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
-            border: `1px solid ${SECTION_BORDER_COLOR}`, // borda igual aos cards/sidebar
+            border: `1px solid ${SECTION_BORDER_COLOR}`,
           }}
         >
           <Typography variant="h6" fontWeight={600} mb={3}>
