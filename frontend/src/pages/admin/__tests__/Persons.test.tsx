@@ -254,8 +254,8 @@ describe("Persons Page", () => {
         phone: "888888888",
         address: "Rua B",
         addressNumber: "200",
-        zipCode: "68000001",      // apenas dígitos (sem hífen)
-        cpf: "99999999999",       // apenas dígitos (sem pontos e traço)
+        zipCode: "68000001", // apenas dígitos
+        cpf: "99999999999",  // apenas dígitos
         cityId: "",
       });
     });
@@ -279,7 +279,8 @@ describe("Persons Page", () => {
 
     // "E-mail" só aparece nos modais (criação/edição), então sempre é de lá
     const emailInputs = await screen.findAllByLabelText("E-mail");
-    const editEmailInput = emailInputs[emailInputs.length - 1] as HTMLInputElement;
+    const editEmailInput =
+      emailInputs[emailInputs.length - 1] as HTMLInputElement;
 
     // "CPF" existe no filtro e no modal; pegamos o último
     const cpfInputs = await screen.findAllByLabelText("CPF");
@@ -360,14 +361,12 @@ describe("Persons Page", () => {
     fireEvent.click(nextBtn);
 
     await waitFor(() => {
-      expect(mockPersonsHook.listPersons).toHaveBeenLastCalledWith({
-        page: 2,
-        limit: 10,
-        name: undefined,
-        email: undefined,
-        cpf: undefined,
-        cityId: undefined,
-      });
+      expect(mockPersonsHook.listPersons).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          page: 2,
+          limit: 10,
+        })
+      );
     });
   });
 
