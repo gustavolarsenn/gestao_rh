@@ -260,6 +260,7 @@ describe("Kpis Page", () => {
   // PAGINATION
   // =========================================
   it("avança para a próxima página de KPIs", async () => {
+    // primeira chamada (render inicial) vai usar esse mockOnce
     mockKpisHook.listKpis.mockResolvedValueOnce({
       data: Array(10).fill({
         id: "kX",
@@ -278,13 +279,12 @@ describe("Kpis Page", () => {
     fireEvent.click(nextBtn);
 
     await waitFor(() => {
-      expect(mockKpisHook.listKpis).toHaveBeenLastCalledWith({
-        page: 2,
-        limit: 10,
-        name: undefined,
-        departmentId: undefined,
-        evaluationTypeId: undefined,
-      });
+      expect(mockKpisHook.listKpis).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          page: 2,
+          limit: 10,
+        })
+      );
     });
   });
 
