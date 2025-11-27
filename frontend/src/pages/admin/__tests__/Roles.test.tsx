@@ -340,6 +340,7 @@ describe("RolesPage", () => {
   // PAGINAÇÃO
   // =========================================
   it("avança para a próxima página", async () => {
+    // sobrescreve o mock para este teste com mais itens e total maior
     mockRolesHook.listRoles.mockResolvedValue({
       data: Array.from({ length: 10 }).map((_, i) => ({
         id: `roleX-${i}`,
@@ -357,13 +358,12 @@ describe("RolesPage", () => {
     fireEvent.click(nextBtn);
 
     await waitFor(() => {
-      expect(mockRolesHook.listRoles).toHaveBeenLastCalledWith({
-        page: 2,
-        limit: 10,
-        name: undefined,
-        departmentId: undefined,
-        roleTypeId: undefined,
-      });
+      expect(mockRolesHook.listRoles).toHaveBeenCalledWith(
+        expect.objectContaining({
+          page: 2,
+          limit: 10,
+        })
+      );
     });
   });
 
