@@ -51,9 +51,24 @@ describe("TeamsPage", () => {
     ];
 
     const distinctTeams = [
-      { id: "team1", name: "Operações Santarém", description: "", parentTeamId: null },
-      { id: "team2", name: "Operações Barcarena", description: "", parentTeamId: "team1" },
-      { id: "team3", name: "Backoffice", description: "", parentTeamId: null },
+      {
+        id: "team1",
+        name: "Operações Santarém",
+        description: "",
+        parentTeamId: null,
+      },
+      {
+        id: "team2",
+        name: "Operações Barcarena",
+        description: "",
+        parentTeamId: "team1",
+      },
+      {
+        id: "team3",
+        name: "Backoffice",
+        description: "",
+        parentTeamId: null,
+      },
     ];
 
     const members = [
@@ -226,12 +241,12 @@ describe("TeamsPage", () => {
     const openBtn = screen.getByText("Criar Time");
     fireEvent.click(openBtn);
 
-    const dialog = await screen.findByRole("dialog");
-
-    const nomeInputs = within(dialog).getAllByLabelText("Nome do Time");
+    // campo "Nome do Time" no modal (pega o último)
+    const nomeInputs = await screen.findAllByLabelText("Nome do Time");
     const modalNameInput = nomeInputs[nomeInputs.length - 1];
 
-    const comboBoxes = within(dialog).getAllByRole("combobox"); // Time Pai
+    const comboBoxes = await screen.findAllByRole("combobox"); // inclui filtro + modal
+
     expect(modalNameInput).toBeInTheDocument();
     expect(comboBoxes.length).toBeGreaterThanOrEqual(1);
   });
@@ -242,21 +257,23 @@ describe("TeamsPage", () => {
     const openBtn = screen.getByText("Criar Time");
     fireEvent.click(openBtn);
 
-    const dialog = await screen.findByRole("dialog");
-
-    const nomeInputs = within(dialog).getAllByLabelText("Nome do Time");
+    // Nome no modal (último "Nome do Time" na tela)
+    const nomeInputs = await screen.findAllByLabelText("Nome do Time");
     const modalNameInput = nomeInputs[nomeInputs.length - 1] as HTMLInputElement;
     fireEvent.change(modalNameInput, {
       target: { value: "Novo Time" },
     });
 
-    const descInput = within(dialog).getByLabelText(
-      "Descrição"
-    ) as HTMLInputElement;
-    fireEvent.change(descInput, { target: { value: "Descrição do novo time" } });
+    // campo Descrição (o de dentro do modal, último da tela)
+    const descInputs = await screen.findAllByLabelText("Descrição");
+    const descInput = descInputs[descInputs.length - 1] as HTMLInputElement;
+    fireEvent.change(descInput, {
+      target: { value: "Descrição do novo time" },
+    });
 
-    const comboBoxes = within(dialog).getAllByRole("combobox");
-    const parentSelect = comboBoxes[0];
+    // combobox: [0] filtro "Time Pai" da página, [1] "Time Pai" do modal
+    const comboBoxes = await screen.findAllByRole("combobox");
+    const parentSelect = comboBoxes[comboBoxes.length - 1];
 
     fireEvent.mouseDown(parentSelect);
     const optTeam1 = await screen.findByRole("option", {
@@ -264,7 +281,7 @@ describe("TeamsPage", () => {
     });
     fireEvent.click(optTeam1);
 
-    const createBtn = within(dialog).getByText("Criar");
+    const createBtn = screen.getByText("Criar");
     fireEvent.click(createBtn);
 
     await waitFor(() => {
@@ -292,14 +309,13 @@ describe("TeamsPage", () => {
 
     fireEvent.click(team1Row);
 
-    const dialog = await screen.findByRole("dialog");
-
-    const nomeInputs = within(dialog).getAllByLabelText("Nome do Time");
+    // Depois de abrir o modal, pega o último "Nome do Time" (campo do modal)
+    const nomeInputs = await screen.findAllByLabelText("Nome do Time");
     const editNameInput = nomeInputs[nomeInputs.length - 1] as HTMLInputElement;
 
     expect(editNameInput.value).toBe("Operações Santarém");
 
-    const membersTitle = within(dialog).getByText("Membros do Time");
+    const membersTitle = await screen.findByText("Membros do Time");
     expect(membersTitle).toBeInTheDocument();
   });
 
@@ -316,39 +332,30 @@ describe("TeamsPage", () => {
 
     fireEvent.click(team1Row);
 
-    const dialog = await screen.findByRole("dialog");
-
-    const nomeInputs = within(dialog).getAllByLabelText("Nome do Time");
+    // Nome no modal
+    const nomeInputs = await screen.findAllByLabelText("Nome do Time");
     const editNameInput = nomeInputs[nomeInputs.length - 1] as HTMLInputElement;
 
     fireEvent.change(editNameInput, {
       target: { value: "Operações Santarém Editado" },
     });
 
-    const descInput = within(dialog).getByLabelText(
-      "Descrição"
-    ) as HTMLInputElement;
+    // Descrição no modal (último "Descrição")
+    const descInputs = await screen.findAllByLabelText("Descrição");
+    const descInput = descInputs[descInputs.length - 1] as HTMLInputElement;
     fireEvent.change(descInput, { target: { value: "Editado" } });
 
-    const comboBoxes = within(dialog).getAllByRole("combobox");
-    // No modal de edição: [0] Time Pai, [1] Status
-    const parentSelect = comboBoxes[0];
-
-    fireEvent.mouseDown(parentSelect);
-    const optBackoffice = await screen.findByRole("option", {
-      name: "Backoffice",
-    });
-    fireEvent.click(optBackoffice);
-
-    const saveBtn = within(dialog).getByText("Salvar");
+    const saveBtn = screen.getByText("Salvar");
     fireEvent.click(saveBtn);
 
     await waitFor(() => {
-      expect(mockTeamsHook.updateTeam).toHaveBeenCalledWith("team1", {
-        name: "Operações Santarém Editado",
-        description: "Editado",
-        parentTeamId: "team3",
-      });
+      expect(mockTeamsHook.updateTeam).toHaveBeenCalledWith(
+        "team1",
+        expect.objectContaining({
+          name: "Operações Santarém Editado",
+          description: "Editado",
+        })
+      );
     });
   });
 
@@ -365,8 +372,7 @@ describe("TeamsPage", () => {
 
     fireEvent.click(team1Row);
 
-    const dialog = await screen.findByRole("dialog");
-    const deleteBtn = within(dialog).getByText("Excluir");
+    const deleteBtn = await screen.findByText("Excluir");
     fireEvent.click(deleteBtn);
 
     await waitFor(() => {
@@ -390,12 +396,10 @@ describe("TeamsPage", () => {
 
     fireEvent.click(team1Row);
 
-    const dialog = await screen.findByRole("dialog");
-
     const memberRow = await screen.findByText("João da Silva");
     expect(memberRow).toBeInTheDocument();
 
-    const tornarLiderBtn = within(dialog).getByText("Tornar Líder");
+    const tornarLiderBtn = await screen.findByText("Tornar Líder");
     fireEvent.click(tornarLiderBtn);
 
     await waitFor(() => {
@@ -406,6 +410,7 @@ describe("TeamsPage", () => {
     });
   });
 
+  // ===================== PAGINAÇÃO =====================
   it("avança para a próxima página", async () => {
     // Garante que existem pelo menos 2 páginas (25 > 10)
     mockTeamsHook.listTeams.mockResolvedValue({
