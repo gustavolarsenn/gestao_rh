@@ -254,8 +254,8 @@ describe("Persons Page", () => {
         phone: "888888888",
         address: "Rua B",
         addressNumber: "200",
-        zipCode: "68000-001",
-        cpf: "999.999.999-99",
+        zipCode: "68000001",      // apenas dígitos (sem hífen)
+        cpf: "99999999999",       // apenas dígitos (sem pontos e traço)
         cityId: "",
       });
     });

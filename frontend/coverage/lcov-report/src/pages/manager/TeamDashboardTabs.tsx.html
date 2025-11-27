@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/3</span>
+                <span class='fraction'>0/4</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/3</span>
+                <span class='fraction'>0/4</span>
             </div>
         
             
@@ -146,13 +146,16 @@
 <a name='L81'></a><a href='#L81'>81</a>
 <a name='L82'></a><a href='#L82'>82</a>
 <a name='L83'></a><a href='#L83'>83</a>
-<a name='L84'></a><a href='#L84'>84</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L84'></a><a href='#L84'>84</a>
+<a name='L85'></a><a href='#L85'>85</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -183,7 +186,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -229,13 +231,15 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { useState, useEffect } from "react";
-import { Box, Paper, Typography, Tabs, Tab, CircularProgress } from "@mui/material";
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { useState } from "react";
+import { Box, Paper, Typography, Tabs, Tab } from "@mui/material";
 import Sidebar from "@/components/Sidebar";
 import { motion } from "framer-motion";
 &nbsp;
 import TeamKpisDashboard from "./dashboard/TeamKPIDashboard";   // PARTE A
 import TeamMembersKpiDashboard from "./dashboard/TeamMembersKPIDashboard"; // PARTE B
+&nbsp;
+const PRIMARY_COLOR = <span class="cstat-no" title="statement not covered" >"#0369a1";</span>
 &nbsp;
 export default function <span class="fstat-no" title="function not covered" >TeamDashboardTabs() {</span>
   const [tab, setTab<span class="cstat-no" title="statement not covered" >] = useState(0);</span>
@@ -245,7 +249,6 @@ export default function <span class="fstat-no" title="function not covered" >Tea
       &lt;Sidebar /&gt;
 &nbsp;
       &lt;main className="flex-1 p-8"&gt;
-&nbsp;
         &lt;Typography
           variant="h4"
           fontWeight={700}
@@ -269,8 +272,8 @@ export default function <span class="fstat-no" title="function not covered" >Tea
             value={tab}
             onChange={<span class="fstat-no" title="function not covered" >(_</span>, newValue) =&gt; <span class="cstat-no" title="statement not covered" >setTab(newValue)}</span>
             sx={{
-              '&amp; .MuiTabs-indicator': {
-                backgroundColor: '#1e293b',
+              "&amp; .MuiTabs-indicator": {
+                backgroundColor: PRIMARY_COLOR,
               },
             }}
             textColor="inherit"
@@ -279,34 +282,34 @@ export default function <span class="fstat-no" title="function not covered" >Tea
               label="KPIs do Time"
               sx={{
                 fontWeight: 600,
-                color: '#1e293b',
-                '&amp;.Mui-selected': { color: '#1e293b' },
+                color: "#1e293b",
+                "&amp;.Mui-selected": { color: PRIMARY_COLOR },
               }}
             /&gt;
             &lt;Tab
               label="KPIs por Funcionário"
               sx={{
                 fontWeight: 600,
-                color: '#1e293b',
-                '&amp;.Mui-selected': { color: '#1e293b' },
+                color: "#1e293b",
+                "&amp;.Mui-selected": { color: PRIMARY_COLOR },
               }}
             /&gt;
           &lt;/Tabs&gt;
         &lt;/Paper&gt;
 &nbsp;
         &lt;motion.div
+          key={tab}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.2 }}
-          key={tab}
         &gt;
-        &lt;Box sx={{ display: tab === 0 ? "block" : "none" }}&gt;
-          &lt;TeamKpisDashboard /&gt;
-        &lt;/Box&gt;
+          &lt;Box sx={{ display: tab === 0 ? "block" : "none" }}&gt;
+            &lt;TeamKpisDashboard /&gt;
+          &lt;/Box&gt;
 &nbsp;
-        &lt;Box sx={{ display: tab === 1 ? "block" : "none" }}&gt;
-          &lt;TeamMembersKpiDashboard /&gt;
-        &lt;/Box&gt;
+          &lt;Box sx={{ display: tab === 1 ? "block" : "none" }}&gt;
+            &lt;TeamMembersKpiDashboard /&gt;
+          &lt;/Box&gt;
         &lt;/motion.div&gt;
       &lt;/main&gt;
     &lt;/div&gt;
@@ -319,7 +322,7 @@ export default function <span class="fstat-no" title="function not covered" >Tea
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-11-26T00:16:59.288Z
+                at 2025-11-27T17:36:06.547Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>
