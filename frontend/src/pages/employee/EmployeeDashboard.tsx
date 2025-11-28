@@ -17,7 +17,6 @@ import {
   MenuItem,
 } from "@mui/material";
 import { PieChart } from "@mui/x-charts/PieChart";
-import { LineChart } from "@mui/x-charts/LineChart";
 import { BaseModal } from "@/components/modals/BaseModal";
 
 import { useEmployeeKpis } from "@/hooks/employee-kpi/useEmployeeKpis";
@@ -45,9 +44,36 @@ import {
 } from "date-fns";
 
 import { ptBR } from "date-fns/locale";
-import { PRIMARY_COLOR, PRIMARY_LIGHT, PRIMARY_LIGHT_BG, SECTION_BORDER_COLOR, primaryButtonSx } from '@/utils/utils';
+import {
+  PRIMARY_COLOR,
+  PRIMARY_LIGHT,
+  PRIMARY_LIGHT_BG,
+  SECTION_BORDER_COLOR,
+  primaryButtonSx,
+} from "@/utils/utils";
 
-// 🎨 Cor por progresso
+import TrendingUpRoundedIcon from "@mui/icons-material/TrendingUpRounded";
+import TaskAltRoundedIcon from "@mui/icons-material/TaskAltRounded";
+import AccessTimeRoundedIcon from "@mui/icons-material/AccessTimeRounded";
+import TimelineRoundedIcon from "@mui/icons-material/TimelineRounded";
+import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
+import RadioButtonUncheckedRoundedIcon from "@mui/icons-material/RadioButtonUncheckedRounded";
+import ScheduleRoundedIcon from "@mui/icons-material/ScheduleRounded";
+
+// 👉 Recharts
+import {
+  ResponsiveContainer,
+  ComposedChart,
+  Line,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  Legend,
+} from "recharts";
+
+// 🎨 Cor por progresso (usado em outras partes)
 function colorByProgress(achieved: number, goal: number): string {
   if (!goal) return "#BDBDBD";
   const pct = (achieved / goal) * 100;
@@ -68,10 +94,8 @@ function getHeatColor(count: number): string {
 export default function EmployeeDashboard() {
   const { listEmployeeKpis } = useEmployeeKpis();
   const { listEmployeeKpiEvolutions } = useEmployeeKpiEvolutions();
-  const {
-    listPerformanceReviews,
-    createPerformanceReview,
-  } = usePerformanceReviews();
+  const { listPerformanceReviews, createPerformanceReview } =
+    usePerformanceReviews();
 
   const [loading, setLoading] = useState(true);
 
@@ -94,10 +118,6 @@ export default function EmployeeDashboard() {
   const [reviewPage, setReviewPage] = useState(1);
   const [reviewPageSize] = useState(5);
   const [reviewTotal, setReviewTotal] = useState(0);
-
-  const [reviewModalOpen, setReviewModalOpen] = useState(false);
-  const [reviewDate, setReviewDate] = useState("");
-  const [reviewObservation, setReviewObservation] = useState("");
 
   // 🔥 Carregar KPIs + Evoluções (ajustado para retorno paginado)
   useEffect(() => {
@@ -201,6 +221,27 @@ export default function EmployeeDashboard() {
     });
   }, [kpis, filterType, filterKpi, filterStart, filterEnd]);
 
+  // 🔥 KPIs ordenadas para a listagem (progresso > 0 primeiro)
+  const orderedKpisForList = useMemo(() => {
+    return filteredKpis
+      .slice()
+      .sort((a, b) => {
+        const achievedA = Number(a.achievedValue) || 0;
+        const goalA = Number(a.goal) || 0;
+        const pctA = goalA > 0 ? (achievedA / goalA) * 100 : 0;
+
+        const achievedB = Number(b.achievedValue) || 0;
+        const goalB = Number(b.goal) || 0;
+        const pctB = goalB > 0 ? (achievedB / goalB) * 100 : 0;
+
+        const hasA = pctA > 0 ? 1 : 0;
+        const hasB = pctB > 0 ? 1 : 0;
+
+        if (hasA !== hasB) return hasB - hasA;
+        return 0;
+      });
+  }, [filteredKpis]);
+
   // 🔥 Ajusta KPI selecionada automaticamente
   useEffect(() => {
     if (filterKpi) {
@@ -270,33 +311,49 @@ export default function EmployeeDashboard() {
     });
   }, [selectedEvols, selectedKpi]);
 
-  // 🔥 Linha (valores)
-  const lineData = useMemo(() => {
+  // 🔥 Evoluções ordenadas por data
+  const sortedAggregatedEvolutions = useMemo(() => {
     if (!aggregatedEvolutions.length) return [];
+    return aggregatedEvolutions
+      .slice()
+      .sort(
+        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+      );
+  }, [aggregatedEvolutions]);
 
-    const values = aggregatedEvolutions
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-      .map((d) => d.value);
+  // 🔥 Dados do gráfico (Recharts) — valor, média e meta
+  const chartData = useMemo(() => {
+    if (!sortedAggregatedEvolutions.length) return [];
 
+    const values = sortedAggregatedEvolutions.map((d) => Number(d.value) || 0);
     const avg = values.reduce((a, b) => a + b, 0) / values.length || 0;
+    const goal = Number(selectedKpi?.goal ?? 0);
 
-    return [
-      {
-        label: selectedKpi?.kpi?.name || "KPI",
-        data: values,
-        color: "#3b82f6",
-        showMark: true,
-      },
-      {
-        label: "Média",
-        data: Array(values.length).fill(avg),
-        color: "#9ca3af",
-        lineDash: [6, 4],
-      },
-    ];
-  }, [aggregatedEvolutions, selectedKpi]);
+    return sortedAggregatedEvolutions.map((d) => ({
+      date: d.date,
+      value: d.value,
+      avg,
+      goal: goal > 0 ? goal : undefined,
+    }));
+  }, [sortedAggregatedEvolutions, selectedKpi]);
 
-  const xAxisDates = aggregatedEvolutions.map((d) => d.date);
+  // 👉 Domínio do eixo Y: 0 até 10% acima do maior valor (meta, média ou progresso)
+  const yDomain = useMemo<[number, number]>(() => {
+    if (!chartData.length) return [0, 10];
+
+    let maxValue = 0;
+
+    chartData.forEach((d) => {
+      const v = Number(d.value ?? 0);
+      const a = Number(d.avg ?? 0);
+      const g = Number(d.goal ?? 0);
+      maxValue = Math.max(maxValue, v, a, g);
+    });
+
+    if (maxValue === 0) return [0, 10];
+
+    return [0, Math.ceil(maxValue * 1.1)]; // 10% acima do maior valor
+  }, [chartData]);
 
   // 🔥 Totais
   const total = filteredKpis.length;
@@ -377,13 +434,65 @@ export default function EmployeeDashboard() {
     )
   );
 
-  // 🔥 HANDLERS PERFORMANCE REVIEW
-  function handleOpenReviewModal() {
-    setReviewDate(format(new Date(), "yyyy-MM-dd"));
-    setReviewObservation("");
-    setReviewModalOpen(true);
-  }
+  // ============================================================
+  // 📊 MÉTRICAS PARA OS CARDS RESUMO
+  // ============================================================
+  const {
+    avgProgressPct,
+    completionPct,
+    avgDaysRemaining,
+    totalEvolutions,
+    lastFeedbackDateFormatted,
+  } = useMemo(() => {
+    const today = new Date();
 
+    let sumProgress = 0;
+    let kpisComPrazo = 0;
+    let somaDiasRestantes = 0;
+
+    filteredKpis.forEach((k) => {
+      const achieved = Number(k.achievedValue) || 0;
+      const goal = Number(k.goal) || 0;
+      const pct = goal > 0 ? Math.min((achieved / goal) * 100, 100) : 0;
+      sumProgress += pct;
+
+      if (k.periodEnd) {
+        const end = parseISO(k.periodEnd);
+        const diffMs = end.getTime() - today.getTime();
+        const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+        if (diffDays >= 0) {
+          somaDiasRestantes += diffDays;
+          kpisComPrazo += 1;
+        }
+      }
+    });
+
+    const avgProgressPctInner =
+      filteredKpis.length > 0 ? sumProgress / filteredKpis.length : 0;
+
+    const completionPctInner =
+      filteredKpis.length > 0
+        ? (counts.finalizados / filteredKpis.length) * 100
+        : 0;
+
+    const avgDaysRemainingInner =
+      kpisComPrazo > 0 ? Math.round(somaDiasRestantes / kpisComPrazo) : 0;
+
+    const totalEvolutionsInner = heatmapDays.length;
+
+    const lastFeedbackDateFormattedInner =
+      performanceReviews.length > 0
+        ? format(parseISO(performanceReviews[0].date), "dd/MM/yyyy")
+        : "-";
+
+    return {
+      avgProgressPct: avgProgressPctInner,
+      completionPct: completionPctInner,
+      avgDaysRemaining: avgDaysRemainingInner,
+      totalEvolutions: totalEvolutionsInner,
+      lastFeedbackDateFormatted: lastFeedbackDateFormattedInner,
+    };
+  }, [filteredKpis, counts.finalizados, heatmapDays, performanceReviews]);
 
   // 🔥 Loading
   if (loading) {
@@ -413,6 +522,198 @@ export default function EmployeeDashboard() {
         >
           Dashboard de Desempenho
         </Typography>
+
+        {/* ===================== CARDS RESUMO ===================== */}
+        <Box
+          display="grid"
+          gridTemplateColumns={{
+            xs: "1fr",
+            md: "repeat(4, minmax(0, 1fr))",
+          }}
+          gap={3}
+          mb={4}
+        >
+          {/* Card 1 – Performance Geral */}
+          <Paper
+            elevation={0}
+            sx={{
+              p: 3,
+              borderRadius: 3,
+              backgroundColor: "#ffffff",
+              border: `1px solid ${SECTION_BORDER_COLOR}`,
+              display: "flex",
+              flexDirection: "column",
+              gap: 1,
+            }}
+          >
+            <Box
+              display="flex"
+              justifyContent="space-between"
+              alignItems="center"
+            >
+              <Typography variant="subtitle2" color="text.secondary">
+                Performance Geral
+              </Typography>
+              <Box
+                sx={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: "50%",
+                  backgroundColor: PRIMARY_LIGHT_BG,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <TrendingUpRoundedIcon
+                  sx={{ fontSize: 22, color: PRIMARY_COLOR }}
+                />
+              </Box>
+            </Box>
+            <Typography variant="h4" fontWeight={700} color="#111827">
+              {avgProgressPct.toFixed(0)}%
+            </Typography>
+            <Typography variant="body2" color="success.main">
+              Média de conclusão das KPIs
+            </Typography>
+          </Paper>
+
+          {/* Card 2 – Metas Atingidas */}
+          <Paper
+            elevation={0}
+            sx={{
+              p: 3,
+              borderRadius: 3,
+              backgroundColor: "#ffffff",
+              border: `1px solid ${SECTION_BORDER_COLOR}`,
+              display: "flex",
+              flexDirection: "column",
+              gap: 1,
+            }}
+          >
+            <Box
+              display="flex"
+              justifyContent="space-between"
+              alignItems="center"
+            >
+              <Typography variant="subtitle2" color="text.secondary">
+                Metas Atingidas
+              </Typography>
+              <Box
+                sx={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: "50%",
+                  backgroundColor: PRIMARY_LIGHT_BG,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <TaskAltRoundedIcon
+                  sx={{ fontSize: 22, color: PRIMARY_COLOR }}
+                />
+              </Box>
+            </Box>
+            <Typography variant="h4" fontWeight={700} color="#111827">
+              {counts.finalizados}/{total || 0}
+            </Typography>
+            <Typography variant="body2" color="success.main">
+              {completionPct.toFixed(0)}% das KPIs concluídas
+            </Typography>
+          </Paper>
+
+          {/* Card 3 – Tempo Restante Médio */}
+          <Paper
+            elevation={0}
+            sx={{
+              p: 3,
+              borderRadius: 3,
+              backgroundColor: "#ffffff",
+              border: `1px solid ${SECTION_BORDER_COLOR}`,
+              display: "flex",
+              flexDirection: "column",
+              gap: 1,
+            }}
+          >
+            <Box
+              display="flex"
+              justifyContent="space-between"
+              alignItems="center"
+            >
+              <Typography variant="subtitle2" color="text.secondary">
+                Tempo Restante
+              </Typography>
+              <Box
+                sx={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: "50%",
+                  backgroundColor: PRIMARY_LIGHT_BG,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <AccessTimeRoundedIcon
+                  sx={{ fontSize: 22, color: PRIMARY_COLOR }}
+                />
+              </Box>
+            </Box>
+            <Typography variant="h4" fontWeight={700} color="#111827">
+              {avgDaysRemaining > 0 ? avgDaysRemaining : 0}d
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Prazo médio das KPIs em andamento
+            </Typography>
+          </Paper>
+
+          {/* Card 4 – Atividade & Feedbacks */}
+          <Paper
+            elevation={0}
+            sx={{
+              p: 3,
+              borderRadius: 3,
+              backgroundColor: "#ffffff",
+              border: `1px solid ${SECTION_BORDER_COLOR}`,
+              display: "flex",
+              flexDirection: "column",
+              gap: 1,
+            }}
+          >
+            <Box
+              display="flex"
+              justifyContent="space-between"
+              alignItems="center"
+            >
+              <Typography variant="subtitle2" color="text.secondary">
+                Atividade Recente
+              </Typography>
+              <Box
+                sx={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: "50%",
+                  backgroundColor: PRIMARY_LIGHT_BG,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <TimelineRoundedIcon
+                  sx={{ fontSize: 22, color: PRIMARY_COLOR }}
+                />
+              </Box>
+            </Box>
+            <Typography variant="h4" fontWeight={700} color="#111827">
+              {totalEvolutions}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Evoluções nos últimos 3 meses • último feedback em{" "}
+              {lastFeedbackDateFormatted}
+            </Typography>
+          </Paper>
+        </Box>
 
         {/* =====================   FILTROS   ===================== */}
         <Paper
@@ -461,10 +762,18 @@ export default function EmployeeDashboard() {
                 onChange={(e) => setFilterType(e.target.value)}
               >
                 <MenuItem value="">Todos</MenuItem>
-                <MenuItem value="HIGHER_BETTER_SUM">Maior melhor (SOMA)</MenuItem>
-                <MenuItem value="LOWER_BETTER_SUM">Menor melhor (SOMA)</MenuItem>
-                <MenuItem value="HIGHER_BETTER_PCT">Maior melhor (PCT)</MenuItem>
-                <MenuItem value="LOWER_BETTER_PCT">Menor melhor (PCT)</MenuItem>
+                <MenuItem value="HIGHER_BETTER_SUM">
+                  Maior melhor (SOMA)
+                </MenuItem>
+                <MenuItem value="LOWER_BETTER_SUM">
+                  Menor melhor (SOMA)
+                </MenuItem>
+                <MenuItem value="HIGHER_BETTER_PCT">
+                  Maior melhor (PCT)
+                </MenuItem>
+                <MenuItem value="LOWER_BETTER_PCT">
+                  Menor melhor (PCT)
+                </MenuItem>
                 <MenuItem value="BINARY">Binário</MenuItem>
               </Select>
             </FormControl>
@@ -511,219 +820,452 @@ export default function EmployeeDashboard() {
           </Box>
         </Paper>
 
-        {/* ==================== LINHA 1 ==================== */}
-        <Box display="flex" gap={3} mb={4} flexWrap="nowrap">
-          {/* PIE */}
+        {/* ==================== LINHA 1: METAS + (ATIVIDADE ACIMA DE FEEDBACKS) ==================== */}
+        <Box
+          display="flex"
+          gap={3}
+          mb={4}
+          flexWrap="nowrap"
+          alignItems="stretch"
+        >
+          {/* METAS / PROGRESSO POR KPI */}
           <Paper
             elevation={0}
             sx={{
-              flexBasis: "calc(30% - 16px)",
+              flex: "0 0 50%",
               p: 4,
               borderRadius: 3,
               backgroundColor: "#ffffff",
               boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
               transition: ".2s",
               "&:hover": { boxShadow: "0 4px 16px rgba(0,0,0,0.08)" },
+              display: "flex",
+              flexDirection: "column",
             }}
           >
-            <Typography variant="h6" fontWeight={600} mb={2}>
-              Status das KPIs
+            <Typography variant="h6" fontWeight={600}>
+              Metas {new Date().getFullYear()}
+            </Typography>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ mb: 3, mt: 0.5 }}
+            >
+              Objetivos e progresso
             </Typography>
 
-            <Box sx={{ position: "relative", width: 300, height: 300 }}>
-              <PieChart
-                series={[
-                  {
-                    data: [
-                      {
-                        id: 0,
-                        value: counts.naoIniciados,
-                        label: "Não iniciadas",
-                        color: "#FF6B6B",
-                      },
-                      {
-                        id: 1,
-                        value: counts.iniciados,
-                        label: "Em andamento",
-                        color: "#FFC260",
-                      },
-                      {
-                        id: 2,
-                        value: counts.finalizados,
-                        label: "Concluídas",
-                        color: "#6FCF97",
-                      },
-                    ],
-                    innerRadius: 80,
-                    outerRadius: 100,
-                  },
-                ]}
-                width={300}
-                height={300}
-              />
-
-              <Box
-                sx={{
-                  position: "absolute",
-                  top: "52%",
-                  left: "50%",
-                  transform: "translate(-50%, -60%)",
-                  textAlign: "center",
-                  pointerEvents: "none",
-                }}
+            {orderedKpisForList.length === 0 ? (
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mt: 1 }}
               >
-                <Typography
-                  variant="h4"
-                  fontWeight={700}
-                  color="#1e293b"
-                  lineHeight={1}
-                >
-                  {total}
-                </Typography>
-                <Typography variant="caption" color="#6b7280" fontWeight={500}>
-                  KPIs
-                </Typography>
-              </Box>
-            </Box>
-          </Paper>
-
-          {/* PROGRESSO */}
-          <Paper
-            elevation={0}
-            sx={{
-              flexBasis: "calc(40% - 16px)",
-              p: 4,
-              borderRadius: 3,
-              backgroundColor: "#ffffff",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-              transition: ".2s",
-              "&:hover": { boxShadow: "0 4px 16px rgba(0,0,0,0.08)" },
-            }}
-          >
-            <Typography variant="h6" fontWeight={600} mb={3}>
-              Progresso por KPI
-            </Typography>
-
-            <Box display="flex" flexDirection="column" gap={2}>
-              {filteredKpis.map((k) => {
-                const achieved = Number(k.achievedValue) || 0;
-                const goal = Number(k.goal) || 0;
-                const pct = goal > 0 ? Math.min((achieved / goal) * 100, 100) : 0;
-                const color = colorByProgress(achieved, goal);
-
-                return (
-                  <Box key={k.id}>
-                    <Box display="flex" justifyContent="space-between" mb={0.5}>
-                      <Typography variant="body1" fontWeight={600}>
-                        {k.kpi?.name || "KPI"}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {`${achieved} / ${goal} (${pct.toFixed(0)}%)`}
-                      </Typography>
-                    </Box>
-
-                    <LinearProgress
-                      variant="determinate"
-                      value={pct}
-                      sx={{
-                        height: 12,
-                        borderRadius: 6,
-                        backgroundColor: "#e5e7eb",
-                        "& .MuiLinearProgress-bar": {
-                          background: `linear-gradient(90deg, ${color}, ${color}dd)`,
-                          borderRadius: 6,
-                        },
-                      }}
-                    />
-                  </Box>
-                );
-              })}
-            </Box>
-          </Paper>
-
-          {/* HEATMAP */}
-          <Paper
-            elevation={0}
-            sx={{
-              flexBasis: "calc(30% - 16px)",
-              p: 4,
-              borderRadius: 3,
-              backgroundColor: "#ffffff",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-              transition: ".2s",
-              "&:hover": { boxShadow: "0 4px 16px rgba(0,0,0,0.08)" },
-            }}
-          >
-            <Typography variant="h6" fontWeight={600} mb={8}>
-              Atividade (3 meses)
-            </Typography>
-
-            <Box display="flex" justifyContent="center" gap={8} mb={1}>
-              {monthsLabels.map((m, i) => (
-                <Typography key={`${m}-${i}`} variant="caption" fontWeight={600}>
-                  {m}
-                </Typography>
-              ))}
-            </Box>
-
-            <Box display="flex" gap={0.5}>
+                Nenhuma KPI encontrada com os filtros aplicados.
+              </Typography>
+            ) : (
               <Box
                 display="flex"
                 flexDirection="column"
-                justifyContent="space-between"
-                mr={1}
+                gap={2.5}
+                sx={{
+                  flex: 1,
+                  maxHeight: 420,
+                  overflowY: "auto",
+                  scrollbarWidth: "thin",
+                  scrollbarColor: `${PRIMARY_COLOR} transparent`,
+                  "&::-webkit-scrollbar": {
+                    width: "8px",
+                  },
+                  "&::-webkit-scrollbar-track": {
+                    background: "transparent",
+                  },
+                  "&::-webkit-scrollbar-thumb": {
+                    backgroundColor: PRIMARY_COLOR,
+                    borderRadius: "4px",
+                  },
+                  pr: 1,
+                }}
               >
-                {["D", "S", "T", "Qa", "Qi", "Sx", "Sa"].map((d, index) => (
+                {orderedKpisForList.map((k) => {
+                  const achieved = Number(k.achievedValue) || 0;
+                  const goal = Number(k.goal) || 0;
+                  const pct =
+                    goal > 0 ? Math.min((achieved / goal) * 100, 100) : 0;
+
+                  const deadline = k.periodEnd
+                    ? format(parseISO(k.periodEnd), "dd/MM/yyyy")
+                    : "-";
+
+                  let statusLabel = "Pendente";
+                  let statusBg = "#F3F4F6";
+                  let statusColor = "#4B5563";
+                  let StatusIcon: any = RadioButtonUncheckedRoundedIcon;
+                  let iconColor = "#9CA3AF";
+
+                  if (pct === 0) {
+                    statusLabel = "Pendente";
+                    statusBg = "#F3F4F6";
+                    statusColor = "#4B5563";
+                    StatusIcon = RadioButtonUncheckedRoundedIcon;
+                    iconColor = "#9CA3AF";
+                  } else if (k.status === "APPROVED") {
+                    statusLabel = "Concluída";
+                    statusBg = "#FEF3C7";
+                    statusColor = "#92400E";
+                    StatusIcon = CheckCircleRoundedIcon;
+                    iconColor = "#22C55E";
+                  } else if (k.status === "SUBMITTED") {
+                    statusLabel = "Em andamento";
+                    statusBg = "#E0ECFF";
+                    statusColor = "#1D4ED8";
+                    StatusIcon = ScheduleRoundedIcon;
+                    iconColor = PRIMARY_COLOR;
+                  }
+
+                  return (
+                    <Box
+                      key={k.id}
+                      sx={{
+                        p: 2.5,
+                        borderRadius: 2.5,
+                        border: "1px solid #e5e7eb",
+                        backgroundColor: "#ffffff",
+                        boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
+                      }}
+                    >
+                      <Box
+                        display="flex"
+                        alignItems="flex-start"
+                        gap={2}
+                        mb={1.5}
+                      >
+                        <Box sx={{ mt: 0.3 }}>
+                          <StatusIcon
+                            sx={{ fontSize: 26, color: iconColor }}
+                          />
+                        </Box>
+
+                        <Box flex={1}>
+                          <Typography
+                            variant="subtitle1"
+                            fontWeight={600}
+                            color="#111827"
+                          >
+                            {k.kpi?.name || "KPI"}
+                          </Typography>
+
+                          <Box
+                            display="flex"
+                            alignItems="center"
+                            flexWrap="wrap"
+                            gap={1.5}
+                            mt={0.75}
+                          >
+                            <Box
+                              sx={{
+                                px: 1.6,
+                                py: 0.4,
+                                borderRadius: 999,
+                                fontSize: 12,
+                                fontWeight: 600,
+                                backgroundColor: statusBg,
+                                color: statusColor,
+                              }}
+                            >
+                              {statusLabel}
+                            </Box>
+
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
+                              Prazo: {deadline}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </Box>
+
+                      <Box mt={0.5}>
+                        <Box
+                          display="flex"
+                          justifyContent="space-between"
+                          mb={0.5}
+                        >
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            fontWeight={500}
+                          >
+                            Progresso (real/meta)
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            fontWeight={600}
+                          >
+                            {`${achieved} / ${goal} (${pct.toFixed(0)}%)`}
+                          </Typography>
+                        </Box>
+
+                        <LinearProgress
+                          variant="determinate"
+                          value={pct}
+                          sx={{
+                            height: 8,
+                            borderRadius: 999,
+                            backgroundColor: "#edf2f7",
+                            "& .MuiLinearProgress-bar": {
+                              backgroundColor: PRIMARY_COLOR,
+                              borderRadius: 999,
+                            },
+                          }}
+                        />
+                      </Box>
+                    </Box>
+                  );
+                })}
+              </Box>
+            )}
+          </Paper>
+
+          {/* COLUNA DIREITA: ATIVIDADE EM CIMA, FEEDBACKS EMBAIXO */}
+          <Box
+            sx={{
+              flex: "calc(50% - 16px)",
+              display: "flex",
+              flexDirection: "column",
+              gap: 3,
+            }}
+          >
+            {/* HEATMAP / ATIVIDADE */}
+            <Paper
+              elevation={0}
+              sx={{
+                flex: 1,
+                p: 4,
+                borderRadius: 3,
+                backgroundColor: "#ffffff",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+                transition: ".2s",
+                "&:hover": { boxShadow: "0 4px 16px rgba(0,0,0,0.08)" },
+              }}
+            >
+              <Typography variant="h6" fontWeight={600} mb={4}>
+                Atividade (3 meses)
+              </Typography>
+
+              <Box display="flex" justifyContent="center" mb={2}>
+                {monthsLabels.map((m, i) => (
                   <Typography
-                    key={`${d}-${index}`}
+                    key={`${m}-${i}`}
                     variant="caption"
-                    color="#6b7280"
+                    fontWeight={600}
+                    sx={{ mx: 2 }}
                   >
-                    {d}
+                    {m}
                   </Typography>
                 ))}
               </Box>
 
-              <Box display="flex" gap={0.5}>
-                {weeks.map((week, wi) => (
-                  <Box key={wi} display="flex" flexDirection="column" gap={0.5}>
-                    {week.map((d, di) => (
-                      <Tooltip
-                        key={`${wi}-${di}`}
-                        title={`${format(d.day, "dd/MM")}: ${d.count} evolução${
-                          d.count !== 1 ? "es" : ""
-                        }`}
+              {/* Heatmap centralizado */}
+              <Box display="flex" justifyContent="center">
+                <Box display="flex" gap={1} sx={{ mx: "auto" }}>
+                  <Box
+                    display="flex"
+                    flexDirection="column"
+                    justifyContent="space-between"
+                    mr={1}
+                  >
+                    {["D", "S", "T", "Qa", "Qi", "Sx", "Sa"].map(
+                      (d, index) => (
+                        <Typography
+                          key={`${d}-${index}`}
+                          variant="caption"
+                          color="#6b7280"
+                        >
+                          {d}
+                        </Typography>
+                      )
+                    )}
+                  </Box>
+
+                  <Box display="flex" gap={0.75}>
+                    {weeks.map((week, wi) => (
+                      <Box
+                        key={wi}
+                        display="flex"
+                        flexDirection="column"
+                        gap={0.75}
                       >
-                        <Box
-                          sx={{
-                            width: 20,
-                            height: 20,
-                            borderRadius: 4,
-                            backgroundColor: getHeatColor(d.count),
-                            opacity: isSameMonth(d.day, new Date()) ? 1 : 0.4,
-                            transition: "0.2s",
-                            "&:hover": {
-                              transform: "scale(1.15)",
-                              opacity: 1,
-                            },
-                          }}
-                        />
-                      </Tooltip>
+                        {week.map((d, di) => (
+                          <Tooltip
+                            key={`${wi}-${di}`}
+                            title={`${format(
+                              d.day,
+                              "dd/MM"
+                            )}: ${d.count} evolução${
+                              d.count !== 1 ? "es" : ""
+                            }`}
+                          >
+                            <Box
+                              sx={{
+                                width: 22,
+                                height: 22,
+                                borderRadius: 4,
+                                backgroundColor: getHeatColor(d.count),
+                                opacity: isSameMonth(d.day, new Date())
+                                  ? 1
+                                  : 0.4,
+                                transition: "0.2s",
+                                "&:hover": {
+                                  transform: "scale(1.15)",
+                                  opacity: 1,
+                                },
+                              }}
+                            />
+                          </Tooltip>
+                        ))}
+                      </Box>
                     ))}
                   </Box>
-                ))}
+                </Box>
               </Box>
-            </Box>
-          </Paper>
+            </Paper>
+
+            {/* FEEDBACKS */}
+            <Paper
+              elevation={0}
+              sx={{
+                flex: "0 0 auto",
+                p: 4,
+                borderRadius: 3,
+                backgroundColor: "#ffffff",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                transition: ".2s",
+                "&:hover": { boxShadow: "0 4px 16px rgba(0,0,0,0.12)" },
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
+              <Box
+                display="flex"
+                justifyContent="space-between"
+                alignItems="center"
+                mb={2}
+              >
+                <Typography variant="h6" fontWeight={700}>
+                  Feedbacks
+                </Typography>
+              </Box>
+
+              <Paper
+                elevation={0}
+                sx={{
+                  borderRadius: 2,
+                  border: "1px solid #e5e7eb",
+                  flex: 1,
+                  overflow: "hidden",
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+              >
+                <div style={{ flex: 1, overflowY: "auto" }}>
+                  <table className="w-full text-sm border-collapse">
+                    <thead>
+                      <tr className="bg-gray-50">
+                        <th className="text-left px-3 py-2 font-semibold text-gray-700">
+                          Data
+                        </th>
+                        <th className="text-left px-3 py-2 font-semibold text-gray-700">
+                          Observação
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {loadingReviews ? (
+                        <tr>
+                          <td
+                            colSpan={2}
+                            className="px-3 py-4 text-center text-gray-500"
+                          >
+                            Carregando avaliações...
+                          </td>
+                        </tr>
+                      ) : performanceReviews.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan={2}
+                            className="px-3 py-4 text-center text-gray-500"
+                          >
+                            Nenhuma performance review registrada.
+                          </td>
+                        </tr>
+                      ) : (
+                        performanceReviews.map((r) => (
+                          <tr key={r.id} className="border-t">
+                            <td className="px-3 py-2">
+                              {format(parseISO(r.date), "dd/MM/yyyy")}
+                            </td>
+                            <td className="px-3 py-2">{r.observation}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Paginação */}
+                <Box
+                  sx={{
+                    borderTop: "1px solid #e5e7eb",
+                    px: 2,
+                    py: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <Typography variant="caption" color="text.secondary">
+                    Página {reviewPage} de {totalReviewPages} — {reviewTotal}{" "}
+                    registro(s)
+                  </Typography>
+
+                  <Box display="flex" gap={1}>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      disabled={reviewPage <= 1}
+                      onClick={() => setReviewPage((p) => Math.max(1, p - 1))}
+                      sx={{ textTransform: "none" }}
+                    >
+                      Anterior
+                    </Button>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      disabled={reviewPage >= totalReviewPages}
+                      onClick={() =>
+                        setReviewPage((p) =>
+                          Math.min(totalReviewPages, p + 1)
+                        )
+                      }
+                      sx={{ textTransform: "none" }}
+                    >
+                      Próxima
+                    </Button>
+                  </Box>
+                </Box>
+              </Paper>
+            </Paper>
+          </Box>
         </Box>
 
-        {/* ==================== LINHA 2 — GRÁFICO (60%) + TABELA (40%) ==================== */}
-        <Box display="flex" gap={3}>
-          {/* ESQUERDA: GRÁFICO */}
+        {/* ==================== LINHA 2 — GRÁFICO ESTICADO ==================== */}
+        <Box>
           <Paper
             elevation={0}
             sx={{
-              flex: "0 0 60%",
+              width: "100%",
               p: 4,
               borderRadius: 3,
               backgroundColor: "#ffffff",
@@ -744,17 +1286,17 @@ export default function EmployeeDashboard() {
                   onClick={() => setSelectedKpiId(k.id)}
                   sx={{
                     textTransform: "none",
-                    borderRadius: 8,
+                    borderRadius: 3,
                     fontWeight: 600,
                     px: 2.5,
-                    borderColor: "#1e293b",
-                    color: selectedKpiId === k.id ? "white" : "#1e293b",
+                    borderColor: PRIMARY_COLOR,
+                    color: selectedKpiId === k.id ? "white" : PRIMARY_COLOR,
                     backgroundColor:
-                      selectedKpiId === k.id ? "#1e293b" : "transparent",
+                      selectedKpiId === k.id ? PRIMARY_COLOR : "transparent",
                     "&:hover": {
                       backgroundColor:
                         selectedKpiId === k.id
-                          ? "#334155"
+                          ? PRIMARY_COLOR
                           : "rgba(0,0,0,0.04)",
                     },
                   }}
@@ -764,159 +1306,80 @@ export default function EmployeeDashboard() {
               ))}
             </Box>
 
-            {aggregatedEvolutions.length > 0 ? (
+            {sortedAggregatedEvolutions.length > 0 ? (
               <Box sx={{ width: "100%", height: 360 }}>
-                <LineChart
-                  xAxis={[
-                    {
-                      data: xAxisDates,
-                      scaleType: "point",
-                      label: "Data",
-                    },
-                  ]}
-                  series={lineData}
-                  height={340}
-                  margin={{ left: 40, right: 20, top: 30, bottom: 40 }}
-                  sx={{
-                    width: "100%",
-                    "& .MuiChartsAxis-line": {
-                      stroke: "#cbd5e1",
-                      strokeWidth: 0.4,
-                    },
-                    "& .MuiChartsGrid-line": {
-                      stroke: "#e2e8f0",
-                      strokeWidth: 0.3,
-                    },
-                  }}
-                />
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart
+                    data={chartData}
+                    margin={{ left: 40, right: 20, top: 20, bottom: 30 }}
+                  >
+                    <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="date"
+                      tickFormatter={(value) =>
+                        format(new Date(value as string), "dd-MMM", {
+                          locale: ptBR,
+                        })
+                      }
+                      tick={{ fontSize: 12, fill: "#4b5563" }}
+                    />
+                    <YAxis
+                      domain={yDomain}
+                      tick={{ fontSize: 12, fill: "#4b5563" }}
+                      tickLine={{ stroke: "#cbd5e1" }}
+                    />
+                    <RechartsTooltip
+                      labelFormatter={(value) =>
+                        format(new Date(value as string), "dd/MM/yyyy", {
+                          locale: ptBR,
+                        })
+                      }
+                    />
+                    <Legend />
+
+                    {/* Área preenchida da linha de progresso */}
+                    <Area
+                      type="monotone"
+                      dataKey="value"
+                      stroke="#3b82f6"
+                      fill="#3b82f6"
+                      fillOpacity={0.22}
+                      strokeWidth={2}
+                      name="Progresso"
+                      dot={true}
+                    />
+
+                    {/* Linha da média */}
+                    <Line
+                      type="monotone"
+                      dataKey="avg"
+                      name="Média"
+                      stroke="#9ca3af"
+                      strokeWidth={2}
+                      strokeDasharray="6 4"
+                      dot={false}
+                    />
+
+                    {/* Linha da meta (se existir) */}
+                    {Number(selectedKpi?.goal ?? 0) > 0 && (
+                      <Line
+                        type="monotone"
+                        dataKey="goal"
+                        name="Meta"
+                        stroke="#f97316"
+                        strokeWidth={2}
+                        strokeDasharray="4 4"
+                        dot={false}
+                      />
+                    )}
+                  </ComposedChart>
+                </ResponsiveContainer>
               </Box>
             ) : (
               <Typography color="text.secondary" textAlign="center" mt={2}>
                 Nenhuma evolução registrada para esta KPI no período filtrado.
               </Typography>
             )}
-          </Paper>
-
-          {/* DIREITA: TABELA DE PERFORMANCE REVIEWS */}
-          <Paper
-            elevation={0}
-            sx={{
-              flex: "0 0 40%",
-              p: 4,
-              borderRadius: 3,
-              backgroundColor: "#ffffff",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-              transition: ".2s",
-              "&:hover": { boxShadow: "0 4px 16px rgba(0,0,0,0.12)" },
-            }}
-          >
-            <Box
-              display="flex"
-              justifyContent="space-between"
-              alignItems="center"
-              mb={2}
-            >
-              <Typography variant="h6" fontWeight={700}>
-                Feedbacks
-              </Typography>
-            </Box>
-
-            <Paper
-              elevation={0}
-              sx={{
-                borderRadius: 2,
-                border: "1px solid #e5e7eb",
-                maxHeight: 320,
-                overflow: "hidden",
-                display: "flex",
-                flexDirection: "column",
-              }}
-            >
-              <div style={{ flex: 1, overflowY: "auto" }}>
-                <table className="w-full text-sm border-collapse">
-                  <thead>
-                    <tr className="bg-gray-50">
-                      <th className="text-left px-3 py-2 font-semibold text-gray-700">
-                        Data
-                      </th>
-                      <th className="text-left px-3 py-2 font-semibold text-gray-700">
-                        Observação
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {loadingReviews ? (
-                      <tr>
-                        <td
-                          colSpan={2}
-                          className="px-3 py-4 text-center text-gray-500"
-                        >
-                          Carregando avaliações...
-                        </td>
-                      </tr>
-                    ) : performanceReviews.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan={2}
-                          className="px-3 py-4 text-center text-gray-500"
-                        >
-                          Nenhuma performance review registrada.
-                        </td>
-                      </tr>
-                    ) : (
-                      performanceReviews.map((r) => (
-                        <tr key={r.id} className="border-t">
-                          <td className="px-3 py-2">
-                            {format(parseISO(r.date), "dd/MM/yyyy")}
-                          </td>
-                          <td className="px-3 py-2">{r.observation}</td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Paginação */}
-              <Box
-                sx={{
-                  borderTop: "1px solid #e5e7eb",
-                  px: 2,
-                  py: 1,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                }}
-              >
-                <Typography variant="caption" color="text.secondary">
-                  Página {reviewPage} de {totalReviewPages} — {reviewTotal}{" "}
-                  registro(s)
-                </Typography>
-
-                <Box display="flex" gap={1}>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    disabled={reviewPage <= 1}
-                    onClick={() => setReviewPage((p) => Math.max(1, p - 1))}
-                    sx={{ textTransform: "none" }}
-                  >
-                    Anterior
-                  </Button>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    disabled={reviewPage >= totalReviewPages}
-                    onClick={() =>
-                      setReviewPage((p) => Math.min(totalReviewPages, p + 1))
-                    }
-                    sx={{ textTransform: "none" }}
-                  >
-                    Próxima
-                  </Button>
-                </Box>
-              </Box>
-            </Paper>
           </Paper>
         </Box>
       </main>
