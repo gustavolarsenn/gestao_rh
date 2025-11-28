@@ -1,429 +1,179 @@
-# Sistema de Análise de Performance Organizacional (SaaS)
+# OrgKPI – Sistema de Análise de Performance Organizacional (SaaS)
 
-## Capa
-* Título do Projeto: Sistema de Análise de Performance Organizacional.
-* Nome do Estudante: Gustavo William Larsen.
-* Curso: Engenharia de Software.
-* Data de Entrega: A definir.
-  
-## Resumo
-O presente trabalho propõe o desenvolvimento de um Sistema de Análise de Performance Organizacional baseado no modelo SaaS (Software as a Service), visando a otimização da administração de funcionários, equipes e desempenho organizacional. O sistema permitirá o controle hierárquico das equipes em uma estrutura de árvore, a gestão de desempenho individual e coletivo, a administração de salários e planos de carreira, bem como a geração de métricas de avaliação. Além disso, incluirá a funcionalidade de exportação da estrutura organizacional e a separação por filiais. O sistema contará com um módulo avançado de gestão de performance, onde será possível definir e acompanhar KPIs, avaliar desempenho em níveis individuais, de equipe e organizacional, além de gerar dashboards dinâmicos para análise de resultados.
+<img width="1280" height="200" alt="OrgKPI - GitHub Banner" src="https://github.com/user-attachments/assets/8257248b-0f03-4208-9b9d-17b77319eb9d" />
+
+
+> Plataforma SaaS para gestão de colaboradores, equipes, hierarquia organizacional, KPIs e performance em múltiplos níveis (individual, equipe e organização).
 
 ---
 
-## 1. Introdução
+## Badges
 
-### Contexto
-A gestão de recursos humanos em grandes empresas pode ser complexa, especialmente no que se refere ao controle de hierarquias, desempenho e crescimento profissional dos colaboradores. A tecnologia SaaS se tornará uma solução viável para empresas que buscam digitalizar e otimizar processos administrativos.
-
-### Justificativa
-A criação de um sistema SaaS para análise de performance organizacional possibilita maior eficiência, acessibilidade e integração de dados organizacionais. Empresas de diferentes portes podem se beneficiar da flexibilidade e da centralização das informações em um único ambiente. Além disso, um sistema robusto de gestão de performance permite a otimização dos processos de avaliação de colaboradores, facilitando tomadas de decisão estratégicas baseadas em dados.
-
-### Objetivos
-
-#### Objetivo Geral
-Desenvolver um sistema SaaS que otimize o processo de análise de performance organizacional com base em KPIs personalizados, permitindo avaliações eficazes em múltiplos níveis (individual, equipe e empresa), para subsidiar decisões estratégicas e promover a evolução profissional dentro das organizações.
-
-#### Objetivos Específicos
-1. Estruturar a gestão de funcionários e equipes por meio de uma representação hierárquica em árvore;
-2. Implementar funcionalidades para avaliação de desempenho individual e coletivo, associadas à gestão salarial e evolução de carreira;
-3. Permitir a definição, acompanhamento e personalização de KPIs para cada colaborador, equipe e unidade organizacional;
-4. Desenvolver dashboards interativos com gráficos e relatórios dinâmicos para a análise da performance em tempo real;
-5. Implementar recursos de exportação da estrutura organizacional e separação por filiais para empresas com múltiplas unidades.
+![Status](https://img.shields.io/badge/status-Finalizado-green)
+![Type](https://img.shields.io/badge/type-SaaS-blue)
+![Frontend](https://img.shields.io/badge/frontend-React%20%2B%20TypeScript-61dafb)
+![Backend](https://img.shields.io/badge/backend-NestJS-red)
+![Database](https://img.shields.io/badge/database-PostgreSQL-316192)
+![Infra](https://img.shields.io/badge/infra-Azure-informational)
 
 ---
 
-## 2.1. Descrição do Projeto
+## Índice
 
-### Tema do Projeto
-O sistema proposto será um software em nuvem para gestão de recursos humanos, permitindo o gerenciamento de funcionários e equipes de maneira eficiente e estruturada.
-
-### Problemas a Resolver
-- Falta de um sistema unificado para controle de desempenho e crescimento profissional;
-- Permitir a extração de relatórios organizacionais;
-- Ausência de um meio eficiente para administrar unidades organizacionais separadas;
-- Falta de ferramentas para definir e monitorar KPIs;
-- Dificuldade na geração de dashboards e relatórios de análise de performance.
-
-## 2.2. Modelo de KPIs
-
-Para garantir um sistema robusto e adaptável à realidade de diferentes organizações, a solução proposta permite a definição e o acompanhamento de KPIs de forma flexível, considerando:
-
-### Tipos distintos de avaliação:
-
-* Quanto maior, melhor (ex.: bugs corrigidos, funcionalidades entregues, cobertura de testes, contribuição para documentação);
-
-* Quanto menor, melhor (ex.: bugs encontrados pós entrega, velocidade para resolução de problemas);
-
-* Binário (sim/não) (ex.: cursos relacionados a área, certificados).
-
-### Origem da população dos KPIs:
-
-* Preenchidos manualmente por gestores (ex.: relacionados ao sistema, como bugs, horas dedicadas);
-
-* Preenchidos pelos próprios colaboradores, sujeitos a aprovação (ex.: cursos realizados, certificados).
-
-### Aplicação hierárquica:
-
-* KPIs individuais (por colaborador);
-
-* KPIs de equipe (controlados pelo gestor);
-
-* KPIs do gestor (pessoais através de feedbacks de liderados, e baseados na performance da equipe).
+1. [Descrição do Projeto](#descrição-do-projeto)  
+2. [Funcionalidades e Demonstração da Aplicação](#funcionalidades-e-demonstração-da-aplicação)
+3. [Acesso ao Projeto](#-acesso-ao-projeto)  
+   - [Pré-requisitos](#pré-requisitos)  
+   - [Clonando o repositório](#clonando-o-repositório)  
+   - [Executando com Node (dev)](#executando-com-node-dev)  
+   - [Executando com Docker](#executando-com-docker)  
+4. [Tecnologias Utilizadas](#tecnologias-utilizadas)
+   - [Frontend](#frontend)
+   - [Backend](#backend)
+   - [Infra e Monitoramento](#infra-e-monitoramento)
+5. [Desenvolvedores do Projeto](#desenvolvedores-do-projeto)  
 
 ---
 
-## 3 Especificações Técnicas
+## Descrição do Projeto
 
-Esta seção apresenta os detalhes técnicos envolvidos no desenvolvimento do Sistema de Análise de Performance Organizacional. São descritos os requisitos funcionais e não funcionais do sistema, as decisões de design adotadas, a arquitetura proposta e a stack tecnológica utilizada. O objetivo é documentar de forma clara os fundamentos técnicos que orientarão a implementação da solução, garantindo alinhamento com os objetivos do projeto e viabilidade de desenvolvimento.
+O **OrgKPI** é um sistema de **Análise de Performance Organizacional** no modelo **SaaS**, voltado para áreas de RH e gestores que precisam acompanhar desempenho, carreira e estrutura organizacional de forma integrada.
 
-## 3.1. Requisitos de Software
+A aplicação permite:
 
-### Requisitos Funcionais (RF)
+- Modelar a organização em **estrutura de árvore**, conectando colaboradores, gestores, equipes, filiais e unidades organizacionais.:contentReference[oaicite:1]{index=1}  
+- Definir e acompanhar **KPIs personalizados** em múltiplos níveis (colaborador, equipe e organização).  
+- Registrar **avaliações de desempenho** individuais e coletivas.  
+- Apoiar **planos de carreira**, evolução profissional e gestão salarial.  
+- Disponibilizar **dashboards dinâmicos** com gráficos e indicadores para suporte à tomada de decisão.  
+- Separar e analisar dados por **filiais/unidades**, mantendo uma visão consolidada da empresa.
 
-* RF01: O sistema deve permitir a gestão de funcionários.
+A solução é pensada para ser:
 
-* RF02: O sistema deve permitir a criação e gestão de equipes em estrutura hierárquica de árvore.
-
-* RF03: O sistema deve registrar avaliações de desempenho para funcionários e equipes.
-
-* RF04: O sistema deve permitir gerenciar planos de carreira dos colaboradores.
-  
-* RF05: O sistema deve permitir a definição e acompanhamento de KPIs individuais, de equipe e organizacionais.
-
-* RF06: O sistema deve permitir a exportação da árvore hierárquica.
-
-* RF07: O sistema deve permitir gerenciar múltiplas filiais.
-
-* RF08: O sistema deve permitir a definição de KPIs personalizados para cada colaborador e equipe.
-
-* RF09: O sistema deve permitir a geração de dashboards dinâmicos para análise de desempenho.
-
-* RF10: O sistema deve permitir o cadastro de tipos de avaliação de KPIs (maior melhor, menor melhor, binário).
-
-* RF11: O sistema deve permitir a definição da origem do preenchimento dos KPIs (gestor, colaborador).
-
-* RF12: O sistema deve permitir a criação de workflow de aprovação para KPIs preenchidos por colaboradores.
-
-* RF13: O sistema deve permitir a definição KPIs específicos para gestores, tanto individuais quanto da equipe sob sua responsabilidade.
-
-* RF14: O sistema deve gerar uma interface para acompanhamento histórico dos KPIs por período.
-  
-* RF16: O sistema deve permitir a avaliação do gestor por parte dos colaboradores
-
-
-### Requisitos Não Funcionais (RNF)
-
-* RNF01: O sistema deve ser disponibilizado como SaaS, acessível via navegador web sem necessidade de instalação local.
-
-* RNF02: O sistema deve ser responsivo e adaptável a diferentes dispositivos (desktop, tablet, smartphone).
-
-* RNF03: O sistema deve garantir a segurança dos dados com criptografia de senhas e comunicações (HTTPS).
-
-* RNF04: O tempo de resposta para qualquer requisição de dados não deve ultrapassar 2 segundos em condições normais de operação.
-
-* RNF05: A plataforma deve ter alta disponibilidade (uptime superior a 99,5%).
-
-* RNF06: O sistema deve realizar backups automáticos do banco de dados ao menos uma vez ao dia.
-
-* RNF07: O sistema deve disponibilizar acesso via autenticação segura (login e senha, suporte a OAuth).
+- **Multi-nível** (RH, Gestor de Equipe, Colaborador)  
+- **Data-driven**, com decisões guiadas por métricas de performance  
+- **Acessível via navegador**, seguindo o modelo SaaS
 
 ---
 
-### Diagrama de Caso de Uso
+## Funcionalidades e Demonstração da Aplicação
 
-#### Gerenciar funcionários (RH)
+### Funcionalidades Principais
 
-![image](https://github.com/user-attachments/assets/27dd9ee0-4634-4ad8-b9f2-090aa276898d)
+- **Gestão de Colaboradores**
+  - Cadastro e atualização de dados pessoais
+  - Associação a cargos, equipes e filiais
+  - Registro de remuneração e histórico de carreira
 
-#### Gerenciar carreiras (RH)
+- **Estrutura Organizacional**
+  - Árvore hierárquica de equipes e gestores
+  - Separação por filiais/unidades
+  - Exportação da estrutura organizacional
 
-![image](https://github.com/user-attachments/assets/1f28f7d9-849d-49e2-8cf5-e0e15cf368a7)
+- **Gestão de KPIs**
+  - KPIs individuais, de equipe e organizacionais
+  - Tipos de KPI: _quanto maior melhor_, _quanto menor melhor_, _binário_  
+  - Workflow de aprovação para KPIs preenchidos pelo colaborador
+  - Histórico de KPIs por período
 
-#### Gerenciar estrutura organizacional (RH)
+- **Avaliação de Desempenho**
+  - Registro de avaliações de colaboradores e equipes
+  - Avaliação de gestores com base na performance da equipe e feedback dos liderados
+  - Visualização da evolução de desempenho ao longo do tempo
 
-![image](https://github.com/user-attachments/assets/6ff3792e-67e4-471d-a547-c61fa38fe031)
+- **Dashboards e Relatórios**
+  - Dashboards interativos construídos com **Recharts**
+  - Visualização de KPIs em tempo real
+  - Filtros por período, equipe, funcionário e KPI
 
-#### Definir KPIs de colaborador (Gestor de Equipe)
-
-![image](https://github.com/user-attachments/assets/6f90dfd5-0c0d-426e-adb3-f6cb4412018c)
-
-#### Avaliar preenchimento de KPI feito pelo colaborador (Gestor de Equipe)
-
-![image](https://github.com/user-attachments/assets/8ac86cd7-06dd-4ae1-8af8-1d114d54a14b)
-
-#### Preencher KPI (Colaborador)
-
-![image](https://github.com/user-attachments/assets/8fae9f99-da8f-42c6-91df-f40a5a9c500a)
-
-## 3.2. Considerações de Design
-
-### Discussão sobre as Escolhas de Design
-O projeto adotará uma arquitetura monolítica, centralizando toda a aplicação em uma única base de código e banco de dados.
-Essa escolha foi feita visando a simplicidade de desenvolvimento, facilidade de integração inicial e manutenção de um sistema coeso.
-
-#### Alternativas Consideradas:
-
-* Microserviços: Embora escaláveis, microserviços foram descartados nesta fase pela complexidade adicional de deploy, orquestração e comunicação entre serviços.
-
-#### Justificativas para as Decisões:
-
-* Facilidade de Desenvolvimento: Trabalho em um único repositório, com integração contínua simples.
-
-* Desempenho Inicial: Em ambientes com baixa quantidade de usuários e dados, o monolito apresenta boa performance.
-
-* Custo de Deploy: Um servidor é suficiente para hospedar toda a aplicação (frontend + backend).
-
-### Visão Inicial da Arquitetura
-
-#### Componentes principais:
-
-* Frontend: Desenvolvido com React e Nest.js, as páginas dinâmicas serão renderizadas no lado do servidor para otimização de SEO e desempenho. O gerenciamento de estado será feito utilizando React.
-
-* Backend: As API Routes do Nest.js servirão como endpoints para CRUD das entidades de RH, incluindo funcionários, equipes, KPIs e avaliações de desempenho.
-
-* Banco de Dados: O PostgreSQL será usado para armazenar dados estruturados como funcionários, salários, desempenho e metas, hospedado em uma solução como Railway ou Neon (para garantir um banco gratuito e fácil de usar).
-
-* Integração com Frontend: O Nest.js consumirá as APIs diretamente, com uso de SSR (Server Side Rendering) ou SSG (Static Site Generation) para gerar as páginas de maneira eficiente.
-
-Fluxo básico: Usuário → Frontend → Backend → Banco de Dados
-
-#### Todo o backend será responsável por:
-
-* Gerenciamento de usuários e permissões
-
-* Controle de hierarquia de equipes
-
-* Avaliação de desempenho e KPIs
-
-* Exportação de estrutura organizacional
-
-### Padrões de Arquitetura
-
-* Monolito Modularizado: Código organizado em módulos/layers lógicas (Controller, Service, Repository).
-
-* MVC (Model-View-Controller): Organização da aplicação backend em três camadas:
-
-* Model: Representação dos dados (Entidades)
-
-* View: APIs e respostas JSON
-
-* Controller: Intermediação entre View e Model
-
-* RESTful APIs: Para comunicação frontend-backend.
-
-* Repositórios de Dados: Implementação de acesso ao banco de dados separada da lógica de negócio.
-
-### Modelos C4
-
-
-
-
-#### Contexto:
-
-![Modelo C4 Contexto - Sistema de Análise de Performance Organizacional](https://github.com/user-attachments/assets/ce39ef4f-0157-48ba-b6db-4c40480f4f4d)
-
-#### Componentes:
-
-![Modelo C4 Componentes - Sistema de Análise de Performance Organizacional](https://github.com/user-attachments/assets/4b7512e6-232c-479d-a6e2-2d22087abd0e)
+- **Segurança e Auditoria**
+  - Autenticação com JWT  
+  - Controle de acesso baseado em papéis (RBAC)  
+  - Logs de auditoria (Grafana Loki)  
 
 ---
 
-## 3.3. Stack Tecnológica
+## 🔗 Acesso ao Projeto
 
-### Linguagens de Programação
+### Pré-requisitos
 
-#### JavaScript/TypeScript (Frontend e Backend):
+- **Node.js** LTS (recomendado ≥ 18.x)  
+- **npm** ou **yarn**  
+- **Docker** e **Docker Compose** (opcional, para subir tudo containerizado)  
+- Conta/instância PostgreSQL (local, em contêiner ou Azure)
 
-Justificativa: O JavaScript é a linguagem de programação padrão para desenvolvimento web e, com o uso do Next.js, é possível utilizar JavaScript tanto no frontend quanto no backend. A escolha por TypeScript no lugar de JavaScript para o backend oferece benefícios de tipagem estática, o que ajuda a detectar erros em tempo de desenvolvimento e torna o código mais fácil de manter e escalar.
+### Clonando o repositório
 
-### Frameworks e Bibliotecas
+```bash
+git clone https://github.com/gustavolarsenn/gestao_rh.git
+cd gestao_rh
+```
 
-#### Nest.js (Backend):
+#### Executando com Node (dev)
 
-Justificativa: O NestJS é um framework Node.js para construção de aplicações backend escaláveis, eficientes e de fácil manutenção Também promove uma estrutura organizada com suporte nativo a injeção de dependências, criação de módulos, controladores e serviços. Ele facilita a implementação de APIs REST e GraphQL, integra-se facilmente com bibliotecas como Prisma.
+```bash
+cd backend
+npm install
 
-#### React.js (Frontend):
+cp .env.example .env.development
+# edite .env com credenciais do PostgreSQL, JWT_SECRET, etc.
 
-Justificativa: O React é uma biblioteca de interface de usuário amplamente utilizada para construir interfaces de usuário interativas. Ele é a base do Next.js e será utilizado para criar os componentes da interface web, possibilitando uma experiência de usuário dinâmica e responsiva.
+# rodar migrations (TypeORM)
+npm run migrations:create
+npm run migrations:gen
+npm run migrations:run
 
-#### Prisma (ORM para PostgreSQL):
+# subir API em modo desenvolvimento
+npm run start:dev
 
-Justificativa: O Prisma é um ORM moderno que simplifica a interação com o banco de dados relacional, neste caso, o PostgreSQL. Ele proporciona uma camada de abstração sobre o SQL, facilitando operações de CRUD (criação, leitura, atualização, exclusão) e melhorando a produtividade e a segurança.
+cd frontend
+npm install
 
-#### PostgreSQL (Banco de Dados Relacional):
+npm run dev
+```
 
-Justificativa: O PostgreSQL é um banco de dados relacional poderoso e altamente confiável, adequado para armazenar dados estruturados, como informações de funcionários, equipes, avaliações de desempenho e KPIs. Sua flexibilidade e robustez garantem que o sistema possa crescer sem perder desempenho.
+#### Executando com docker
 
-#### Prisma Migrate (Migrations para Banco de Dados):
+```bash
+cd backend
 
-Justificativa: O Prisma Migrate será utilizado para gerenciar as migrações de banco de dados, permitindo versionamento de esquemas e simplificando o processo de alteração e atualização do banco de dados ao longo do desenvolvimento.
+cp .env.example .env.development
+# edite .env com credenciais do PostgreSQL, JWT_SECRET, etc.
 
-#### Chart.js/D3.js (Visualização de Dados - Dashboards):
-
-Justificativa: Chart.js e D3.js são bibliotecas poderosas para visualização de dados. Serão utilizadas para construir os dashboards interativos que exibirão as métricas e KPIs de desempenho, possibilitando análises detalhadas de funcionários e equipes.
-
-### Ferramentas de Desenvolvimento e Gestão de Projeto
-
-#### VSCode (Editor de Código):
-
-Justificativa: O VSCode é uma das IDEs mais populares, oferecendo suporte completo para JavaScript, TypeScript, React, Next.js e Prisma. Ele também tem integração com Git, o que facilita o versionamento e o gerenciamento do código.
-
-#### Git/GitHub (Controle de Versão e Colaboração):
-
-Justificativa: O Git é a ferramenta padrão para controle de versão, e o GitHub será utilizado para hospedar o repositório, facilitando a colaboração e o versionamento do código ao longo do desenvolvimento.
-
-#### GitHub Actions (CI/CD): 
-
-Justificativa: Ferramenta de CI/CD integrada ao GitHub para automatizar os fluxos de integração e entrega contínuos. Com o GitHub Actions, é possível configurar pipelines para automação de testes, deploy e verificação de qualidade de código.
-
-#### Docker (Containerização):
-
-Justificativa: O Docker será utilizado para containerizar a aplicação, o que facilita a criação de ambientes consistentes e a implantação do sistema em diferentes servidores e plataformas. Isso também ajuda no isolamento do ambiente de desenvolvimento e produção.
-
-#### Railway ou Neon (Banco de Dados Relacional Online):
-
-Justificativa: O Railway e o Neon são soluções de banco de dados relacional na nuvem com planos gratuitos que oferecem PostgreSQL. Essas plataformas são ideais para projetos de pequeno porte ou desenvolvimento de TCC, pois permitem começar sem custos e escalar conforme a necessidade.
-
-#### Jest (Testes Unitários e de Integração):
-
-Justificativa: O Jest é um framework de testes JavaScript utilizado para escrever testes unitários e de integração. Ele garantirá que o sistema esteja funcionando conforme o esperado e ajudará a evitar regressões no código durante o desenvolvimento.
-
-#### Postman (Testes de API):
-
-Justificativa: O Postman será utilizado para testar as APIs desenvolvidas no Next.js. Ele permite simular requisições HTTP, verificar respostas e garantir que as integrações com o banco de dados e outros componentes estão funcionando corretamente.
-
-#### Figma (Design e Prototipagem):
-
-Justificativa: O Figma será utilizado para criar protótipos da interface de usuário (UI), garantindo que o design da aplicação seja bem planejado e alinhado com as necessidades do usuário. Ele permite colaboração em tempo real, o que é útil para equipes de desenvolvimento e design.
-
-#### Railway/Neon para Deploy (Hospedagem):
-
-Justificativa: Como solução de banco de dados online gratuito, o Railway ou o Neon será utilizado para hospedar o banco de dados PostgreSQL. Essas plataformas fornecem escalabilidade e são adequadas para projetos de pequeno porte.
-
-#### Jira (Gestão de projetos): 
-
-Justificativa: Ferramenta de gestão de projetos utilizada para acompanhar o progresso do desenvolvimento, planejar sprints e gerenciar tarefas. O Jira será usado para criar e acompanhar as histórias de usuários, tarefas e bugs ao longo do desenvolvimento do projeto.
-
+NODE_ENV=development \
+VITE_API_URL=http://localhost:3000/api \
+docker compose up --build
+```
 ---
 
-## 3.4. Considerações de Segurança
+## Tecnologias Utilizadas
 
-Ao desenvolver um sistema de gestão de recursos humanos (RH), é crucial implementar medidas de segurança para proteger os dados sensíveis dos colaboradores e a integridade do sistema. Abaixo estão algumas das principais questões de segurança que devem ser consideradas, junto com as estratégias para mitigá-las.
+### Frontend
+- React com TypeScript
+- Vite
+- Recharts (gráficos e dashboards)
+- Material UI (componentes de interface)
+- Hooks customizados e Context API
 
-### Proteção contra Ataques de Autenticação
+### Backend
+- **NestJS** (Node.js framework)
+- **TypeScript**
+- **TypeORM** (ORM + migrations)
+- **PostgreSQL** (Azure / VPS)
+- **JWT** (autenticação e autorização)
+- **Docker** (containerização)
+- **Jest** (testes unitários e de integração)
 
-#### Problema: 
+### Infra e Monitoramento
+- **Azure VPS** (hospedagem da aplicação e Banco de Dados)
+- **GitHub** + **GitHub Actions** (CI/CD)
+- **Prometheus** + **Grafana** (métricas e dashboards de monitoramento)
+- **Grafana Loki** (centralização de logs)
+- **SonarCloud** (Qualidade de Código e Análise Estática)
+- **Jira** (gestão de projeto e sprints)
+- **Postman** (tests de API)
+- **VS Code** (IDE principal)
 
-A autenticação inadequada pode permitir que usuários não autorizados acessem o sistema.
+## Desenvolvedores do Projeto
 
-#### Mitigação:
-
-Autenticação com JWT (JSON Web Tokens): Utilizar JWT para autenticação e OAuth para delegação de autorização. A utilização de tokens de curto prazo (expiração) e renovação automática (refresh tokens) ajuda a prevenir o uso indevido de tokens expirados.
-
-Autenticação Multifatorial (MFA): Implementar autenticação multifatorial para aumentar a segurança no login dos usuários.
-
-Proteção de Senhas: Utilizar uma política de senhas fortes (mínimo de caracteres, mistura de letras, números e caracteres especiais) e armazená-las de forma segura utilizando hashing com bcrypt.
-
-### Exposição de Dados Sensíveis
-
-#### Problema: 
-
-Armazenamento ou transmissão de dados sensíveis, como informações pessoais dos funcionários, sem criptografia pode expor o sistema a vazamentos de dados.
-
-#### Mitigação:
-
-Criptografia de Dados: Utilizar HTTPS (TLS/SSL) para criptografar a comunicação entre o cliente e o servidor, garantindo que dados como senhas e informações pessoais não sejam transmitidos em texto claro.
-
-Criptografia de Dados em Repouso: Armazenar dados sensíveis (como senhas, documentos e informações financeiras) em formato criptografado no banco de dados, utilizando algoritmos robustos como AES.
-
-### Controle de Acesso e Privilégios
-
-#### Problema: 
-
-A concessão inadequada de permissões pode resultar em escalonamento de privilégios e acesso indevido aos dados.
-
-#### Mitigação:
-
-Princípio do Menor Privilégio: Implementar um controle de acesso baseado em funções (RBAC - Role-Based Access Control). Apenas usuários com os privilégios adequados devem ter acesso a informações sensíveis ou realizar ações específicas no sistema.
-
-Revisão de Permissões: Realizar auditorias regulares e revisões de permissões de usuários para garantir que apenas pessoas autorizadas tenham acesso a determinadas funcionalidades.
-
----
-
-## 4. Próximos Passos
-
-#### Validação da Proposta de Sistema
-
-Apresentar as primeiras versões do documento, arquitetura e requisitos para os professores ou orientadores do TCC, a fim de garantir que todos os conceitos e ideias estão alinhados com as expectativas acadêmicas.
-
-#### Revisões e Ajustes nos Documentos
-   
-Revisão contínua do documento: Realizar revisões periódicas no documento, melhorando a clareza e a coerência das ideias, com base no feedback recebido.
-
-Refinamento da documentação técnica: Refinar a descrição dos requisitos, arquitetura e decisões de design para garantir que o documento esteja pronto para a aprovação.
-
-#### Aprovação Formal
-
-Obter a assinatura do orientador ou professores responsáveis para validar o projeto, certificando que todas as etapas teóricas foram corretamente cumpridas.
-
-#### Planejamento para Portfólio II
-Planejamento do desenvolvimento: Com o Portfólio I validado, criar um plano detalhado para a fase de desenvolvimento do sistema no Portfólio II, com definição de sprints, tarefas, e metas.
-
-Estruturação do cronograma de implementação: Planejar as entregas e marcos principais da fase de implementação (Portfólio II), considerando prazos acadêmicos e exigências do curso.
-
----
-
-### 5. Referências
-
-### Frameworks e Bibliotecas
-
-[Next.js](https://nextjs.org/): Framework para desenvolvimento full-stack com React.
-
-[React.js](https://reactjs.org/): Biblioteca para construção de interfaces de usuário dinâmicas.
-
-[Prisma ORM](https://www.prisma.io/): ORM para interação segura com o banco de dados PostgreSQL.
-
-[JWT (JSON Web Token)](https://jwt.io/): Para autenticação e autorização segura.
-
-[Chart.js](https://www.chartjs.org/) / [D3.js](https://d3js.org/): Bibliotecas para visualização de dados e geração de gráficos interativos.
-
-[Material UI](https://mui.com/): Biblioteca de componentes React para interfaces consistentes e responsivas.
-
-[bcrypt](https://www.npmjs.com/package/bcrypt): Biblioteca para hashing de senhas.
-
-[Docker](https://www.docker.com/): Para containerização e simplificação de ambientes de desenvolvimento e produção.
-
-### Ferramentas de Desenvolvimento e Gestão
-
-[GitHub Actions](https://docs.github.com/en/actions): Para CI/CD (Integração Contínua e Entrega Contínua).
-
-[Jira](https://www.atlassian.com/software/jira): Para gestão de projetos e controle de tarefas.
-
-[VS Code](https://code.visualstudio.com/): Editor de código utilizado para o desenvolvimento.
-
-[PostgreSQL](https://www.postgresql.org/): Banco de dados relacional para o armazenamento de dados.
-
-[Railway](https://railway.app/): Para o deploy do sistema na nuvem em ambiente de produção e banco de dados relacional gratuito.
-
-[Neon](https://neon.tech/): Banco de dados relacional gratuito.
-
-[Postman](https://www.postman.com/): Para testes de API e controle de requisições HTTP.
-
-### Documentação e Referências
-
-[Documentação oficial do Next.js](https://nextjs.org/docs): Para o desenvolvimento de aplicações full-stack.
-
-[Prisma Documentation](https://www.prisma.io/docs/): Para entender como implementar o ORM e fazer consultas seguras.
-
-[JWT.io](https://jwt.io/): Para entender como implementar autenticação segura com JWT.
-
-[Chart.js Documentation](https://www.chartjs.org/docs/latest/): Para aprender como criar gráficos e dashboards dinâmicos.
-
-### Artigos Acadêmicos
-
-(2022). Effectiveness of Human Resource Information System on HR Functions of an Organization. Management Dynamics. [https://managementdynamics.researchcommons.org/journal/vol15/iss2/6/](https://managementdynamics.researchcommons.org/journal/vol15/iss2/6/).
-
-Boon, C., Hartog, D., & Lepak, D. (2019). A Systematic Review of Human Resource Management Systems and Their Measurement. Journal of Management, 45, 2498 - 2537. [https://journals.sagepub.com/doi/10.1177/0149206318818718](https://journals.sagepub.com/doi/10.1177/0149206318818718).
-
-Chalisa, R., & Prawitasari, D. (2024). Analysis of Employee Performance Indicators Using the Human Resource Scorecard Approach and Analytical Hierarchy Process. Jurnal Ilmiah Manajemen Kesatuan. [https://jurnal.ibik.ac.id/index.php/jimkes/article/view/2391](https://jurnal.ibik.ac.id/index.php/jimkes/article/view/2391).
+- **Gustavo William Larsen** – Idealização, arquitetura, backend, frontend e documentação.
