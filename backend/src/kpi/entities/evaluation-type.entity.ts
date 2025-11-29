@@ -1,4 +1,4 @@
-import { Entity, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, Column, ManyToOne, JoinColumn, Unique } from 'typeorm';
 import { TenantBaseEntity } from '../../common/entities/tenant-base-entity';
 import { Company } from '../../org/entities/company.entity';
 import { Department } from '../../org/entities/department.entity';
@@ -12,8 +12,9 @@ export enum EvaluationCode {
 }
 
 @Entity('evaluation_types')
+@Unique(['companyId', 'code', 'name', 'departmentId'])
 export class EvaluationType extends TenantBaseEntity {
-  @Column({ unique: true }) name!: string;
+  @Column() name!: string;
   @Column({ type: 'enum', enum: EvaluationCode }) code!: EvaluationCode;
   @Column({ type: 'text', nullable: true }) description?: string | null;
   @Column({ nullable: true }) departmentId?: string;

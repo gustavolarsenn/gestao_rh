@@ -42,8 +42,11 @@ export function applyScope<
     case 'gestor':
       if (options.company) where.companyId = user.companyId;
       if (options.team) {
-        if (entity === 'team') where.id = user.teamId;
-        else where.teamId = user.teamId;
+        if (entity === 'team') {
+          where.parentTeamId = user.teamId
+        } else if (entity === 'performanceReview') {
+          where.leaderId = user.employeeId;
+        } else where.teamId = user.teamId;
       }
       if (options.department){
         if (entity === 'department') where.id = user.departmentId;
@@ -52,6 +55,11 @@ export function applyScope<
       break;
 
     case 'usuario':
+      if (options.team) {
+        if (entity === 'performanceReview') {
+          where.employeeId = user.employeeId;
+        }
+      }
       if (options.company) where.companyId = user.companyId;
       if (options.employee) where.employeeId = user.employeeId;
       break;

@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+/* quando estiver exportando, esconda os botões, mas sem quebrar o layout */
+.org-exporting .org-toggle-btn,
+.org-exporting .org-export-btn {
+  visibility: hidden; /* mantém o espaço ocupado, não desalinha nada */
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

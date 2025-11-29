@@ -4,20 +4,32 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/auth/useAuth";
 import { useNavigate } from "react-router-dom";
+import { api } from "@/lib/api";
 import orgkpiLogo from "@/assets/orgkpi.png";
 
+type Mode = "login" | "forgot";
+
 export default function LoginPage() {
+  const [mode, setMode] = useState<Mode>("login");
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
 
   const { login } = useAuth();
   const navigate = useNavigate();
 
+  const resetMessages = () => {
+    setError("");
+    setSuccess("");
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    resetMessages();
     setLoading(true);
 
     try {
@@ -31,6 +43,38 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRecover = async (e: React.FormEvent) => {
+    e.preventDefault();
+    resetMessages();
+    setLoading(true);
+
+    try {
+      await api.post("/auth/forgot-password", { email }); // ajuste a rota se necessário
+
+      setSuccess(
+        "Se o e-mail estiver cadastrado, você receberá um link para redefinir sua senha."
+      );
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.message ||
+          "Não foi possível enviar o link de recuperação. Tente novamente."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const goToForgot = () => {
+    resetMessages();
+    setMode("forgot");
+  };
+
+  const goToLogin = () => {
+    resetMessages();
+    setPassword("");
+    setMode("login");
   };
 
   return (
@@ -79,64 +123,120 @@ export default function LoginPage() {
         >
           <div className="flex flex-col items-center mb-6">
             <h2 className="text-2xl font-semibold text-slate-900">
-              Bem-vindo de volta
+              {mode === "login" ? "Bem-vindo de volta" : "Recuperar acesso"}
             </h2>
-            <p className="text-sm text-slate-500 mt-1">
-              Acesse o painel para acompanhar seus KPIs e equipes.
+            <p className="text-sm text-slate-500 mt-1 text-center">
+              {mode === "login"
+                ? "Acesse o painel para acompanhar seus KPIs e equipes."
+                : "Informe o e-mail cadastrado para enviarmos um link de redefinição de senha."}
             </p>
           </div>
 
-          <form onSubmit={handleLogin} className="flex flex-col gap-5">
-            <div className="flex flex-col">
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                E-mail
-              </label>
-              <Input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="seuemail@empresa.com"
-                className="border-slate-300 focus-visible:ring-[#0369a1] focus-visible:border-[#0369a1] text-sm"
-                required
-              />
-            </div>
+          {mode === "login" ? (
+            <form onSubmit={handleLogin} className="flex flex-col gap-5">
+              <div className="flex flex-col">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  E-mail
+                </label>
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="seuemail@empresa.com"
+                  className="border-slate-300 focus-visible:ring-[#0369a1] focus-visible:border-[#0369a1] text-sm"
+                  required
+                />
+              </div>
 
-            <div className="flex flex-col">
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Senha
-              </label>
-              <Input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="********"
-                className="border-slate-300 focus-visible:ring-[#0369a1] focus-visible:border-[#0369a1] text-sm"
-                required
-              />
-            </div>
+              <div className="flex flex-col">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Senha
+                </label>
+                <Input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="********"
+                  className="border-slate-300 focus-visible:ring-[#0369a1] focus-visible:border-[#0369a1] text-sm"
+                  required
+                />
+              </div>
 
-            {error && (
-              <p className="text-sm text-red-600 text-center">{error}</p>
-            )}
+              {error && (
+                <p className="text-sm text-red-600 text-center">{error}</p>
+              )}
 
-            <Button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-[#0369a1] hover:bg-[#03527d] text-white font-semibold py-2 rounded-lg transition disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {loading ? "Entrando..." : "Entrar"}
-            </Button>
+              {success && (
+                <p className="text-sm text-emerald-600 text-center">
+                  {success}
+                </p>
+              )}
 
-            <p className="text-center text-sm text-slate-500 mt-4">
-              Esqueceu sua senha?{" "}
-              <a
-                href="#"
-                className="text-[#0369a1] font-medium hover:underline"
+              <Button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-[#0369a1] hover:bg-[#03527d] text-white font-semibold py-2 rounded-lg transition disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Recuperar acesso
-              </a>
-            </p>
-          </form>
+                {loading ? "Entrando..." : "Entrar"}
+              </Button>
+
+              <p className="text-center text-sm text-slate-500 mt-4">
+                Esqueceu sua senha?{" "}
+                <button
+                  type="button"
+                  onClick={goToForgot}
+                  className="text-[#0369a1] font-medium hover:underline"
+                >
+                  Recuperar acesso
+                </button>
+              </p>
+            </form>
+          ) : (
+            <form onSubmit={handleRecover} className="flex flex-col gap-5">
+              <div className="flex flex-col">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  E-mail
+                </label>
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="seuemail@empresa.com"
+                  className="border-slate-300 focus-visible:ring-[#0369a1] focus-visible:border-[#0369a1] text-sm"
+                  required
+                />
+              </div>
+
+              {error && (
+                <p className="text-sm text-red-600 text-center">{error}</p>
+              )}
+
+              {success && (
+                <p className="text-sm text-emerald-600 text-center">
+                  {success}
+                </p>
+              )}
+
+              <Button
+                type="submit"
+                disabled={loading || !email}
+                className="w-full bg-[#0369a1] hover:bg-[#03527d] text-white font-semibold py-2 rounded-lg transition disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {loading ? "Enviando..." : "Enviar link de recuperação"}
+              </Button>
+
+              <p className="text-center text-sm text-slate-500 mt-4">
+                Lembrou sua senha?{" "}
+                <button
+                  type="button"
+                  onClick={goToLogin}
+                  className="text-[#0369a1] font-medium hover:underline"
+                >
+                  Voltar para login
+                </button>
+              </p>
+            </form>
+          )}
         </motion.div>
       </div>
     </div>

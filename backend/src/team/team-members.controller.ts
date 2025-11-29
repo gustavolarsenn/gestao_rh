@@ -35,6 +35,23 @@ export class TeamMembersController {
     return this.service.findAll(req.user  , filters);
   }
 
+  @Get('kpi')
+  findAllTeamMembersForKPI(
+    @Req() req: any,
+    @Query('teamId') teamId?: string,
+    @Query('employeeId') employeeId?: string,
+    @Query('parentTeamId') parentTeamId?: string,
+    @Query('active') active?: string, // "true" | "false"
+  ): Promise<TeamMember[]> {
+    const filters: TeamMemberFilters = {
+      teamId,
+      employeeId,
+      parentTeamId,
+      active: typeof active === 'string' ? active === 'true' : undefined,
+    };
+    return this.service.findAllTeamMembersForKPI(req.user  , filters);
+  }
+
   @Get(':id')
   findOne(
     @Param('id', ParseUUIDPipe) id: string,

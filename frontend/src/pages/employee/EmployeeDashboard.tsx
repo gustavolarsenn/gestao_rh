@@ -1,5 +1,3 @@
-// 🔥 DASHBOARD PREMIUM + FILTROS FUNCIONAIS
-
 import { useEffect, useState, useMemo } from "react";
 import Sidebar from "@/components/Sidebar";
 import {
@@ -16,8 +14,6 @@ import {
   Select,
   MenuItem,
 } from "@mui/material";
-import { PieChart } from "@mui/x-charts/PieChart";
-import { BaseModal } from "@/components/modals/BaseModal";
 
 import { useEmployeeKpis } from "@/hooks/employee-kpi/useEmployeeKpis";
 import { useEmployeeKpiEvolutions } from "@/hooks/employee-kpi/useEmployeeKpiEvolutions";
@@ -56,11 +52,11 @@ import TrendingUpRoundedIcon from "@mui/icons-material/TrendingUpRounded";
 import TaskAltRoundedIcon from "@mui/icons-material/TaskAltRounded";
 import AccessTimeRoundedIcon from "@mui/icons-material/AccessTimeRounded";
 import TimelineRoundedIcon from "@mui/icons-material/TimelineRounded";
+import CancelRoundedIcon from "@mui/icons-material/CancelRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import RadioButtonUncheckedRoundedIcon from "@mui/icons-material/RadioButtonUncheckedRounded";
 import ScheduleRoundedIcon from "@mui/icons-material/ScheduleRounded";
 
-// 👉 Recharts
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -73,15 +69,6 @@ import {
   Legend,
 } from "recharts";
 
-// 🎨 Cor por progresso (usado em outras partes)
-function colorByProgress(achieved: number, goal: number): string {
-  if (!goal) return "#BDBDBD";
-  const pct = (achieved / goal) * 100;
-  if (pct < 50) return "#FF6B6B";
-  if (pct < 90) return "#FFC260";
-  return "#6FCF97";
-}
-
 // 🎨 Cor do heatmap
 function getHeatColor(count: number): string {
   if (count === 0) return "#e5e7eb";
@@ -92,9 +79,10 @@ function getHeatColor(count: number): string {
 }
 
 export default function EmployeeDashboard() {
-  const { listEmployeeKpis } = useEmployeeKpis();
-  const { listEmployeeKpiEvolutions } = useEmployeeKpiEvolutions();
-  const { listPerformanceReviews, createPerformanceReview } =
+  const { listEmployeeKpis, listEmployeeKpisEmployee } = useEmployeeKpis();
+  const { listEmployeeKpiEvolutions, listEmployeeKpiEvolutionsEmployee } =
+    useEmployeeKpiEvolutions();
+  const { listPerformanceReviewsEmployee, createPerformanceReviewEmployee } =
     usePerformanceReviews();
 
   const [loading, setLoading] = useState(true);
@@ -125,8 +113,8 @@ export default function EmployeeDashboard() {
       setLoading(true);
 
       const [ekResult, evResult] = await Promise.all([
-        listEmployeeKpis({ page: 1, limit: 999 }),
-        listEmployeeKpiEvolutions({ page: 1, limit: 999 }),
+        listEmployeeKpisEmployee({ page: 1, limit: 999 }),
+        listEmployeeKpiEvolutionsEmployee({ page: 1, limit: 999 }),
       ]);
 
       const ek = (ekResult as any)?.data ?? ekResult ?? [];
@@ -147,7 +135,7 @@ export default function EmployeeDashboard() {
     try {
       setLoadingReviews(true);
 
-      const res = await listPerformanceReviews({
+      const res = await listPerformanceReviewsEmployee({
         page,
         limit: reviewPageSize,
       });
@@ -254,6 +242,10 @@ export default function EmployeeDashboard() {
   // 🔥 KPI atual
   const selectedKpi = filteredKpis.find((k) => k.id === selectedKpiId);
 
+  const selectedEvaluationType =
+    selectedKpi?.kpi?.evaluationType?.code || "";
+  const isPctType = selectedEvaluationType.endsWith("_PCT");
+
   // 🔥 Evoluções filtradas por KPI + datas
   const selectedEvols = useMemo(() => {
     if (!selectedKpiId) return [];
@@ -280,10 +272,34 @@ export default function EmployeeDashboard() {
   }, [groupedEvolutions, selectedKpiId, filterStart, filterEnd]);
 
   // 🔥 Evoluções agregadas (gráfico)
+  //  - *_PCT => histórico bruto (sem agrupar por dia)
+  //  - *_SUM => soma diária + ACUMULADO
+  //  - demais => último valor do dia
   const aggregatedEvolutions = useMemo(() => {
     if (!selectedKpi || !selectedEvols.length) return [];
 
     const type = selectedKpi.kpi?.evaluationType?.code || "";
+    const isPct = type.endsWith("_PCT");
+    const isSum = type.endsWith("_SUM");
+
+    // Percentuais -> histórico bruto
+    if (isPct) {
+      const ordered = selectedEvols
+        .slice()
+        .sort(
+          (a, b) =>
+            new Date(a.date).getTime() - new Date(b.date).getTime()
+        );
+
+      return ordered.map((ev) => ({
+        date: new Date(ev.date).toISOString(),
+        value: Number(
+          ev.achievedValueEvolution ?? ev.achievedValue ?? 0
+        ),
+      }));
+    }
+
+    // Demais tipos -> agrupar por dia
     const grouped: Record<string, any[]> = {};
 
     for (const ev of selectedEvols) {
@@ -292,23 +308,44 @@ export default function EmployeeDashboard() {
       grouped[day].push(ev);
     }
 
-    return Object.entries(grouped).map(([date, evs]) => {
-      if (type.endsWith("_SUM")) {
+    let daily = Object.entries(grouped).map(([date, evs]) => {
+      if (isSum) {
+        const dayTotal = evs.reduce(
+          (acc, e) => acc + Number(e.achievedValueEvolution || 0),
+          0
+        );
+        return { date, value: dayTotal };
+      } else {
+        const latest = evs
+          .slice()
+          .sort(
+            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+          )[0];
+
         return {
           date,
-          value: evs.reduce(
-            (acc, e) => acc + Number(e.achievedValueEvolution || 0),
-            0
+          value: Number(
+            latest.achievedValueEvolution ?? latest.achievedValue ?? 0
           ),
         };
-      } else {
-        const latest = evs.sort(
-          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-        )[0];
-
-        return { date, value: Number(latest.achievedValueEvolution) || 0 };
       }
     });
+
+    // Ordena por data
+    daily = daily
+      .slice()
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    // Para *_SUM, converte em acumulado
+    if (isSum) {
+      let running = 0;
+      daily = daily.map((d) => {
+        running += d.value;
+        return { date: d.date, value: running };
+      });
+    }
+
+    return daily;
   }, [selectedEvols, selectedKpi]);
 
   // 🔥 Evoluções ordenadas por data
@@ -322,12 +359,39 @@ export default function EmployeeDashboard() {
   }, [aggregatedEvolutions]);
 
   // 🔥 Dados do gráfico (Recharts) — valor, média e meta
+  //  - Para *_PCT não calcula média
   const chartData = useMemo(() => {
-    if (!sortedAggregatedEvolutions.length) return [];
+    if (!sortedAggregatedEvolutions.length || !selectedKpi) return [];
 
-    const values = sortedAggregatedEvolutions.map((d) => Number(d.value) || 0);
-    const avg = values.reduce((a, b) => a + b, 0) / values.length || 0;
-    const goal = Number(selectedKpi?.goal ?? 0);
+    const type = selectedKpi.kpi?.evaluationType?.code || "";
+    const isPct = type.endsWith("_PCT");
+    const isSum = type.endsWith("_SUM");
+
+    let baseValuesForAverage: number[] = [];
+
+    if (!isPct) {
+      if (isSum) {
+        const groupedDaily: Record<string, number> = {};
+        for (const ev of selectedEvols) {
+          const dateStr = new Date(ev.date).toISOString().split("T")[0];
+          const value = Number(ev.achievedValueEvolution || 0);
+          groupedDaily[dateStr] = (groupedDaily[dateStr] || 0) + value;
+        }
+        baseValuesForAverage = Object.values(groupedDaily);
+      } else {
+        baseValuesForAverage = sortedAggregatedEvolutions.map(
+          (d) => Number(d.value) || 0
+        );
+      }
+    }
+
+    const avg =
+      !isPct && baseValuesForAverage.length > 0
+        ? baseValuesForAverage.reduce((a, b) => a + b, 0) /
+          baseValuesForAverage.length
+        : undefined;
+
+    const goal = Number(selectedKpi.goal ?? 0);
 
     return sortedAggregatedEvolutions.map((d) => ({
       date: d.date,
@@ -335,7 +399,7 @@ export default function EmployeeDashboard() {
       avg,
       goal: goal > 0 ? goal : undefined,
     }));
-  }, [sortedAggregatedEvolutions, selectedKpi]);
+  }, [sortedAggregatedEvolutions, selectedKpi, selectedEvols]);
 
   // 👉 Domínio do eixo Y: 0 até 10% acima do maior valor (meta, média ou progresso)
   const yDomain = useMemo<[number, number]>(() => {
@@ -345,7 +409,7 @@ export default function EmployeeDashboard() {
 
     chartData.forEach((d) => {
       const v = Number(d.value ?? 0);
-      const a = Number(d.avg ?? 0);
+      const a = d.avg !== undefined ? Number(d.avg) : 0;
       const g = Number(d.goal ?? 0);
       maxValue = Math.max(maxValue, v, a, g);
     });
@@ -902,25 +966,35 @@ export default function EmployeeDashboard() {
                   let StatusIcon: any = RadioButtonUncheckedRoundedIcon;
                   let iconColor = "#9CA3AF";
 
-                  if (pct === 0) {
-                    statusLabel = "Pendente";
-                    statusBg = "#F3F4F6";
-                    statusColor = "#4B5563";
-                    StatusIcon = RadioButtonUncheckedRoundedIcon;
-                    iconColor = "#9CA3AF";
-                  } else if (k.status === "APPROVED") {
-                    statusLabel = "Concluída";
-                    statusBg = "#FEF3C7";
-                    statusColor = "#92400E";
-                    StatusIcon = CheckCircleRoundedIcon;
-                    iconColor = "#22C55E";
-                  } else if (k.status === "SUBMITTED") {
-                    statusLabel = "Em andamento";
-                    statusBg = "#E0ECFF";
-                    statusColor = "#1D4ED8";
-                    StatusIcon = ScheduleRoundedIcon;
-                    iconColor = PRIMARY_COLOR;
-                  }
+                if (pct < 100 && new Date() > new Date(k.periodEnd)) {
+                  statusLabel = "Expirada";
+                  statusBg = "#c52d2250";
+                  statusColor = "#c52d22ff";
+                  StatusIcon = CancelRoundedIcon;
+                  iconColor = "#c52d22ff";
+                } else if (
+                  k.achievedValue !== null &&
+                  k.achievedValue !== undefined &&
+                  pct >= 100
+                ) {
+                  statusLabel = "Concluída";
+                  statusBg = "#22c55e2a";
+                  statusColor = "#22C55E";
+                  StatusIcon = CheckCircleRoundedIcon;
+                  iconColor = "#22C55E";
+                } else if (
+                  k.achievedValue !== null &&
+                  k.achievedValue !== undefined &&
+                  pct < 100
+                ) {
+                  statusLabel = "Em andamento";
+                  statusBg = "#E0ECFF";
+                  statusColor = "#1D4ED8";
+                  StatusIcon = ScheduleRoundedIcon;
+                  iconColor = PRIMARY_COLOR;
+                } else {
+                  statusLabel = "Pendente";
+                }
 
                   return (
                     <Box
@@ -1349,16 +1423,18 @@ export default function EmployeeDashboard() {
                       dot={true}
                     />
 
-                    {/* Linha da média */}
-                    <Line
-                      type="monotone"
-                      dataKey="avg"
-                      name="Média"
-                      stroke="#9ca3af"
-                      strokeWidth={2}
-                      strokeDasharray="6 4"
-                      dot={false}
-                    />
+                    {/* Linha da média (somente para tipos não percentuais) */}
+                    {!isPctType && (
+                      <Line
+                        type="monotone"
+                        dataKey="avg"
+                        name="Média"
+                        stroke="#9ca3af"
+                        strokeWidth={2}
+                        strokeDasharray="6 4"
+                        dot={false}
+                      />
+                    )}
 
                     {/* Linha da meta (se existir) */}
                     {Number(selectedKpi?.goal ?? 0) > 0 && (

@@ -108,7 +108,7 @@ export default function EmployeeKpis() {
       kpiId: filterKpiId || undefined,
       status: filterStatus || undefined,
       periodStart: filterPeriodStart || undefined,
-      periodEnd: filterPeriodEnd || undefined,
+      periodEnd: filterPeriodEnd || undefined
     });
 
     setEmployeeKpis(result.data);

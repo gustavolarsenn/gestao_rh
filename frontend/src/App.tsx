@@ -22,6 +22,8 @@ import OrgChart from "./pages/admin/OrgChart";
 import EmployeeDashboard from "./pages/employee/EmployeeDashboard";
 import TeamDashboardTabs from "./pages/manager/TeamDashboardTabs";
 import CareerPaths from "./pages/admin/CareerPaths";
+import LeaderPerformanceReview from "./pages/employee/LeaderPerformanceReview";
+import ResetPasswordPage from "@/pages/auth/ResetPasswordPage";
 
 export default function App() {
   return (
@@ -30,7 +32,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<Login />} />
-
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route element={<ProtectedRoute requiredLevel={4} redirectTo="/admin/companies"/>}>
             <Route path="/admin/companies" element={<Company />} />
           </Route>
@@ -60,6 +62,7 @@ export default function App() {
           <Route element={<ProtectedRoute requiredLevel={1} redirectTo="/employee/employee-kpis"/>}>
             <Route path="/employee/employee-kpis" element={<EmployeeKpisEvolution />} />
             <Route path="/employee/dashboard" element={<EmployeeDashboard />} />
+            <Route path="/employee/feedback" element={<LeaderPerformanceReview />} />
           </Route>
 
         </Routes>

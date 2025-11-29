@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Between, Repository } from 'typeorm';
+import { Between, In, Repository } from 'typeorm';
 import { CreateEmployeeKpiEvolutionDto } from '../dto/employee-kpi-evolution/create-employee-kpi-evolution.dto';
 import { UpdateEmployeeKpiEvolutionDto } from '../dto/employee-kpi-evolution/update-employee-kpi-evolution.dto';
 import { KpiStatus } from '../entities/kpi.enums';
@@ -11,6 +11,8 @@ import { applyScope } from '../../common/utils/scoped-query.util';
 import { TeamsService } from '../../team/teams.service';
 import { Team } from '../../team/entities/team.entity';
 import { EmployeeKpiEvolutionQueryDto } from '../dto/employee-kpi-evolution/employee-kpi-evolution-query.dto';
+import { TeamKPIEvolution } from '../entities/team-kpi-evolution.entity';
+import { parse } from 'path';
 
 @Injectable()
     export class EmployeeKpiEvolutionsService {
@@ -18,6 +20,7 @@ import { EmployeeKpiEvolutionQueryDto } from '../dto/employee-kpi-evolution/empl
     @InjectRepository(EmployeeKPIEvolution) private readonly repo: Repository<EmployeeKPIEvolution>,
     @InjectRepository(EmployeeKPI) private readonly employeeKpiRepo: Repository<EmployeeKPI>,
     @InjectRepository(TeamKPI) private readonly teamKpiRepo: Repository<TeamKPI>,
+    @InjectRepository(TeamKPIEvolution) private readonly teamKpiEvolutionRepo: Repository<TeamKPIEvolution>,
     @InjectRepository(Team) private readonly teamRepo: Repository<Team>,
     private readonly teamsService: TeamsService,
   ) {}
@@ -47,10 +50,19 @@ import { EmployeeKpiEvolutionQueryDto } from '../dto/employee-kpi-evolution/empl
     });
     if (existsBinary) throw new ConflictException('An EmployeeKPIEvolution for this KPI already exists.');
     
+    const employeeKpi = await this.employeeKpiRepo.findOne({
+      where: {
+        companyId: user.companyId,
+        id: dto.employeeKpiId,
+      } as any,
+      relations: ['kpi', 'kpi.evaluationType'],
+    });
+    if (!employeeKpi) throw new NotFoundException('EmployeeKPI not found for creating evolution.');
+
     const entity = this.repo.create({
-      companyId: user.companyId,
-      employeeId: user.employeeId,
-      teamId: user.teamId,
+      companyId: employeeKpi.companyId,
+      employeeId: employeeKpi.employeeId,
+      teamId: employeeKpi.teamId,
       submittedBy: user.id,
       submittedDate: new Date(),
        ...dto
@@ -61,6 +73,10 @@ import { EmployeeKpiEvolutionQueryDto } from '../dto/employee-kpi-evolution/empl
   async findAll(user: any, query: EmployeeKpiEvolutionQueryDto) {
     const where = applyScope(user, {}, { company: true, team: true, employee: true, department: false });
 
+    const team = await this.teamRepo.findOne({ where: { id: user.teamId, companyId: user.companyId } });
+    const allChildTeams = await this.teamsService.findLowerTeamsRecursive(user.companyId, team!);
+    where.teamId = In([...allChildTeams.map(t => t.id), user.teamId]);
+
     if (query?.status) where.status = query.status;
 
     const page = Math.max(1, Number(query.page ?? 1));
@@ -68,6 +84,18 @@ import { EmployeeKpiEvolutionQueryDto } from '../dto/employee-kpi-evolution/empl
     const skip = (page - 1) * limit;
 
     const [data, total] = await this.repo.findAndCount({ where, relations: ['employee', 'employee.person', 'employeeKpi'], skip, take: limit });
+    return { page, limit, total, data };
+  }
+
+  async findAllEmployee(user: any, query: EmployeeKpiEvolutionQueryDto) {
+    const where = { companyId: user.companyId, employeeId: user.employeeId } as any;
+    if (query?.status) where.status = query.status;
+
+    const page = Math.max(1, Number(query.page ?? 1));
+    const limit = Math.max(1, Number(query.limit ?? 10));
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await this.repo.findAndCount({ where, relations: ['employee', 'employee.person', 'employeeKpi', 'employeeKpi.kpi', 'employeeKpi.kpi.evaluationType'], skip, take: limit });
     return { page, limit, total, data };
   }
 
@@ -106,7 +134,7 @@ import { EmployeeKpiEvolutionQueryDto } from '../dto/employee-kpi-evolution/empl
     return this.repo.save(merged);
   }
 
-  private async applyEvolutionUpperTeams(companyId: string, kpiEvolution: EmployeeKPIEvolution): Promise<void> {
+  private async applyEvolutionUpperTeams(user: any, companyId: string, kpiEvolution: EmployeeKPIEvolution): Promise<void> {
     const team = await this.teamRepo.findOne({ where: { companyId, id: kpiEvolution.teamId } });
 
     if (!team) {
@@ -120,8 +148,22 @@ import { EmployeeKpiEvolutionQueryDto } from '../dto/employee-kpi-evolution/empl
 
       if (teamKpi) {
         let newAchievedValue: string;
-        if (['BINARY', 'LOWER_BETTER_PCT', 'HIGHER_BETTER_PCT'].includes(kpiEvolution.employeeKpi.kpi.evaluationType.code)) {
+        if (['BINARY'].includes(kpiEvolution.employeeKpi.kpi.evaluationType.code)) {
           newAchievedValue = kpiEvolution.achievedValueEvolution!;
+        }
+        if (['LOWER_BETTER_PCT', 'HIGHER_BETTER_PCT'].includes(kpiEvolution.employeeKpi.kpi.evaluationType.code)) {
+          const latestEvolutions = await this.teamKpiEvolutionRepo.find({
+            where: {
+              companyId,
+              teamKpiId: teamKpi.id,
+            },
+            order: { submittedDate: 'DESC' },
+          });
+          if (latestEvolutions.length > 0) {
+            let sum = latestEvolutions.reduce((acc, ev) => acc + parseFloat(ev.achievedValueEvolution ?? '0'), 0);
+            sum += parseFloat(kpiEvolution.achievedValueEvolution!);
+            newAchievedValue = (sum / (latestEvolutions.length + 1)).toString();
+          }
         }
         if (['LOWER_BETTER_SUM', 'HIGHER_BETTER_SUM'].includes(kpiEvolution.employeeKpi.kpi.evaluationType.code)) {
           const currentValue = parseFloat(teamKpi.achievedValue ?? '0');
@@ -129,6 +171,17 @@ import { EmployeeKpiEvolutionQueryDto } from '../dto/employee-kpi-evolution/empl
           newAchievedValue = (currentValue + evolutionValue).toString();
         }
         teamKpi.achievedValue = newAchievedValue!;
+        await this.teamKpiEvolutionRepo.save({
+          companyId: kpiEvolution.companyId,
+          teamId: teamKpi.teamId,
+          teamKpiId: teamKpi.id,
+          achievedValueEvolution: kpiEvolution.achievedValueEvolution,
+          submittedBy: user.id,
+          submittedDate: new Date(),
+          approvedBy: user.id,
+          approvedDate: new Date(),
+          status: KpiStatus.APPROVED,
+        });
         await this.teamKpiRepo.save(teamKpi);
       }
     }
@@ -152,9 +205,23 @@ import { EmployeeKpiEvolutionQueryDto } from '../dto/employee-kpi-evolution/empl
     if (approvedExists) {
       approvedExists.rejectionReason = null;
       
-      if (['BINARY', 'LOWER_BETTER_PCT', 'HIGHER_BETTER_PCT'].includes(row.employeeKpi.kpi.evaluationType.code)) {
-        approvedExists.achievedValue = row.achievedValueEvolution;
-      }
+        if (['BINARY'].includes(row.employeeKpi.kpi.evaluationType.code)) {
+          approvedExists.achievedValue = row.achievedValueEvolution!;
+        }
+        if (['LOWER_BETTER_PCT', 'HIGHER_BETTER_PCT'].includes(row.employeeKpi.kpi.evaluationType.code)) {
+          const latestEvolutions = await this.teamKpiEvolutionRepo.find({
+            where: {
+              companyId,
+              teamKpiId: approvedExists.id,
+            },
+            order: { submittedDate: 'DESC' },
+          });
+          if (latestEvolutions.length > 0) {
+            let sum = latestEvolutions.reduce((acc, ev) => acc + parseFloat(ev.achievedValueEvolution ?? '0'), 0);
+            sum += parseFloat(row.achievedValueEvolution!);
+            approvedExists.achievedValue = (sum / (latestEvolutions.length + 1)).toString();
+          }
+        }
       if (['LOWER_BETTER_SUM', 'HIGHER_BETTER_SUM'].includes(row.employeeKpi.kpi.evaluationType.code)) {
         const currentValue = parseFloat(approvedExists.achievedValue ?? '0');
         const evolutionValue = parseFloat(row.achievedValueEvolution ?? '0');
@@ -167,11 +234,12 @@ import { EmployeeKpiEvolutionQueryDto } from '../dto/employee-kpi-evolution/empl
     let approvedTeamKpiExists = await this.teamKpiRepo.findOne({
       where: {
         companyId,
+        periodStart: approvedExists?.periodStart,
+        periodEnd: approvedExists?.periodEnd,
         teamId: row.employee.teamId,
         kpiId: row.employeeKpi.kpiId,
       } as any,
     });
-
     if (approvedTeamKpiExists) {
       approvedTeamKpiExists.rejectionReason = null;
 
@@ -184,10 +252,21 @@ import { EmployeeKpiEvolutionQueryDto } from '../dto/employee-kpi-evolution/empl
         approvedTeamKpiExists.achievedValue = (currentValue + evolutionValue).toString();
       }
       
+      await this.teamKpiEvolutionRepo.save({
+        companyId: row.companyId,
+        teamId: approvedTeamKpiExists.teamId,
+        teamKpiId: approvedTeamKpiExists.id,
+        achievedValueEvolution: row.achievedValueEvolution,
+        submittedBy: user.id,
+        submittedDate: new Date(),
+        approvedBy: user.id,
+        approvedDate: new Date(),
+        status: KpiStatus.APPROVED,
+      });
       await this.teamKpiRepo.save(approvedTeamKpiExists);
     }
 
-    await this.applyEvolutionUpperTeams(companyId, row);
+    await this.applyEvolutionUpperTeams(user, companyId, row);
     
     row.status = KpiStatus.APPROVED;
     row.approvedBy = user.id;

@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsNumberString, IsEnum } from 'class-validator';
+import { IsOptional, IsString, IsNumberString, IsEnum, IsBoolean } from 'class-validator';
 import { EvaluationCode } from '../../entities/evaluation-type.entity';
 
 export class KPIQueryDto {

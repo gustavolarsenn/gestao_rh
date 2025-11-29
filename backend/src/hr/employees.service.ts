@@ -10,6 +10,7 @@ import { Team } from '../team/entities/team.entity';
 import { applyScope } from '../common/utils/scoped-query.util';
 import { EmployeeQueryDto } from './dto/employee-query.dto';
 import { EmployeeHistory } from './entities/employee-history.entity';
+import { User } from '../users/entities/user.entity';
 
 @Injectable()
 export class EmployeesService {
@@ -63,8 +64,16 @@ export class EmployeesService {
   }
 
   async findAll(user: any, query: EmployeeQueryDto) {
-    const where = applyScope(user, {}, { company: true, team: true, employee: true, department: false });
+    let where = applyScope(user, {}, { company: true, team: true, employee: true, department: false });
     
+    if (user.role === 'gestor') {
+      where = [
+        { teamId: user.teamId },
+        { team: { parentTeamId: user.teamId } },
+      ];
+      where['companyId'] = user.companyId;
+    }
+
     if (query.name) {
       where['person'] = { name: ILike(`%${query.name}%`) };
     }

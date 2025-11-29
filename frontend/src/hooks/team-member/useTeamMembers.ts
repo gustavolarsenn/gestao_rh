@@ -29,6 +29,14 @@ export function useTeamMembers() {
     return data;
   }
 
+  async function listTeamMembersForKPI(teamId?: string): Promise<TeamMember[]> {
+    const url = teamId
+      ? `/team-members/kpi?companyId=${companyId}&teamId=${teamId}`
+      : `/team-members/kpi?companyId=${companyId}`;
+    const { data } = await api.get(url);
+    return data;
+  }
+
   async function createTeamMember(payload: Omit<TeamMember, "id">) {
     setLoading(true);
     setError(null);
@@ -60,6 +68,7 @@ export function useTeamMembers() {
 
   return {
     listTeamMembers,
+    listTeamMembersForKPI,
     createTeamMember,
     updateTeamMember,
     deleteTeamMember,

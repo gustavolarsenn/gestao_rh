@@ -1,16 +1,24 @@
 import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Between, Repository } from 'typeorm';
+import { Between, In, LessThan, MoreThan, Repository } from 'typeorm';
 import { EmployeeKPI } from '../entities/employee-kpi.entity';
 import { CreateEmployeeKpiDto } from '../dto/employee-kpi/create-employee-kpi.dto';
 import { UpdateEmployeeKpiDto } from '../dto/employee-kpi/update-employee-kpi.dto';
 import { EmployeeKPIQueryDto } from '../dto/employee-kpi/query-employee-kpi.dto';
 import { KpiStatus } from '../entities/kpi.enums';
 import { applyScope } from '../../common/utils/scoped-query.util';
+import { Team } from '../../team/entities/team.entity';
+import { TeamsService } from '../../team/teams.service';
 
 @Injectable()
 export class EmployeeKpisService {
-  constructor(@InjectRepository(EmployeeKPI) private readonly repo: Repository<EmployeeKPI>) {}
+  constructor(
+    @InjectRepository(EmployeeKPI) private readonly repo: Repository<EmployeeKPI>,
+    @InjectRepository(Team) private readonly teamRepo: Repository<Team>,
+    private readonly teamsService: TeamsService,
+    
+  ) {}
+
   async create(dto: CreateEmployeeKpiDto): Promise<EmployeeKPI> {
     // Respeita a unique (companyId, employeeId, kpiId, periodStart, periodEnd, source) na entity
     const exists = await this.repo.findOne({
@@ -31,19 +39,56 @@ export class EmployeeKpisService {
   }
 
   async findAll(user: any, query: EmployeeKPIQueryDto) {
-    const where = applyScope(user, {}, { company: true, team: true, employee: true, department: false });
+    // let where = applyScope(user, {}, { company: true, team: true, employee: true, department: false });
+    const where: any = {companyId: user.companyId};
 
-    if (query.kpiId) where.kpiId = query.kpiId;
-    if (query.employeeId) where.employeeId = query.employeeId;
-    if (query.status) where.status = query.status;
-    if (query.periodStart && query.periodEnd) {
-      where.periodStart = Between(query.periodStart, query.periodEnd);
+    const team = await this.teamRepo.findOne({ where: { id: user.teamId, companyId: user.companyId } });
+    const allChildTeams = await this.teamsService.findLowerTeamsRecursive(user.companyId, team!);
+    // if (user.role === 'gestor') {
+    //   where = [
+    //     { teamId: user.teamId },
+    //     { team: { parentTeamId: user.teamId } },
+    //   ];
+    //   where['companyId'] = user.companyId;
+    // }
+    if (query.showExpired === false) {
+      where.periodEnd = MoreThan(new Date());
+      where.teamId = In([...allChildTeams.map(t => t.id)]);
+      if (query.kpiId) where.kpiId = query.kpiId;
+      if (query.employeeId) where.employeeId = query.employeeId;
+      if (query.status) where.status = query.status
+    } else {
+      if (query.periodStart && query.periodEnd) {
+        where.periodStart = Between(query.periodStart, query.periodEnd);
+      }
+      where.teamId = In([...allChildTeams.map(t => t.id), user.teamId]);
+      if (query.kpiId) where.kpiId = query.kpiId;
+      if (query.employeeId) where.employeeId = query.employeeId;
+      if (query.status) where.status = query.status;
     }
 
     const page = Math.max(1, Number(query.page ?? 1));
     const limit = Math.max(1, Number(query.limit ?? 10));
     const skip = (page - 1) * limit;
+    const [data, total] = await this.repo.findAndCount({ where, relations: ['employee', 'employee.person', 'kpi', 'kpi.evaluationType'], skip, take: limit });
+    return { page, limit, total, data };
+  }
 
+  async findAllEmployee(user: any, query: EmployeeKPIQueryDto) {
+    const where = { companyId: user.companyId, employeeId: user.employeeId } as any;
+    if (query.showExpired === false) {
+      where.periodEnd = MoreThan(new Date());
+    } else if (query.periodStart && query.periodEnd){
+      where.periodStart = Between(query.periodStart, query.periodEnd);
+    }
+    if (query.kpiId) where.kpiId = query.kpiId;
+    if (query.status) where.status = query.status;
+    // if (query.periodStart && query.periodEnd) {
+    //   where.periodStart = Between(query.periodStart, query.periodEnd);
+    // }
+    const page = Math.max(1, Number(query.page ?? 1));
+    const limit = Math.max(1, Number(query.limit ?? 10));
+    const skip = (page - 1) * limit;
     const [data, total] = await this.repo.findAndCount({ where, relations: ['employee', 'employee.person', 'kpi', 'kpi.evaluationType'], skip, take: limit });
     return { page, limit, total, data };
   }
@@ -57,7 +102,6 @@ export class EmployeeKpisService {
   async update(companyId: string, id: string, dto: UpdateEmployeeKpiDto): Promise<EmployeeKPI> {
     const row = await this.findOne(companyId, id);
 
-    // se mudar chaves da unique, checar duplicidade
     const keysChange =
       (dto.employeeId && dto.employeeId !== row.employeeId) ||
       (dto.kpiId && dto.kpiId !== row.kpiId) ||

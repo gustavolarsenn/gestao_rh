@@ -26,7 +26,6 @@ export type EmployeeKpi = {
   approvedBy?: string;
   approvedDate?: string;
   rejectionReason?: string;
-
   employee?: { id: string; person?: { name: string } };
   kpi?: { id: string; name: string; unit?: string, evaluationType?: { id: string; name: string, code: string } };
 };
@@ -38,6 +37,11 @@ export function useEmployeeKpis() {
 
   async function listEmployeeKpis(params: any): Promise<EmployeeKpi[]> {
     const { data } = await api.get(`kpi/employee-kpis?companyId=${companyId}`, { params });
+    return data;
+  }
+
+  async function listEmployeeKpisEmployee(params: any): Promise<EmployeeKpi[]> {
+    const { data } = await api.get(`kpi/employee-kpis/employee?companyId=${companyId}`, { params });
     return data;
   }
 
@@ -72,6 +76,7 @@ export function useEmployeeKpis() {
 
   return {
     listEmployeeKpis,
+    listEmployeeKpisEmployee,
     createEmployeeKpi,
     updateEmployeeKpi,
     deleteEmployeeKpi,

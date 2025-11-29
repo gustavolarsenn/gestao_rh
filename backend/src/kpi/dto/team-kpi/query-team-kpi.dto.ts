@@ -1,5 +1,5 @@
-import { IsNumberString, IsOptional } from 'class-validator';
-import { IsUUID } from 'class-validator';
+import { IsNumberString, IsOptional, IsUUID, IsBoolean } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { KpiStatus } from '../../entities/kpi.enums';
 
 export class TeamKPIQueryDto {
@@ -27,4 +27,13 @@ export class TeamKPIQueryDto {
 
   @IsOptional()
   status?: KpiStatus;
+
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === 'true' || value === true) return true;
+    if (value === 'false' || value === false) return false;
+    return value;
+  })
+  @IsBoolean()
+  showExpired: boolean = true;
 }

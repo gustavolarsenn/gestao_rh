@@ -24,6 +24,14 @@ export class EmployeeKpisController {
     return this.service.findAll(req.user, query);
   }
 
+  @Get('employee')
+  findAllEmployee(
+    @Query() query: EmployeeKPIQueryDto,
+    @Req() req: any,
+  ) {
+    return this.service.findAllEmployee(req.user, query);
+  }
+
   @Get(':id')
   findOne(@Param('id', ParseUUIDPipe) id: string, @Query('companyId', ParseUUIDPipe) companyId: string): Promise<EmployeeKPI> {
     return this.service.findOne(companyId, id);

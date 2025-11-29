@@ -1,10 +1,12 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindOptionsWhere, Repository } from 'typeorm';
+import { FindOptionsWhere, In, Repository } from 'typeorm';
 import { TeamMember } from './entities/team-member.entity';
 import { CreateTeamMemberDto } from './dto/create-team-member.dto';
 import { UpdateTeamMemberDto } from './dto/update-team-member.dto';
 import { applyScope } from '../common/utils/scoped-query.util';
+import { Team } from './entities/team.entity';
+import { TeamsService } from './teams.service';
 
 export type TeamMemberFilters = {
   teamId?: string;
@@ -15,7 +17,11 @@ export type TeamMemberFilters = {
 
 @Injectable()
 export class TeamMembersService {
-  constructor(@InjectRepository(TeamMember) private readonly repo: Repository<TeamMember>) {}
+  constructor(
+    @InjectRepository(TeamMember) private readonly repo: Repository<TeamMember>,
+    @InjectRepository(Team) private readonly teamRepo: Repository<Team>,
+    private readonly teamsService: TeamsService,
+  ) {}
 
   async create(dto: CreateTeamMemberDto): Promise<TeamMember> {
     // exemplo de unicidade básica (mesma pessoa no mesmo time, ativo)
@@ -30,6 +36,22 @@ export class TeamMembersService {
   async findAll(user: any, filters: TeamMemberFilters = {}): Promise<TeamMember[]> {
     const where = applyScope(user, {}, { company: true, team: true, employee: false, department: false });
 
+    if (filters.teamId) where.teamId = filters.teamId;
+    if (filters.employeeId) where.employeeId = filters.employeeId;
+    if (filters.parentTeamId) where.parentTeamId = filters.parentTeamId;
+    if (typeof filters.active === 'boolean') where.active = filters.active;
+
+    return this.repo.find({ where, relations: ['employee', 'team', 'parentTeam', 'employee.person'] });
+  }
+
+  async findAllTeamMembersForKPI(user: any, filters: TeamMemberFilters = {}): Promise<TeamMember[]> {
+    const where: any = {companyId: user.companyId};
+
+    // const childTeams = await this.teamRepo.find({ where: { parentTeamId: user.teamId, companyId: user.companyId } });
+    const team = await this.teamRepo.findOne({ where: { id: user.teamId, companyId: user.companyId } });
+    const allChildTeams = await this.teamsService.findLowerTeamsRecursive(user.companyId, team!);
+
+    where.teamId = In([...allChildTeams.map(t => t.id), user.teamId]);
     if (filters.teamId) where.teamId = filters.teamId;
     if (filters.employeeId) where.employeeId = filters.employeeId;
     if (filters.parentTeamId) where.parentTeamId = filters.parentTeamId;

@@ -26,7 +26,7 @@ import { rateKPI } from "@/utils/rateKPI";
 import { PRIMARY_COLOR, PRIMARY_LIGHT, PRIMARY_LIGHT_BG, SECTION_BORDER_COLOR, primaryButtonSx } from '@/utils/utils';
 
 export default function EmployeeKpiEvolution() {
-  const { listEmployeeKpis } = useEmployeeKpis();
+  const { listEmployeeKpis, listEmployeeKpisEmployee } = useEmployeeKpis();
   const {
     listEmployeeKpiEvolutions,
     createEmployeeKpiEvolution,
@@ -295,6 +295,9 @@ export default function EmployeeKpiEvolution() {
               <tr className="bg-gray-50">
                 <th className="text-left px-4 py-3 font-semibold text-gray-700" />
                 <th className="text-left px-4 py-3 font-semibold text-gray-700">
+                  Colaborador
+                </th>
+                <th className="text-left px-4 py-3 font-semibold text-gray-700">
                   KPI
                 </th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-700">
@@ -363,6 +366,9 @@ export default function EmployeeKpiEvolution() {
                           />
                         </td>
                         <td className="px-4 py-3 text-slate-800">
+                          {kpi.employee?.person?.name || "—"}
+                        </td>
+                        <td className="px-4 py-3 text-slate-800">
                           {kpi.kpi?.name || "—"}
                         </td>
                         <td className="px-4 py-3 text-slate-700">
@@ -395,7 +401,7 @@ export default function EmployeeKpiEvolution() {
 
                       {isExpanded && (
                         <tr key={`${kpi.id}-details`} className="bg-gray-50 border-b">
-                          <td colSpan={6} className="px-4 py-4">
+                          <td colSpan={9} className="px-4 py-4">
                             {relatedEvolutions.length > 0 ? (
                               <table className="w-full text-xs border bg-white rounded-lg overflow-hidden">
                                 <thead className="bg-gray-100">

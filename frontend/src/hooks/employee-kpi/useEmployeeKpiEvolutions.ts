@@ -33,6 +33,11 @@ export function useEmployeeKpiEvolutions() {
     return data;
   }
 
+  async function listEmployeeKpiEvolutionsEmployee(params: any): Promise<EmployeeKpiEvolution[]> {
+    const { data } = await api.get(`kpi/employee-kpi-evolutions/employee?companyId=${companyId}`, { params });
+    return data;
+  }
+
   async function createEmployeeKpiEvolution(payload: Omit<EmployeeKpiEvolution, "id">) {
     setLoading(true);
     setError(null);
@@ -79,6 +84,7 @@ export function useEmployeeKpiEvolutions() {
 
   return {
     listEmployeeKpiEvolutions,
+    listEmployeeKpiEvolutionsEmployee,
     createEmployeeKpiEvolution,
     updateEmployeeKpiEvolution,
     deleteEmployeeKpiEvolution,

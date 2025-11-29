@@ -74,6 +74,7 @@ export default function Sidebar() {
         { to: "/manager/team-dashboard", label: "Dashboard de Time", level: 2 },
         { to: "/employee/employee-kpis", label: "KPIs de Funcionários", level: 1 },
         { to: "/employee/dashboard", label: "Dashboard", level: 1 },
+        { to: "/employee/feedback", label: "Feedback ao Gestor", level: 1 },
       ],
     },
   ];

@@ -26,8 +26,8 @@ export function useTeamKpiEvolutions() {
   const [error, setError] = useState<string | null>(null);
   const companyId = localStorage.getItem("companyId");
 
-  async function listTeamKpiEvolutions(): Promise<TeamKpiEvolution[]> {
-    const { data } = await api.get(`/kpi/team-kpi-evolutions?companyId=${companyId}`);
+  async function listTeamKpiEvolutions(params: any): Promise<TeamKpiEvolution[]> {
+    const { data } = await api.get(`/kpi/team-kpi-evolutions?companyId=${companyId}`, { params });
     return data;
   }
 

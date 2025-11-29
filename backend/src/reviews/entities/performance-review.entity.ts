@@ -27,6 +27,9 @@ export class PerformanceReview extends TenantBaseEntity {
   @Column({ type: 'date' })
   date!: string;
 
+  @Column({ nullable: true })
+  employeeToLeader?: boolean;
+
   @ManyToOne(() => Company, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'companyId' })
   company!: Company;

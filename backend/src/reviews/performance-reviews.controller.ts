@@ -23,20 +23,36 @@ import { PerformanceReviewQueryDto } from './dto/performance-review-query.dto';
 export class PerformanceReviewsController {
   constructor(private readonly service: PerformanceReviewsService) {}
 
-  @Post()
-  create(
+  @Post('employee')
+  createToEmployee(
     @Req() req: any,
     @Body() dto: CreatePerformanceReviewDto
   ): Promise<PerformanceReview> {
-    return this.service.create(req.user, dto);
+    return this.service.createToEmployee(req.user, dto);
   }
 
-  @Get()
-  findAll(
+  @Post('leader')
+  createToLeader(
+    @Req() req: any,
+    @Body() dto: CreatePerformanceReviewDto
+  ): Promise<PerformanceReview> {
+    return this.service.createToLeader(req.user, dto);
+  }
+
+  @Get('employee')
+  findAllToEmployee(
     @Req() req: any,
     @Query() query: PerformanceReviewQueryDto,
   ) {
-    return this.service.findAll(req.user, query);
+    return this.service.findAllToEmployee(req.user, query);
+  }
+
+  @Get('leader')
+  findAllToLeader(
+    @Req() req: any,
+    @Query() query: PerformanceReviewQueryDto,
+  ) {
+    return this.service.findAllToLeader(req.user, query);
   }
 
   @Get(':id')

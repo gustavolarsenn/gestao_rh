@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react"; // ⬅ adiciona useRef
 import { motion } from "framer-motion";
 import Sidebar from "@/components/Sidebar";
 import { useTeams } from "@/hooks/team/useTeams";
 import { useTeamMembers } from "@/hooks/team-member/useTeamMembers";
 import { Button } from "@/components/ui/button";
+import html2canvas from "html2canvas"; // ⬅ importa
 
 // Tipos auxiliares
 type OrgNode = {
@@ -24,21 +25,22 @@ export default function OrgChart() {
   const [orgTree, setOrgTree] = useState<OrgNode[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // ⬅ ref para o MAIN inteiro (tudo que você quer na imagem)
+  const exportRef = useRef<HTMLDivElement | null>(null);
+
   useEffect(() => {
     async function loadData() {
       setLoading(true);
 
-      // teams pode ser paginado ou não
       const [teamsRes, members] = await Promise.all([
-        listTeams(),       // pode retornar array ou { data, total }
-        listTeamMembers(), // ✅ NÃO paginado: já vem como array
+        listTeams(),
+        listTeamMembers(),
       ]);
 
       const teams: any[] = Array.isArray(teamsRes)
         ? teamsRes
         : teamsRes?.data || [];
 
-      // Index de times
       const teamMap: Record<string, OrgNode> = {};
       for (const t of teams) {
         teamMap[t.id] = {
@@ -49,7 +51,6 @@ export default function OrgChart() {
         };
       }
 
-      // Vincula membros a times
       for (const m of members as any[]) {
         const team = teamMap[m.teamId];
         if (team) {
@@ -61,7 +62,6 @@ export default function OrgChart() {
         }
       }
 
-      // Monta hierarquia recursiva
       const roots: OrgNode[] = [];
       for (const team of teams) {
         if (team.parentTeamId) {
@@ -78,13 +78,62 @@ export default function OrgChart() {
 
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // 🔥 roda só uma vez, evita loop
+  }, []);
+
+  // =========================
+  // EXPORTAR PARA PNG
+  // =========================
+const handleExport = async () => {
+  if (!exportRef.current) return;
+
+  const container = exportRef.current;
+  const rect = container.getBoundingClientRect();
+
+  // adiciona classe para ocultar botões
+  container.classList.add("org-exporting");
+
+  try {
+    // garante fontes carregadas (quando suportado)
+    if ((document as any).fonts?.ready) {
+      try {
+        await (document as any).fonts.ready;
+      } catch {
+        /* ignora erro */
+      }
+    }
+
+    const canvas = await html2canvas(container, {
+      backgroundColor: "#fefefe",
+      x: 0,
+      y: 0,
+      width: rect.width,
+      height: rect.height,
+      scale: 2,
+      scrollX: 0,
+      scrollY: 0,
+      useCORS: true,
+    });
+
+    const dataUrl = canvas.toDataURL("image/png");
+    const link = document.createElement("a");
+    link.href = dataUrl;
+    link.download = `organograma-${new Date()
+      .toISOString()
+      .slice(0, 10)}.png`;
+    link.click();
+  } finally {
+    // volta tudo ao normal na tela
+    container.classList.remove("org-exporting");
+  }
+};
+
 
   return (
     <div className="flex min-h-screen bg-[#fefefe]">
       <Sidebar />
 
-      <main className="flex-1 p-8">
+      {/* ⬅ tudo que será exportado está dentro deste main com ref */}
+      <main ref={exportRef} className="flex-1 p-8 relative">
         <motion.h1
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -97,12 +146,20 @@ export default function OrgChart() {
         {loading ? (
           <p className="text-gray-500">Carregando organograma...</p>
         ) : (
-          <div className="flex flex-col items-center gap-8">
+          <div className="flex flex-col items-center gap-8 pb-24">
             {orgTree.map((node) => (
               <OrgBranch key={node.id} node={node} level={0} />
             ))}
           </div>
         )}
+
+        {/* Botão fixo no canto inferior direito (vai sair no print, como na 1ª imagem) */}
+        <Button
+          onClick={handleExport}
+          className="fixed bottom-6 right-6 rounded-full px-6 py-3 shadow-lg bg-[#0369a1] hover:bg-[#025f8c] text-white text-sm font-semibold org-export-btn"
+        >
+          Exportar organograma
+        </Button>
       </main>
     </div>
   );
@@ -126,7 +183,6 @@ function OrgBranch({ node, level }: BranchProps) {
       transition={{ duration: 0.3 }}
       className="flex flex-col items-center"
     >
-      {/* Bloco do time */}
       <div
         className={`rounded-xl shadow-md border-2 border-[#151E3F]/20 bg-white p-4 min-w-[240px] text-center ${
           level === 0 ? "bg-[#F8FAFC]" : ""
@@ -136,7 +192,6 @@ function OrgBranch({ node, level }: BranchProps) {
           {node.name}
         </div>
 
-        {/* Membros */}
         <div className="mt-2">
           {node.members.length === 0 ? (
             <p className="text-gray-400 text-xs italic text-left px-4">
@@ -157,18 +212,17 @@ function OrgBranch({ node, level }: BranchProps) {
         </div>
 
         {node.children.length > 0 && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setExpanded((e) => !e)}
-            className="mt-5 text-xs justify-center w-full"
-          >
-            {expanded ? "Ocultar Subtimes" : "Ver Subtimes"}
-          </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setExpanded((e) => !e)}
+          className="mt-5 text-xs justify-center w-full org-toggle-btn"
+        >
+          {expanded ? "Ocultar Subtimes" : "Ver Subtimes"}
+        </Button>
         )}
       </div>
 
-      {/* Conector + Subtimes */}
       {expanded && node.children.length > 0 && (
         <div className="flex flex-col items-center mt-4">
           <div className="w-[2px] h-6 bg-[#151E3F]/30" />

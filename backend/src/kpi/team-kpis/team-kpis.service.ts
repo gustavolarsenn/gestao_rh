@@ -1,16 +1,22 @@
 import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Between, Repository } from 'typeorm';
+import { Between, Repository, MoreThan, In } from 'typeorm';
 import { TeamKPI } from '../entities/team-kpi.entity';
 import { CreateTeamKpiDto } from '../dto/team-kpi/create-team-kpi.dto';
 import { UpdateTeamKpiDto } from '../dto/team-kpi/update-team-kpi.dto';
 import { KpiStatus } from '../entities/kpi.enums';
 import { TeamKPIQueryDto } from '../dto/team-kpi/query-team-kpi.dto';
 import { applyScope } from '../../common/utils/scoped-query.util';
+import { Team } from '../../team/entities/team.entity';
+import { TeamsService } from '../../team/teams.service';
 
 @Injectable()
 export class TeamKpisService {
-  constructor(@InjectRepository(TeamKPI) private readonly repo: Repository<TeamKPI>) {}
+  constructor(
+    @InjectRepository(TeamKPI) private readonly repo: Repository<TeamKPI>,
+    @InjectRepository(Team) private readonly teamRepo: Repository<Team>,
+    private readonly teamsService: TeamsService,
+  ) {}
 
   async create(dto: CreateTeamKpiDto): Promise<TeamKPI> {
     const exists = await this.repo.findOne({
@@ -31,12 +37,27 @@ export class TeamKpisService {
   }
 
   async findAll(user: any, query: TeamKPIQueryDto) {
-    const where = applyScope(user, {}, { company: true, team: true, employee: false, department: false });
-    if (query?.kpiId) where.kpiId = query.kpiId;
-    if (query?.status) where.status = query.status;
-    if (query?.teamId) where.teamId = query.teamId;
-    if (query?.periodStart && query?.periodEnd) {
-      where.periodStart = Between(query.periodStart, query.periodEnd);
+    // const where = applyScope(user, {}, { company: true, team: true, employee: false, department: false });
+    const where: any = {companyId: user.companyId};
+
+    // const childTeams = await this.teamRepo.find({ where: { parentTeamId: user.teamId, companyId: user.companyId } });
+    const team = await this.teamRepo.findOne({ where: { id: user.teamId, companyId: user.companyId } });
+    const allChildTeams = await this.teamsService.findLowerTeamsRecursive(user.companyId, team!);
+
+    if (query.showExpired === false) {
+      where.periodEnd = MoreThan(new Date());
+      where.teamId = In([...allChildTeams.map(t => t.id)]);
+      if (query?.kpiId) where.kpiId = query.kpiId;
+      if (query?.status) where.status = query.status;
+      if (query?.teamId) where.teamId = query.teamId;
+    } else {
+      if (query.periodStart && query.periodEnd) {
+        where.periodStart = Between(query.periodStart, query.periodEnd);
+      }
+      where.teamId = In([...allChildTeams.map(t => t.id), user.teamId]);
+      if (query?.kpiId) where.kpiId = query.kpiId;
+      if (query?.status) where.status = query.status;
+      if (query?.teamId) where.teamId = query.teamId;
     }
 
     const page = Math.max(1, Number(query.page ?? 1));

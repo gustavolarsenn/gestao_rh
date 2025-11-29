@@ -15,7 +15,7 @@ export class EvaluationTypesService {
 
   async create(dto: CreateEvaluationTypeDto): Promise<EvaluationType> {
     // Opcional: unicidade por (companyId, name)
-    const exists = await this.repo.findOne({ where: { companyId: dto.companyId, name: dto.name } });
+    const exists = await this.repo.findOne({ where: { companyId: dto.companyId, name: dto.name, departmentId: dto.departmentId, code: dto.code } });
     if (exists) throw new ConflictException('Evaluation type already exists for this company.');
 
     const entity = this.repo.create(dto as Partial<EvaluationType>);

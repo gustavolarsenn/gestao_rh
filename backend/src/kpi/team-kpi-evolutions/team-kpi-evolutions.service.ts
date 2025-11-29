@@ -1,14 +1,21 @@
 import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Between, Repository } from 'typeorm';
+import { Between, In, Repository } from 'typeorm';
 import { TeamKPIEvolution } from '../entities/team-kpi-evolution.entity';
 import { CreateTeamKpiEvolutionDto } from '../dto/team-kpi-evolution/create-team-kpi-evolution.dto';
 import { UpdateTeamKpiEvolutionDto } from '../dto/team-kpi-evolution/update-team-kpi-evolution.dto';
 import { KpiStatus } from '../entities/kpi.enums';
+import { Team } from '../../team/entities/team.entity';
+import { TeamsService } from '../../team/teams.service';
+import { TeamKpiEvolutionQueryDto } from '../dto/team-kpi-evolution/query-team-kpi-evolution.dto';
 
 @Injectable()
 export class TeamKpiEvolutionsService {
-  constructor(@InjectRepository(TeamKPIEvolution) private readonly repo: Repository<TeamKPIEvolution>) {}
+  constructor(
+    @InjectRepository(TeamKPIEvolution) private readonly repo: Repository<TeamKPIEvolution>,
+    @InjectRepository(Team) private readonly teamRepo: Repository<Team>,
+    private readonly teamsService: TeamsService,
+  ) {}
 
   async create(dto: CreateTeamKpiEvolutionDto): Promise<TeamKPIEvolution> {
     const exists = await this.repo.findOne({
@@ -26,20 +33,21 @@ export class TeamKpiEvolutionsService {
     return this.repo.save(entity);
   }
 
-  async findAll(companyId: string, filters?: {
-    teamId?: string;
-    teamKpiId?: string;
-    submittedDate?: string;
-    status?: KpiStatus;
-  }): Promise<TeamKPIEvolution[]> {
-    const where: any = { companyId };
+  async findAll(user: any, query: TeamKpiEvolutionQueryDto) {
+    const where: any = { companyId: user.companyId };
 
-    if (filters?.teamId) where.teamId = filters.teamId;
-    if (filters?.teamKpiId) where.teamKpiId = filters.teamKpiId;
-    if (filters?.status) where.status = filters.status;
+    const team = await this.teamRepo.findOne({ where: { id: user.teamId, companyId: user.companyId } });
+    const allChildTeams = await this.teamsService.findLowerTeamsRecursive(user.companyId, team!);
+    where.teamId = In([...allChildTeams.map(t => t.id), user.teamId]);
 
+    if (query?.status) where.status = query.status;
 
-    return this.repo.find({ where });
+    const page = Math.max(1, Number(query.page ?? 1));
+    const limit = Math.max(1, Number(query.limit ?? 10));
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await this.repo.findAndCount({ where, skip, take: limit });
+    return { page, limit, total, data };
   }
 
   async findOne(companyId: string, id: string): Promise<TeamKPIEvolution> {

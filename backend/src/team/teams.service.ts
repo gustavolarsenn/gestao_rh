@@ -1,6 +1,6 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ILike, Repository } from 'typeorm';
+import { ILike, Not, Repository } from 'typeorm';
 import { Team } from './entities/team.entity';
 import { CreateTeamDto } from './dto/create-team.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
@@ -46,7 +46,7 @@ export class TeamsService {
   }
 
   async findDistinctTeams(user: any) {
-    const where = applyScope(user, {}, { company: true, team: true, employee: false, department: false });
+    const where = applyScope(user, {}, { company: true, team: true, employee: false, department: false }, 'team' );
 
     return await this.repo.find({ where });
   }
@@ -70,6 +70,18 @@ export class TeamsService {
     return collected;
   }
 
+  async findLowerTeamsRecursive(
+    companyId: string,
+    team: Team,
+    collected: Team[] = [],
+  ): Promise<Team[]> {
+    const children = await this.repo.find({ where: { parentTeamId: team.id, companyId } });
+    for (const child of children) {
+      collected.push(child);
+      await this.findLowerTeamsRecursive(companyId, child, collected);
+    }
+    return collected;
+  }
 
   async findOne(companyId: string, id: string): Promise<Team> {
     const row = await this.repo.findOne({ where: { companyId, id } });

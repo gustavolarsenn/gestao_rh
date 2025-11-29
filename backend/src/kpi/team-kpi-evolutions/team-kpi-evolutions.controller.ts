@@ -1,9 +1,10 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body, Query, ParseUUIDPipe, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Body, Query, ParseUUIDPipe, UsePipes, ValidationPipe, Req } from '@nestjs/common';
 import { TeamKpiEvolutionsService } from './team-kpi-evolutions.service';
 import { CreateTeamKpiEvolutionDto } from '../dto/team-kpi-evolution/create-team-kpi-evolution.dto';
 import { UpdateTeamKpiEvolutionDto } from '../dto/team-kpi-evolution/update-team-kpi-evolution.dto';
 import { TeamKPIEvolution } from '../entities/team-kpi-evolution.entity';
 import { KpiStatus } from '../entities/kpi.enums';
+import { TeamKpiEvolutionQueryDto } from '../dto/team-kpi-evolution/query-team-kpi-evolution.dto';
 
 @Controller('kpi/team-kpi-evolutions')
 @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
@@ -17,13 +18,10 @@ export class TeamKpiEvolutionsController {
 
   @Get()
   findAll(
-    @Query('companyId', ParseUUIDPipe) companyId: string,
-    @Query('teamId') teamId?: string,
-    @Query('teamKpiId') teamKpiId?: string,
-    @Query('submittedDate') submittedDate?: string,
-    @Query('status') status?: KpiStatus,
-  ): Promise<TeamKPIEvolution[]> {
-    return this.service.findAll(companyId, { teamId, teamKpiId, submittedDate, status });
+    @Req() req: any,
+    @Query() query : TeamKpiEvolutionQueryDto,
+  ) {
+    return this.service.findAll(req.user, query);
   }
 
   @Get(':id')

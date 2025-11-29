@@ -7,10 +7,12 @@ import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { User } from '../users/entities/user.entity';
 import { CreateUserDto } from '../users/dto/create-user.dto';
+import { EmailService } from '../common/email/email.service';
+import { ResetPasswordDto } from './dto/reset-password';
 
 @Injectable()
 export class AuthService {
-  constructor(private users: UsersService, private jwt: JwtService) {}
+  constructor(private users: UsersService, private jwt: JwtService, private emailService: EmailService) {}
 
   // LOGIN sem companyId
   async login({ email, password }: { email: string; password: string }) {
@@ -37,6 +39,41 @@ export class AuthService {
         level: found.role?.level ?? null
       },
     };
+  }
+
+  async forgotPassword(email: string): Promise<void> {
+    // normaliza o e-mail
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // procura qualquer usuário com esse e-mail
+    const users = await this.users.findAnyByEmail(normalizedEmail);
+
+    if (!users || users.length === 0) {
+      // NÃO revela que não existe usuário
+      return;
+    }
+
+    const user = users[0]; // se tiver várias contas com o mesmo e-mail, aqui você decide a regra
+
+    // TODO: ideal é persistir esse token (hash + expiresAt) em uma tabela
+    const token = crypto.randomUUID();
+
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const resetLink = `${frontendUrl}/reset-password?token=${token}`;
+
+    await this.emailService.sendPasswordResetEmail(normalizedEmail, resetLink);
+  }
+
+  async resetPassword(dto: ResetPasswordDto) {
+    const user = await this.users.findAnyByEmail(dto.email);
+    if (!user || user.length === 0) {
+      // NÃO revela que não existe usuário
+      return;
+    }
+    const passwordHash = await bcrypt.hash(dto.password, 10);
+    
+    (user[0] as any).passwordHash = passwordHash;
+    await (this.users as any).repo.save(user[0]); // ou expor um método específico de update de senha
   }
 
   // REGISTER continua pedindo companyId

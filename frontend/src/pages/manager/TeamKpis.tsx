@@ -110,6 +110,7 @@ export default function TeamKpis() {
       status: filterStatus || undefined,
       periodStart: filterPeriodStart || undefined,
       periodEnd: filterPeriodEnd || undefined,
+      showExpired: false,
     });
 
     setTeamKpis(result?.data || []);
