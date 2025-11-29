@@ -168,7 +168,6 @@ export default function TeamKpisDashboard() {
         page,
         limit: reviewPageSize,
       });
-      console.log(res)
       const data = ((res as any)?.data ?? res ?? []) as PerformanceReview[];
 
       const total =

@@ -18,13 +18,14 @@ export default function ResetPasswordPage() {
   const navigate = useNavigate();
 
   const token = searchParams.get("token") || "";
+  const email = searchParams.get("email") || "";
 
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setSuccess("");
 
-    if (!token) {
+    if (!token || !email) {
       setError("Link de redefinição inválido ou expirado.");
       return;
     }
@@ -48,6 +49,7 @@ export default function ResetPasswordPage() {
     try {
       await api.post("/auth/reset-password", {
         token,
+        email,
         password,
       });
 
@@ -117,7 +119,7 @@ export default function ResetPasswordPage() {
             </p>
           </div>
 
-          {!token && (
+          {(!token || !email) && (
             <p className="text-sm text-red-600 text-center mb-4">
               Link de redefinição inválido ou ausente. Tente solicitar um novo
               e-mail de recuperação.
@@ -163,7 +165,7 @@ export default function ResetPasswordPage() {
 
             <Button
               type="submit"
-              disabled={loading || !token}
+              disabled={loading || !token || !email}
               className="w-full bg-[#0369a1] hover:bg-[#03527d] text-white font-semibold py-2 rounded-lg transition disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {loading ? "Redefinindo..." : "Redefinir senha"}

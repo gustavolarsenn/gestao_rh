@@ -9,6 +9,7 @@ import { Team } from '../../team/entities/team.entity';
 import { TeamsService } from '../../team/teams.service';
 import { ConflictException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { KpiStatus } from '../entities/kpi.enums';
+import { TeamKPIEvolution } from '../entities/team-kpi-evolution.entity';
 
 describe('EmployeeKpiEvolutionsService', () => {
   let service: EmployeeKpiEvolutionsService;
@@ -17,6 +18,7 @@ describe('EmployeeKpiEvolutionsService', () => {
   let teamKpiRepo: jest.Mocked<Repository<TeamKPI>>;
   let teamRepo: jest.Mocked<Repository<Team>>;
   let teamsService: jest.Mocked<TeamsService>;
+  let teamKpiEvolutionRepo: jest.Mocked<Repository<TeamKPIEvolution>>;
 
   const mockRepo = (): any => ({
     findOne: jest.fn(),
@@ -36,9 +38,14 @@ describe('EmployeeKpiEvolutionsService', () => {
         { provide: getRepositoryToken(TeamKPI), useValue: mockRepo() },
         { provide: getRepositoryToken(Team), useValue: mockRepo() },
         {
+          provide: getRepositoryToken(TeamKPIEvolution),
+          useValue: mockRepo(),
+        },
+        {
           provide: TeamsService,
           useValue: {
             findUpperTeamsRecursive: jest.fn().mockResolvedValue([]),
+            findLowerTeamsRecursive: jest.fn().mockResolvedValue([]), // ✅ agora existe
           },
         },
       ],
@@ -49,6 +56,7 @@ describe('EmployeeKpiEvolutionsService', () => {
     employeeKpiRepo = module.get(getRepositoryToken(EmployeeKPI));
     teamKpiRepo = module.get(getRepositoryToken(TeamKPI));
     teamRepo = module.get(getRepositoryToken(Team));
+    teamKpiEvolutionRepo = module.get(getRepositoryToken(TeamKPIEvolution));
     teamsService = module.get(TeamsService) as any;
   });
 
@@ -56,7 +64,16 @@ describe('EmployeeKpiEvolutionsService', () => {
   // CREATE
   // ======================================================
   it('deve criar employee KPI evolution com sucesso', async () => {
+    // não existe evolução binária ainda
     repo.findOne.mockResolvedValue(null);
+
+    // EmployeeKPI encontrado
+    employeeKpiRepo.findOne.mockResolvedValue({
+      id: 'k1',
+      companyId: 'c1',
+      employeeId: 'e1',
+      teamId: 't1',
+    } as any);
 
     const dto = { employeeKpiId: 'k1' } as any;
     const req = { user: { companyId: 'c1', employeeId: 'e1', teamId: 't1', id: 'u1' } };
@@ -84,9 +101,12 @@ describe('EmployeeKpiEvolutionsService', () => {
   it('findAll deve retornar dados paginados', async () => {
     repo.findAndCount.mockResolvedValue([[{ id: 'ev1' } as any], 1]);
 
+    // time atual do usuário
+    teamRepo.findOne.mockResolvedValue({ id: 't1' } as any);
+
     const result = await service.findAll(
-      { role: 'admin', companyId: 'c1' } as any,
-      { page: 1, limit: 10 } as any
+      { role: 'admin', companyId: 'c1', teamId: 't1' } as any,
+      { page: 1, limit: 10 } as any,
     );
 
     expect(result).toMatchObject({ page: 1, limit: 10, total: 1 });
@@ -141,11 +161,17 @@ describe('EmployeeKpiEvolutionsService', () => {
       status: KpiStatus.DRAFT,
       employeeId: 'e1',
       employeeKpiId: 'k1',
+      companyId: 'c1',
       employeeKpi: { kpi: { evaluationType: { code: 'BINARY' } } },
       employee: { teamId: 't1' },
     } as any);
 
-    employeeKpiRepo.findOne.mockResolvedValue({ id: 'k1' } as any);
+    employeeKpiRepo.findOne.mockResolvedValue({
+      id: 'k1',
+      companyId: 'c1',
+      employeeId: 'e1',
+      teamId: 't1',
+    } as any);
     teamKpiRepo.findOne.mockResolvedValue(null);
 
     const req = { user: { id: 'u1' } };

@@ -51,21 +51,24 @@ export class EmployeeKpisService {
     //   ];
     //   where['companyId'] = user.companyId;
     // }
+
     if (query.showExpired === false) {
       where.periodEnd = MoreThan(new Date());
       where.teamId = In([...allChildTeams.map(t => t.id)]);
-      if (query.kpiId) where.kpiId = query.kpiId;
-      if (query.employeeId) where.employeeId = query.employeeId;
-      if (query.status) where.status = query.status
     } else {
       if (query.periodStart && query.periodEnd) {
         where.periodStart = Between(query.periodStart, query.periodEnd);
       }
       where.teamId = In([...allChildTeams.map(t => t.id), user.teamId]);
-      if (query.kpiId) where.kpiId = query.kpiId;
-      if (query.employeeId) where.employeeId = query.employeeId;
-      if (query.status) where.status = query.status;
     }
+
+    if (user.level === 1) {
+      where.employeeId = user.employeeId;
+    }
+
+    if (query.kpiId) where.kpiId = query.kpiId;
+    if (query.employeeId) where.employeeId = query.employeeId;
+    if (query.status) where.status = query.status;
 
     const page = Math.max(1, Number(query.page ?? 1));
     const limit = Math.max(1, Number(query.limit ?? 10));

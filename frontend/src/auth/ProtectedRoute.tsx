@@ -1,19 +1,34 @@
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "@/auth/useAuth";
 
 interface ProtectedRouteProps {
-  requiredLevel: number; // nível mínimo exigido para acessar
-  redirectTo?: string; // opcional, rota para redirecionar
+  requiredLevel: number;
+  redirectTo?: string;
 }
 
 export function ProtectedRoute({
   requiredLevel,
   redirectTo = "/login",
 }: ProtectedRouteProps) {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+  const location = useLocation();
+
+  if (loading) {
+    return (
+      <div className="w-full h-full flex items-center justify-center">
+        <span className="text-sm text-slate-500">Carregando...</span>
+      </div>
+    );
+  }
 
   if (!user) {
-    return <Navigate to={redirectTo} replace />;
+    return (
+      <Navigate
+        to={redirectTo}
+        replace
+        state={{ from: location }}
+      />
+    );
   }
 
   if ((user.level || 1) < requiredLevel) {

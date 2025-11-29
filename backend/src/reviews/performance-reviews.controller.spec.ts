@@ -13,8 +13,10 @@ describe('PerformanceReviewsController', () => {
         {
           provide: PerformanceReviewsService,
           useValue: {
-            create: jest.fn(),
-            findAll: jest.fn(),
+            createToEmployee: jest.fn(),
+            createToLeader: jest.fn(),
+            findAllToEmployee: jest.fn(),
+            findAllToLeader: jest.fn(),
             findOne: jest.fn(),
             update: jest.fn(),
             remove: jest.fn(),
@@ -24,41 +26,79 @@ describe('PerformanceReviewsController', () => {
     }).compile();
 
     controller = module.get(PerformanceReviewsController);
-    service = module.get(PerformanceReviewsService) as any;
+    service = module.get(
+      PerformanceReviewsService,
+    ) as jest.Mocked<PerformanceReviewsService>;
   });
 
   it('deve estar definido', () => {
     expect(controller).toBeDefined();
   });
 
-  // CREATE
-  it('POST create', async () => {
+  // CREATE TO EMPLOYEE
+  it('POST /employee createToEmployee', async () => {
     const req = { user: { employeeId: 'leader1' } } as any;
     const dto = { employeeId: 'emp1', date: '2024-01-02' } as any;
 
-    service.create.mockResolvedValue({ id: 'rev1' } as any);
+    service.createToEmployee.mockResolvedValue({ id: 'rev1' } as any);
 
-    const result = await controller.create(req, dto);
+    const result = await controller.createToEmployee(req, dto);
 
-    expect(service.create).toHaveBeenCalledWith(req.user, dto);
+    expect(service.createToEmployee).toHaveBeenCalledWith(req.user, dto);
     expect(result).toEqual({ id: 'rev1' });
   });
 
-  // FIND ALL
-  it('GET findAll', async () => {
-    const req = { user: { companyId: 'c1' } } as any;
+  // CREATE TO LEADER
+  it('POST /leader createToLeader', async () => {
+    const req = { user: { employeeId: 'emp1', teamId: 'team1' } } as any;
+    const dto = { date: '2024-01-02' } as any;
 
-    const query = {};
-    service.findAll.mockResolvedValue({
+    service.createToLeader.mockResolvedValue({ id: 'rev2' } as any);
+
+    const result = await controller.createToLeader(req, dto);
+
+    expect(service.createToLeader).toHaveBeenCalledWith(req.user, dto);
+    expect(result).toEqual({ id: 'rev2' });
+  });
+
+  // FIND ALL TO EMPLOYEE
+  it('GET /employee findAllToEmployee', async () => {
+    const req = { user: { companyId: 'c1', employeeId: 'e1' } } as any;
+    const query: any = {};
+
+    service.findAllToEmployee.mockResolvedValue({
       page: 1,
       limit: 10,
       total: 0,
       data: [],
     });
 
-    const result = await controller.findAll(req, query);
+    const result = await controller.findAllToEmployee(req, query);
 
-    expect(service.findAll).toHaveBeenCalledWith(req.user, query);
+    expect(service.findAllToEmployee).toHaveBeenCalledWith(req.user, query);
+    expect(result).toEqual({
+      page: 1,
+      limit: 10,
+      total: 0,
+      data: [],
+    });
+  });
+
+  // FIND ALL TO LEADER
+  it('GET /leader findAllToLeader', async () => {
+    const req = { user: { companyId: 'c1', teamId: 't1' } } as any;
+    const query: any = {};
+
+    service.findAllToLeader.mockResolvedValue({
+      page: 1,
+      limit: 10,
+      total: 0,
+      data: [],
+    });
+
+    const result = await controller.findAllToLeader(req, query);
+
+    expect(service.findAllToLeader).toHaveBeenCalledWith(req.user, query);
     expect(result).toEqual({
       page: 1,
       limit: 10,

@@ -6,10 +6,26 @@ import { Repository } from 'typeorm';
 import { TeamKPIEvolution } from '../entities/team-kpi-evolution.entity';
 import { ConflictException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { KpiStatus } from '../entities/kpi.enums';
+import { Team } from '../../team/entities/team.entity';
+import { TeamsService } from '../../team/teams.service';
 
 describe('TeamKpiEvolutionsService', () => {
   let service: TeamKpiEvolutionsService;
   let repo: jest.Mocked<Repository<TeamKPIEvolution>>;
+  let teamRepo: jest.Mocked<Repository<Team>>;
+  let teamsService: jest.Mocked<TeamsService>;
+
+  function createRepoMock(): jest.Mocked<Repository<any>> {
+    return {
+      find: jest.fn(),
+      findOne: jest.fn(),
+      findAndCount: jest.fn(), // ✅ FALTAVA ISSO
+      create: jest.fn((e) => e),
+      save: jest.fn((e) => Promise.resolve({ ...e, id: e.id ?? 'generated-id' })),
+      merge: jest.fn((entity, dto) => ({ ...entity, ...dto })),
+      remove: jest.fn(),
+    } as any;
+  }
 
   beforeEach(async () => {
     const module = await Test.createTestingModule({
@@ -19,23 +35,25 @@ describe('TeamKpiEvolutionsService', () => {
           provide: getRepositoryToken(TeamKPIEvolution),
           useValue: createRepoMock(),
         },
+        {
+          provide: getRepositoryToken(Team),
+          useValue: createRepoMock(),
+        },
+        {
+          provide: TeamsService,
+          useValue: {
+            findUpperTeamsRecursive: jest.fn().mockResolvedValue([]),
+            findLowerTeamsRecursive: jest.fn().mockResolvedValue([]),
+          },
+        },
       ],
     }).compile();
 
     service = module.get(TeamKpiEvolutionsService);
     repo = module.get(getRepositoryToken(TeamKPIEvolution));
+    teamRepo = module.get(getRepositoryToken(Team));
+    teamsService = module.get(TeamsService) as any;
   });
-
-  function createRepoMock(): jest.Mocked<Repository<any>> {
-    return {
-      find: jest.fn(),
-      findOne: jest.fn(),
-      create: jest.fn((e) => e),
-      save: jest.fn((e) => Promise.resolve({ ...e, id: e.id ?? 'generated-id' })),
-      merge: jest.fn((entity, dto) => ({ ...entity, ...dto })),
-      remove: jest.fn(),
-    } as any;
-  }
 
   // ===========================================================================
   // CREATE
@@ -73,13 +91,26 @@ describe('TeamKpiEvolutionsService', () => {
   // ===========================================================================
   // FIND ALL
   // ===========================================================================
-  it('findAll deve retornar lista', async () => {
-    repo.find.mockResolvedValue([{ id: 'ev1' }] as any);
+  it('findAll deve retornar lista paginada', async () => {
+    // team do usuário
+    teamRepo.findOne.mockResolvedValue({ id: 't1', companyId: 'c1' } as any);
+    // times filhos (nenhum)
+    teamsService.findLowerTeamsRecursive.mockResolvedValue([]);
+    // retorno do repo
+    repo.findAndCount.mockResolvedValue([[{ id: 'ev1' } as any], 1]);
 
-    const result = await service.findAll('c1', {});
+    const user = { companyId: 'c1', teamId: 't1' } as any;
+    const query = { page: 1, limit: 10 } as any;
 
-    expect(repo.find).toHaveBeenCalled();
-    expect(result).toEqual([{ id: 'ev1' }]);
+    const result = await service.findAll(user, query);
+
+    expect(repo.findAndCount).toHaveBeenCalled();
+    expect(result).toEqual({
+      page: 1,
+      limit: 10,
+      total: 1,
+      data: [{ id: 'ev1' }],
+    });
   });
 
   // ===========================================================================

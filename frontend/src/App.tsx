@@ -33,11 +33,11 @@ export default function App() {
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<Login />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
-          <Route element={<ProtectedRoute requiredLevel={4} redirectTo="/admin/companies"/>}>
+          <Route element={<ProtectedRoute requiredLevel={4}/>}>
             <Route path="/admin/companies" element={<Company />} />
           </Route>
 
-          <Route element={<ProtectedRoute requiredLevel={3} redirectTo="/admin/persons"/>}>
+          <Route element={<ProtectedRoute requiredLevel={3}/>}>
             <Route path="/admin/branches" element={<Branch />} />
             <Route path="/admin/persons" element={<Persons />} />
             <Route path="/admin/users" element={<Users />} />
@@ -50,7 +50,7 @@ export default function App() {
             <Route path="/admin/org-chart" element={<OrgChart />} />
           </Route>
           
-          <Route element={<ProtectedRoute requiredLevel={2} redirectTo="/manager/kpis"/>}>
+          <Route element={<ProtectedRoute requiredLevel={2}/>}>
             <Route path="/manager/evaluation-types" element={<EvaluationTypes />} />
             <Route path="/manager/kpis" element={<Kpis />} />
             <Route path="/manager/employee-kpis" element={<EmployeeKpis />} />
@@ -59,7 +59,7 @@ export default function App() {
             <Route path="/manager/team-dashboard" element={<TeamDashboardTabs />} />
           </Route>
           
-          <Route element={<ProtectedRoute requiredLevel={1} redirectTo="/employee/employee-kpis"/>}>
+          <Route element={<ProtectedRoute requiredLevel={1}/>}>
             <Route path="/employee/employee-kpis" element={<EmployeeKpisEvolution />} />
             <Route path="/employee/dashboard" element={<EmployeeDashboard />} />
             <Route path="/employee/feedback" element={<LeaderPerformanceReview />} />

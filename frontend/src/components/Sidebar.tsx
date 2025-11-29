@@ -8,6 +8,10 @@ import {
   FiLogOut,
   FiBarChart2,
   FiDatabase,
+  FiChevronDown,
+  FiHome,
+  FiList,
+  FiMessageCircle,
 } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/auth/useAuth";
@@ -25,6 +29,34 @@ export default function Sidebar() {
 
   const userLevel = user?.level || 1; // 1 = user comum, 2 = manager, 3+ = admin
   const sidebarWidth = collapsed ? "80px" : "260px";
+
+  // Links principais, fixos (não colapsáveis)
+  const primaryLinks = [
+    {
+      to: "/employee/dashboard",
+      label: "Meu Dashboard",
+      icon: FiHome,
+      level: 1,
+    },
+    {
+      to: "/manager/team-dashboard",
+      label: "Dashboard do Time",
+      icon: FiBarChart2,
+      level: 2,
+    },
+    {
+      to: "/employee/employee-kpis",
+      label: "Meus KPIs",
+      icon: FiList,
+      level: 1,
+    },
+    {
+      to: "/employee/feedback",
+      label: "Feedback ao Gestor",
+      icon: FiMessageCircle,
+      level: 1,
+    },
+  ];
 
   const menuStructure = [
     {
@@ -60,7 +92,7 @@ export default function Sidebar() {
     {
       label: "KPIs",
       icon: FiBarChart2,
-      level: 1,
+      level: 2,
       items: [
         { to: "/manager/evaluation-types", label: "Tipos de Avaliação", level: 2 },
         { to: "/manager/kpis", label: "KPIs", level: 2 },
@@ -71,10 +103,6 @@ export default function Sidebar() {
         },
         { to: "/manager/kpi-review", label: "Revisão de KPIs", level: 2 },
         { to: "/manager/team-kpis", label: "Designar KPIs de Time", level: 2 },
-        { to: "/manager/team-dashboard", label: "Dashboard de Time", level: 2 },
-        { to: "/employee/employee-kpis", label: "KPIs de Funcionários", level: 1 },
-        { to: "/employee/dashboard", label: "Dashboard", level: 1 },
-        { to: "/employee/feedback", label: "Feedback ao Gestor", level: 1 },
       ],
     },
   ];
@@ -147,78 +175,114 @@ export default function Sidebar() {
         </p>
       )}
 
-      {/* Menus (scroll próprio, com padding embaixo para não ficar colado no Sair) */}
-      <nav className="mt-1 flex-1 overflow-y-auto overflow-x-hidden scroll-smooth scrollbar-thin scrollbar-thumb-[#bae6fd] scrollbar-track-transparent pb-4">
-        {menuStructure
-          .filter((menu) => userLevel >= menu.level)
-          .map((menu) => {
-            const isOpen = openMenus.includes(menu.label);
-            const Icon = menu.icon;
-            return (
-              <div key={menu.label} className="mb-1">
-                <button
-                  onClick={() => toggleMenu(menu.label)}
-                  className={`
-                    flex items-center w-full px-4 py-2 gap-3 text-left
-                    text-[13px] font-medium
-                    ${collapsed ? "justify-center" : "justify-start"}
-                    text-slate-600 hover:bg-slate-50 hover:text-slate-900
-                    transition-colors
-                  `}
-                >
-                  <Icon className="text-[18px] text-[#64748b]" />
-                  {!collapsed && (
-                    <span className="whitespace-nowrap">{menu.label}</span>
-                  )}
-                </button>
+      {/* Wrapper que controla o scroll + posicionamento do logout */}
+      <div className="mt-1 flex-1 flex flex-col overflow-hidden">
+        {/* Menus (scroll próprio) */}
+        <nav className="flex-1 overflow-y-auto overflow-x-hidden scroll-smooth scrollbar-thin scrollbar-thumb-[#bae6fd] scrollbar-track-transparent pb-4">
+          {/* LINKS PRINCIPAIS NO TOPO */}
+          {primaryLinks
+            .filter((item) => userLevel >= item.level)
+            .map(({ to, label, icon: Icon }) => (
+              <NavLink
+                key={to}
+                to={to}
+                className={({ isActive }) =>
+                  [
+                    "flex items-center gap-3 px-4 py-2 text-[13px] transition-colors",
+                    collapsed ? "justify-center" : "justify-start",
+                    isActive
+                      ? "bg-[#e0f2ff] text-[#0369a1] font-medium"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
+                  ].join(" ")
+                }
+              >
+                <Icon className="text-[18px] text-[#0369a1]" />
+                {!collapsed && <span className="truncate">{label}</span>}
+              </NavLink>
+            ))}
 
-                <AnimatePresence>
-                  {!collapsed && isOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.15 }}
-                      className="mt-1 space-y-1"
-                    >
-                      {menu.items
-                        .filter((item) => userLevel >= item.level)
-                        .map(({ to, label }) => (
-                          <NavLink
-                            key={to}
-                            to={to}
-                            className={({ isActive }) =>
-                              [
-                                "flex items-center rounded-full mx-3 px-4 py-2 text-[13px] transition-colors",
-                                isActive
-                                  ? "bg-[#e0f2ff] text-[#0369a1] font-medium"
-                                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
-                              ].join(" ")
-                            }
-                          >
-                            <span className="truncate">{label}</span>
-                          </NavLink>
-                        ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            );
-          })}
-      </nav>
+          {/* pequeno separador entre principais e colapsáveis */}
+          {!collapsed && <div className="mx-4 my-3 h-px bg-slate-100" />}
 
-      {/* Logout – agora logo após o menu (sem mt-auto) */}
-      <div
-        className="border-t border-slate-100 px-4 py-3 cursor-pointer hover:bg-slate-50 transition-colors"
-        onClick={handleLogout}
-      >
+          {/* MENUS COLAPSÁVEIS */}
+          {menuStructure
+            .filter((menu) => userLevel >= menu.level)
+            .map((menu) => {
+              const isOpen = openMenus.includes(menu.label);
+              const Icon = menu.icon;
+              return (
+                <div key={menu.label} className="mb-1">
+                  <button
+                    onClick={() => toggleMenu(menu.label)}
+                    className={`
+                      flex items-center w-full px-4 py-2 gap-3 text-left
+                      text-[13px] font-medium
+                      text-slate-600 hover:bg-slate-50 hover:text-slate-900
+                      transition-colors
+                      ${collapsed ? "justify-center" : "justify-between"}
+                    `}
+                  >
+                    <Icon className="text-[18px] text-[#64748b]" />
+                    {!collapsed && (
+                      <div className="flex-1 flex items-center justify-between gap-2">
+                        <span className="whitespace-nowrap">{menu.label}</span>
+                        <FiChevronDown
+                          className={`text-[14px] text-slate-400 transition-transform ${
+                            isOpen ? "rotate-180" : ""
+                          }`}
+                        />
+                      </div>
+                    )}
+                  </button>
+
+                  <AnimatePresence>
+                    {!collapsed && isOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.15 }}
+                        className="mt-1 space-y-1"
+                      >
+                        {menu.items
+                          .filter((item) => userLevel >= item.level)
+                          .map(({ to, label }) => (
+                            <NavLink
+                              key={to}
+                              to={to}
+                              className={({ isActive }) =>
+                                [
+                                  "flex items-center rounded-full mx-3 px-4 py-2 text-[13px] transition-colors",
+                                  isActive
+                                    ? "bg-[#e0f2ff] text-[#0369a1] font-medium"
+                                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
+                                ].join(" ")
+                              }
+                            >
+                              <span className="truncate">{label}</span>
+                            </NavLink>
+                          ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            })}
+        </nav>
+
+        {/* Logout sempre no rodapé da sidebar (altura da tela) */}
         <div
-          className={`flex items-center gap-3 text-slate-500 hover:text-slate-800 ${
-            collapsed ? "justify-center" : ""
-          }`}
+          className="mt-auto border-t border-slate-100 px-4 py-3 cursor-pointer hover:bg-slate-50 transition-colors bg-white"
+          onClick={handleLogout}
         >
-          <FiLogOut className="text-[18px]" />
-          {!collapsed && <span className="text-sm font-medium">Sair</span>}
+          <div
+            className={`flex items-center gap-3 text-slate-500 hover:text-slate-800 ${
+              collapsed ? "justify-center" : ""
+            }`}
+          >
+            <FiLogOut className="text-[18px]" />
+            {!collapsed && <span className="text-sm font-medium">Sair</span>}
+          </div>
         </div>
       </div>
     </aside>

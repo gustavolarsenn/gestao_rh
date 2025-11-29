@@ -5,10 +5,14 @@ import { Repository } from 'typeorm';
 import { EmployeeKPI } from '../entities/employee-kpi.entity';
 import { ConflictException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { KpiStatus } from '../entities/kpi.enums';
+import { Team } from '../../team/entities/team.entity';          // ✅ NOVO
+import { TeamsService } from '../../team/teams.service';         // ✅ NOVO
 
 describe('EmployeeKpisService', () => {
   let service: EmployeeKpisService;
   let repo: jest.Mocked<Repository<EmployeeKPI>>;
+  let teamRepo: jest.Mocked<Repository<Team>>;                   // opcional se quiser usar nos testes
+  let teamsService: jest.Mocked<TeamsService>;                   // idem
 
   function mockRepo() {
     return {
@@ -26,11 +30,22 @@ describe('EmployeeKpisService', () => {
       providers: [
         EmployeeKpisService,
         { provide: getRepositoryToken(EmployeeKPI), useValue: mockRepo() },
+        { provide: getRepositoryToken(Team), useValue: mockRepo() },   // ✅ repo do Team
+        {
+          provide: TeamsService,                                       // ✅ mock do TeamsService
+          useValue: {
+            findUpperTeamsRecursive: jest.fn().mockResolvedValue([]),
+            findLowerTeamsRecursive: jest.fn().mockResolvedValue([]),
+            validateMemberBelongsToTeam: jest.fn().mockResolvedValue(true),
+          },
+        },
       ],
     }).compile();
 
     service = module.get(EmployeeKpisService);
     repo = module.get(getRepositoryToken(EmployeeKPI));
+    teamRepo = module.get(getRepositoryToken(Team));
+    teamsService = module.get(TeamsService) as any;
   });
 
   it('deve estar definido', () => {

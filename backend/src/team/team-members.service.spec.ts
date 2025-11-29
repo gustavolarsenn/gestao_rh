@@ -4,6 +4,8 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { TeamMember } from './entities/team-member.entity';
 import { ConflictException, NotFoundException } from '@nestjs/common';
+import { Team } from './entities/team.entity';         // ✅
+import { TeamsService } from './teams.service';        // ✅
 
 describe('TeamMembersService', () => {
   let service: TeamMembersService;
@@ -25,6 +27,15 @@ describe('TeamMembersService', () => {
       providers: [
         TeamMembersService,
         { provide: getRepositoryToken(TeamMember), useValue: mockRepo() },
+        { provide: getRepositoryToken(Team), useValue: mockRepo() }, // ✅ TeamRepository
+        {
+          provide: TeamsService,                                     // ✅ mock TeamsService
+          useValue: {
+            findUpperTeamsRecursive: jest.fn().mockResolvedValue([]),
+            findLowerTeamsRecursive: jest.fn().mockResolvedValue([]),
+            validateMemberBelongsToTeam: jest.fn().mockResolvedValue(true),
+          },
+        },
       ],
     }).compile();
 

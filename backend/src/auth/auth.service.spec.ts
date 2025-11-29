@@ -4,6 +4,9 @@ import * as bcrypt from 'bcrypt';
 
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
+import { EmailService } from '../common/email/email.service';
+import { Repository } from 'typeorm';
+import { PasswordResetToken } from './entities/password-reset-token.entity';
 
 jest.mock('bcrypt', () => ({
   compare: jest.fn(),
@@ -13,6 +16,8 @@ describe('AuthService', () => {
   let service: AuthService;
   let usersService: jest.Mocked<UsersService>;
   let jwtService: jest.Mocked<JwtService>;
+  let emailService: jest.Mocked<EmailService>;
+  let passwordResetRepo: jest.Mocked<Repository<PasswordResetToken>>;
 
   const userMock = {
     id: 'user-1',
@@ -32,7 +37,25 @@ describe('AuthService', () => {
       sign: jest.fn(),
     } as any;
 
-    service = new AuthService(usersService, jwtService);
+    emailService = {
+      sendPasswordResetEmail: jest.fn(),
+    } as any;
+
+    // mock mínimo do repo de PasswordResetToken
+    passwordResetRepo = {
+      findOne: jest.fn(),
+      update: jest.fn(),
+      create: jest.fn((e) => e),
+      save: jest.fn((e) => Promise.resolve(e)),
+    } as any;
+
+    // ⬇️ agora com 4 argumentos
+    service = new AuthService(
+      usersService,
+      jwtService,
+      emailService,
+      passwordResetRepo,
+    );
   });
 
   afterEach(() => {
@@ -53,9 +76,7 @@ describe('AuthService', () => {
       password: '123456',
     });
 
-    expect(usersService.findAnyByEmail).toHaveBeenCalledWith(
-      'john@example.com',
-    );
+    expect(usersService.findAnyByEmail).toHaveBeenCalledWith('john@example.com');
     expect(bcrypt.compare).toHaveBeenCalledWith(
       '123456',
       userMock.passwordHash,

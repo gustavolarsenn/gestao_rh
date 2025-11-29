@@ -42,7 +42,6 @@ export class PerformanceReviewsService {
 
   async findAllToEmployee(user: any, query: PerformanceReviewQueryDto) {
     const where = applyScope(user, {}, { company: true, team: false, employee: true, department: false });
-    console.log("AQui", where);
 
     if (query.startDate && query.endDate) {
       (where as any).date = Between(query.startDate, query.endDate);
@@ -58,7 +57,6 @@ export class PerformanceReviewsService {
     const skip = (page - 1) * limit;
 
     const [data, total] = await this.repo.findAndCount({ where, skip, take: limit });
-    console.log("DATA", data);
 
     return { page, limit, total, data };
   }

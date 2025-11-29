@@ -3,16 +3,18 @@ import { Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { UsersModule } from '../users/users.module';
 import { JwtStrategy } from './strategies/jwt.strategy';
-import { EmployeesService } from '../hr/employees.service';
 import { EmailService } from '../common/email/email.service';
+import { PasswordResetToken } from './entities/password-reset-token.entity';
 
 @Module({
   imports: [
-    ConfigModule, // já é global no AppModule, ok repetir
+    ConfigModule,
     UsersModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
@@ -22,6 +24,7 @@ import { EmailService } from '../common/email/email.service';
         signOptions: { expiresIn: cfg.get<string>('JWT_EXPIRES', '1d') },
       }),
     }),
+    TypeOrmModule.forFeature([PasswordResetToken]),
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, EmailService],

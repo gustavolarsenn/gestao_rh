@@ -1,18 +1,30 @@
 // src/auth/auth.service.ts
-import { Injectable, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, MoreThan, IsNull } from 'typeorm';
+
 import { UsersService } from '../users/users.service';
-import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
-import { User } from '../users/entities/user.entity';
-import { CreateUserDto } from '../users/dto/create-user.dto';
 import { EmailService } from '../common/email/email.service';
 import { ResetPasswordDto } from './dto/reset-password';
+import { PasswordResetToken } from './entities/password-reset-token.entity';
 
 @Injectable()
 export class AuthService {
-  constructor(private users: UsersService, private jwt: JwtService, private emailService: EmailService) {}
+  constructor(
+    private users: UsersService,
+    private jwt: JwtService,
+    private emailService: EmailService,
+    @InjectRepository(PasswordResetToken)
+    private readonly passwordResetRepo: Repository<PasswordResetToken>,
+  ) {}
 
   // LOGIN sem companyId
   async login({ email, password }: { email: string; password: string }) {
@@ -36,16 +48,17 @@ export class AuthService {
         name: found.name,
         email: found.email,
         companyId: found.companyId,
-        level: found.role?.level ?? null
+        level: found.role?.level ?? null,
       },
     };
   }
 
+  // ===========================
+  // ESQUECI MINHA SENHA
+  // ===========================
   async forgotPassword(email: string): Promise<void> {
-    // normaliza o e-mail
     const normalizedEmail = email.trim().toLowerCase();
 
-    // procura qualquer usuário com esse e-mail
     const users = await this.users.findAnyByEmail(normalizedEmail);
 
     if (!users || users.length === 0) {
@@ -53,47 +66,78 @@ export class AuthService {
       return;
     }
 
-    const user = users[0]; // se tiver várias contas com o mesmo e-mail, aqui você decide a regra
+    const user = users[0];
 
-    // TODO: ideal é persistir esse token (hash + expiresAt) em uma tabela
-    const token = crypto.randomUUID();
+    // opcional: invalidar tokens anteriores não usados
+        await this.passwordResetRepo.update(
+          { userId: user.id, usedAt: IsNull() },
+          { usedAt: new Date() },
+        );
+
+    // token aleatório
+    const token = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+    const expiresAt = new Date(Date.now() + 1000 * 60 * 60); // 1h
+
+    await this.passwordResetRepo.save(
+      this.passwordResetRepo.create({
+        userId: user.id,
+        tokenHash,
+        expiresAt,
+        usedAt: null,
+      }),
+    );
 
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-    const resetLink = `${frontendUrl}/reset-password?token=${token}`;
+
+    // mando token + email no link (ajusta o frontend pra ler isso)
+    const resetLink = `${frontendUrl}/reset-password?token=${token}&email=${encodeURIComponent(
+      normalizedEmail,
+    )}`;
 
     await this.emailService.sendPasswordResetEmail(normalizedEmail, resetLink);
   }
 
+  // ===========================
+  // RESET DE SENHA
+  // ===========================
   async resetPassword(dto: ResetPasswordDto) {
-    const user = await this.users.findAnyByEmail(dto.email);
-    if (!user || user.length === 0) {
-      // NÃO revela que não existe usuário
+    const normalizedEmail = dto.email.trim().toLowerCase();
+
+    const users = await this.users.findAnyByEmail(normalizedEmail);
+    if (!users || users.length === 0) {
+      // não revela se existe ou não
       return;
     }
+
+    const user = users[0];
+
+    const tokenHash = crypto.createHash('sha256').update(dto.token).digest('hex');
+    const now = new Date();
+
+    const resetToken = await this.passwordResetRepo.findOne({
+      where: {
+        userId: user.id,
+        tokenHash,
+        usedAt: IsNull(),
+        expiresAt: MoreThan(now),
+      } as any,
+    });
+
+    if (!resetToken) {
+      throw new BadRequestException('Token de redefinição inválido ou expirado.');
+    }
+
     const passwordHash = await bcrypt.hash(dto.password, 10);
-    
-    (user[0] as any).passwordHash = passwordHash;
-    await (this.users as any).repo.save(user[0]); // ou expor um método específico de update de senha
+
+    // ideal: criar um método específico no UsersService
+    (user as any).passwordHash = passwordHash;
+    await (this.users as any).repo.save(user);
+
+    resetToken.usedAt = new Date();
+    await this.passwordResetRepo.save(resetToken);
   }
 
-  // REGISTER continua pedindo companyId
-  // async register(dto: CreateUserDto) {
-  //   const exists = await this.users.findByEmail(dto.companyId, dto.email);
-  //   if (exists) throw new ConflictException('Email already in use for this company');
-  //   const created = await this.users.create({
-  //     companyId: dto.companyId,
-  //     name: dto.name,
-  //     email: dto.email,
-  //     password: dto.password,
-  //     person: { id: dto.personId },
-  //     userRoleId:  dto.userRoleId ,
-  //   } as Partial<User>);
-
-  //   const payload = { sub: created.id, companyId: created.companyId, email: created.email };
-  //   const accessToken = await this.jwt.signAsync(payload);
-  //   return {
-  //     accessToken,
-  //     user: { id: created.id, name: created.name, email: created.email, companyId: created.companyId },
-  //   };
-  // }
+  // REGISTER continua comentado...
 }

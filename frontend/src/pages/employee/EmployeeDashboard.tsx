@@ -118,7 +118,8 @@ export default function EmployeeDashboard() {
       ]);
 
       const ek = (ekResult as any)?.data ?? ekResult ?? [];
-      const ev = (evResult as any)?.data ?? evResult ?? [];
+      const evA = (evResult as any)?.data ?? evResult ?? [];
+      const ev = evA.filter((e: any) => e.status === "APPROVED");
 
       setKpis(ek);
       setEvolutions(ev);

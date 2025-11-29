@@ -38,14 +38,19 @@ describe('CareerPathsService', () => {
       nextRoleId: 'r2',
     };
 
-    const entity = { id: 'p1', ...dto };
+    const createArg = {
+      ...dto,
+      department: { id: dto.departmentId },
+    };
+
+    const entity = { id: 'p1', ...createArg };
 
     repo.create.mockReturnValue(entity);
     repo.save.mockResolvedValue(entity);
 
     const result = await service.create(dto as any);
 
-    expect(repo.create).toHaveBeenCalledWith(dto);
+    expect(repo.create).toHaveBeenCalledWith(createArg);
     expect(repo.save).toHaveBeenCalledWith(entity);
     expect(result).toEqual(entity);
   });

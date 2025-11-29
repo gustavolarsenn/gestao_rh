@@ -4,6 +4,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository, Between, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
 import { PerformanceReview } from './entities/performance-review.entity';
 import { NotFoundException } from '@nestjs/common';
+import { TeamMember } from '../team/entities/team-member.entity';
 
 describe('PerformanceReviewsService', () => {
   let service: PerformanceReviewsService;
@@ -24,7 +25,15 @@ describe('PerformanceReviewsService', () => {
     const module = await Test.createTestingModule({
       providers: [
         PerformanceReviewsService,
-        { provide: getRepositoryToken(PerformanceReview), useValue: mockRepo() },
+        {
+          provide: getRepositoryToken(PerformanceReview),
+          useValue: mockRepo(),
+        },
+        {
+          // mock para o TeamMember, necessário por causa da injeção no service
+          provide: getRepositoryToken(TeamMember),
+          useValue: mockRepo(),
+        },
       ],
     }).compile();
 
@@ -36,26 +45,27 @@ describe('PerformanceReviewsService', () => {
     expect(service).toBeDefined();
   });
 
-  // CREATE
-  it('create deve criar review com leaderId vindo do user', async () => {
+  // CREATE (para colaborador)
+  it('createToEmployee deve criar review com leaderId vindo do user', async () => {
     const user = { employeeId: 'leader1' };
     const dto = { employeeId: 'emp1', date: '2024-01-02' };
 
-    const result = await service.create(user, dto as any);
+    const result = await service.createToEmployee(user as any, dto as any);
 
     expect(repo.create).toHaveBeenCalledWith({
       leaderId: user.employeeId,
+      employeeToLeader: false,
       ...dto,
     });
     expect(repo.save).toHaveBeenCalled();
     expect(result.employeeId).toBe('emp1');
   });
 
-  // FIND ALL (pagination + without filters)
-  it('findAll deve retornar lista paginada', async () => {
+  // FIND ALL (pagination + sem filtros) - usando findAllToEmployee
+  it('findAllToEmployee deve retornar lista paginada', async () => {
     repo.findAndCount.mockResolvedValue([[{ id: 'rev1' } as any], 1]);
 
-    const result = await service.findAll(
+    const result = await service.findAllToEmployee(
       { role: 'admin', companyId: 'c1' } as any,
       { page: 1, limit: 10 } as any,
     );
@@ -70,10 +80,10 @@ describe('PerformanceReviewsService', () => {
   });
 
   // FIND ALL date filter: BETWEEN
-  it('findAll deve aplicar filtro BETWEEN quando startDate e endDate existem', async () => {
+  it('findAllToEmployee deve aplicar filtro BETWEEN quando startDate e endDate existem', async () => {
     repo.findAndCount.mockResolvedValue([[], 0]);
 
-    await service.findAll(
+    await service.findAllToEmployee(
       { role: 'admin', companyId: 'c1' } as any,
       {
         startDate: '2024-01-01',
@@ -87,10 +97,10 @@ describe('PerformanceReviewsService', () => {
   });
 
   // START ONLY
-  it('findAll deve aplicar filtro >= quando só startDate existe', async () => {
+  it('findAllToEmployee deve aplicar filtro >= quando só startDate existe', async () => {
     repo.findAndCount.mockResolvedValue([[], 0]);
 
-    await service.findAll(
+    await service.findAllToEmployee(
       { role: 'admin', companyId: 'c1' } as any,
       { startDate: '2024-01-01' } as any,
     );
@@ -101,10 +111,10 @@ describe('PerformanceReviewsService', () => {
   });
 
   // END ONLY
-  it('findAll deve aplicar filtro <= quando só endDate existe', async () => {
+  it('findAllToEmployee deve aplicar filtro <= quando só endDate existe', async () => {
     repo.findAndCount.mockResolvedValue([[], 0]);
 
-    await service.findAll(
+    await service.findAllToEmployee(
       { role: 'admin', companyId: 'c1' } as any,
       { endDate: '2024-01-31' } as any,
     );

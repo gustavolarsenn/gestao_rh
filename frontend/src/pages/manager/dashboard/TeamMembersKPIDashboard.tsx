@@ -159,7 +159,8 @@ export default function TeamMembersKpiDashboard() {
       });
       const evAll = (evResult as any)?.data ?? evResult ?? [];
       const employeeKpiIds = new Set(ek.map((k: any) => k.id));
-      const ev = evAll.filter((e: any) => employeeKpiIds.has(e.employeeKpiId));
+      const evA = evAll.filter((e: any) => employeeKpiIds.has(e.employeeKpiId));
+      const ev = evA.filter((e: any) => e.status === "APPROVED");
       setEvolutions(ev);
 
       if (ek.length) setSelectedEmployeeKpiId(ek[0].id);

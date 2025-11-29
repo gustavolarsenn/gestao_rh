@@ -44,11 +44,14 @@ describe('TeamKpiEvolutionsController', () => {
   });
 
   it('GET findAll', async () => {
+    const req = { user: { companyId: 'c1' } } as any;
+    const query: any = {};
+
     service.findAll.mockResolvedValue([{ id: 'ev1' }] as any);
 
-    const result = await controller.findAll('c1', undefined);
+    const result = await controller.findAll(req, query);
 
-    expect(service.findAll).toHaveBeenCalled();
+    expect(service.findAll).toHaveBeenCalledWith(req.user, query);
     expect(result).toEqual([{ id: 'ev1' }]);
   });
 

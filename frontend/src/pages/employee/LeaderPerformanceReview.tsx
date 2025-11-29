@@ -66,7 +66,6 @@ export default function LeaderPerformanceReview() {
       page,
       limit
     });
-    console.log(res)
     const data =
       ((res as any)?.data ?? res ?? []) as PerformanceReview[];
 

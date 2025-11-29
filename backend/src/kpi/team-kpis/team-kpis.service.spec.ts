@@ -9,6 +9,8 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { KpiStatus } from '../entities/kpi.enums';
+import { Team } from '../../team/entities/team.entity';      // ✅ NOVO
+import { TeamsService } from '../../team/teams.service';     // ✅ NOVO
 
 describe('TeamKpisService', () => {
   let service: TeamKpisService;
@@ -26,45 +28,52 @@ describe('TeamKpisService', () => {
     } as any;
   }
 
-function mockTeam(overrides: Partial<TeamKPI> = {}): TeamKPI {
-  return {
-    id: 'tk1',
-    companyId: 'c1',
-    teamId: 't1',
-    kpiId: 'k1',
-    evaluationTypeId: 'ev1',
+  function mockTeam(overrides: Partial<TeamKPI> = {}): TeamKPI {
+    return {
+      id: 'tk1',
+      companyId: 'c1',
+      teamId: 't1',
+      kpiId: 'k1',
+      evaluationTypeId: 'ev1',
 
-    periodStart: '2024-01-01',
-    periodEnd: '2024-01-31',
+      periodStart: '2024-01-01',
+      periodEnd: '2024-01-31',
 
-    status: KpiStatus.SUBMITTED,
-    submittedBy: 'u1',
-    submittedDate: new Date(),
+      status: KpiStatus.SUBMITTED,
+      submittedBy: 'u1',
+      submittedDate: new Date(),
 
-    // campos de relação obrigatórios, mockados como objetos simples
-    team: {} as any,
-    kpi: {} as any,
-    evaluationType: {} as any,
-    submittedByUser: {} as any,
-    approvedByUser: null,
-    company: {} as any,
+      team: {} as any,
+      kpi: {} as any,
+      evaluationType: {} as any,
+      submittedByUser: {} as any,
+      approvedByUser: null,
+      company: {} as any,
 
-    approvedBy: null,
-    approvedDate: null,
-    rejectionReason: null,
-    goal: null,
-    achievedValue: null,
+      approvedBy: null,
+      approvedDate: null,
+      rejectionReason: null,
+      goal: null,
+      achievedValue: null,
 
-    ...overrides,
-  } as TeamKPI;
-}
-
+      ...overrides,
+    } as TeamKPI;
+  }
 
   beforeEach(async () => {
     const module = await Test.createTestingModule({
       providers: [
         TeamKpisService,
         { provide: getRepositoryToken(TeamKPI), useValue: mockRepo() },
+        { provide: getRepositoryToken(Team), useValue: mockRepo() }, // ✅ repo de Team
+        {
+          provide: TeamsService,                                     // ✅ mock TeamsService
+          useValue: {
+            findUpperTeamsRecursive: jest.fn().mockResolvedValue([]),
+            findLowerTeamsRecursive: jest.fn().mockResolvedValue([]),
+            validateMemberBelongsToTeam: jest.fn().mockResolvedValue(true),
+          },
+        },
       ],
     }).compile();
 

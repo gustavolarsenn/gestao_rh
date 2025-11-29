@@ -13,7 +13,7 @@ export class CareerPathsService {
   ) {}
 
   async create(dto: CreateCareerPathDto): Promise<CareerPath[]> {
-    const entity = this.repo.create(dto as any);
+    const entity = this.repo.create({...dto, department: {id : dto.departmentId}} as any);
     return this.repo.save(entity);
   }
 
