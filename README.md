@@ -22,16 +22,17 @@
 
 1. [Descrição do Projeto](#descrição-do-projeto)  
 2. [Funcionalidades e Demonstração da Aplicação](#funcionalidades-e-demonstração-da-aplicação)
-3. [Acesso ao Projeto](#-acesso-ao-projeto)  
+3. [Acesso ao Projeto](#-acesso-ao-projeto)
+   - [Acesso ao deploy](#acesso-ao-deploy)
    - [Pré-requisitos](#pré-requisitos)  
    - [Clonando o repositório](#clonando-o-repositório)  
    - [Executando com Node (dev)](#executando-com-node-dev)  
    - [Executando com Docker](#executando-com-docker)  
-4. [Tecnologias Utilizadas](#tecnologias-utilizadas)
+5. [Tecnologias Utilizadas](#tecnologias-utilizadas)
    - [Frontend](#frontend)
    - [Backend](#backend)
    - [Infra e Monitoramento](#infra-e-monitoramento)
-5. [Desenvolvedores do Projeto](#desenvolvedores-do-projeto)  
+6. [Desenvolvedores do Projeto](#desenvolvedores-do-projeto)  
 
 ---
 
@@ -94,6 +95,13 @@ A solução é pensada para ser:
 ---
 
 ## 🔗 Acesso ao Projeto
+
+### Acesso ao deploy
+
+https://orgkpi.com.br/
+
+login: super@admin.com
+senha: 123456
 
 ### Pré-requisitos
 
