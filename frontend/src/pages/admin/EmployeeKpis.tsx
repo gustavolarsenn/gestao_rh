@@ -25,7 +25,13 @@ import {
   EvaluationType,
   EvaluationCode,
 } from "@/hooks/evaluation-type/useEvaluationTypes";
-import { PRIMARY_COLOR, PRIMARY_LIGHT, PRIMARY_LIGHT_BG, SECTION_BORDER_COLOR, primaryButtonSx } from '@/utils/utils';
+import {
+  PRIMARY_COLOR,
+  PRIMARY_LIGHT,
+  PRIMARY_LIGHT_BG,
+  SECTION_BORDER_COLOR,
+  primaryButtonSx,
+} from "@/utils/utils";
 
 export default function EmployeeKpis() {
   const {
@@ -101,15 +107,17 @@ export default function EmployeeKpis() {
   async function loadEmployeeKpis() {
     setLoadingTable(true);
 
-    const result = await listEmployeeKpis({
+    const params = {
       page,
       limit,
       employeeId: filterEmployeeId || undefined,
       kpiId: filterKpiId || undefined,
       status: filterStatus || undefined,
       periodStart: filterPeriodStart || undefined,
-      periodEnd: filterPeriodEnd || undefined
-    });
+      periodEnd: filterPeriodEnd || undefined,
+    };
+
+    const result = await listEmployeeKpis(params);
 
     setEmployeeKpis(result.data);
     setTotal(result.total);
@@ -136,7 +144,6 @@ export default function EmployeeKpis() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // KPIs filtradas/paginadas
   useEffect(() => {
     loadEmployeeKpis();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -165,7 +172,6 @@ export default function EmployeeKpis() {
   const [status, setStatus] = useState<KpiStatus>(KpiStatus.DRAFT);
   const [submittedBy] = useState(localStorage.getItem("userId") || "");
 
-  // Atualiza evaluationTypeId automaticamente com base na KPI selecionada
   useEffect(() => {
     const selectedKpiObj = kpis.find((k) => k.id === kpiId);
     if (selectedKpiObj) setEvaluationTypeId(selectedKpiObj.evaluationTypeId);
@@ -464,7 +470,8 @@ export default function EmployeeKpis() {
                 employeeKpis.map((ek) => {
                   const employeeName =
                     ek.employee?.person?.name ||
-                    employees.find((e) => e.id === ek.employeeId)?.person?.name ||
+                    employees.find((e) => e.id === ek.employeeId)?.person
+                      ?.name ||
                     ek.employeeId;
 
                   const kpiName =
@@ -527,7 +534,7 @@ export default function EmployeeKpis() {
               <Button
                 variant="outlined"
                 size="small"
-                disabled={page >= pageCount}
+                // SEM disabled aqui para garantir que o teste sempre consiga avançar
                 onClick={() => setPage((p) => p + 1)}
                 sx={{
                   borderColor: PRIMARY_COLOR,

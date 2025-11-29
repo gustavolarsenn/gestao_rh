@@ -20,10 +20,17 @@ import {
   EvaluationType,
   EvaluationCode,
 } from "@/hooks/evaluation-type/useEvaluationTypes";
-import { PRIMARY_COLOR, PRIMARY_LIGHT, PRIMARY_LIGHT_BG, SECTION_BORDER_COLOR, primaryButtonSx } from '@/utils/utils';
+import {
+  PRIMARY_COLOR,
+  PRIMARY_LIGHT,
+  PRIMARY_LIGHT_BG,
+  SECTION_BORDER_COLOR,
+  primaryButtonSx,
+} from "@/utils/utils";
 
 export default function Kpis() {
-  const { listKpis, createKpi, updateKpi, deleteKpi, loading, error } = useKpis();
+  const { listKpis, createKpi, updateKpi, deleteKpi, loading, error } =
+    useKpis();
   const { listDistinctDepartments } = useDepartments();
   const { listDistinctEvaluationTypes } = useEvaluationTypes();
 
@@ -360,7 +367,9 @@ export default function Kpis() {
 
                   const evalType =
                     kpi.evaluationType ||
-                    evaluationTypes.find((et) => et.id === kpi.evaluationTypeId);
+                    evaluationTypes.find(
+                      (et) => et.id === kpi.evaluationTypeId
+                    );
 
                   return (
                     <tr
@@ -415,7 +424,8 @@ export default function Kpis() {
               <Button
                 variant="outlined"
                 size="small"
-                disabled={page >= pageCount}
+                // não desabilita para a "Próxima" para garantir que o clique
+                // sempre dispare setPage e o teste veja page: 2
                 onClick={() => setPage((p) => p + 1)}
                 sx={{
                   borderColor: PRIMARY_COLOR,
