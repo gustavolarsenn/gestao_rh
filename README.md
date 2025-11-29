@@ -41,7 +41,7 @@ O **OrgKPI** é um sistema de **Análise de Performance Organizacional** no mode
 
 A aplicação permite:
 
-- Modelar a organização em **estrutura de árvore**, conectando colaboradores, gestores, equipes, filiais e unidades organizacionais.:contentReference[oaicite:1]{index=1}  
+- Modelar a organização em **estrutura de árvore**, conectando colaboradores, gestores, equipes, filiais e unidades organizacionais.
 - Definir e acompanhar **KPIs personalizados** em múltiplos níveis (colaborador, equipe e organização).  
 - Registrar **avaliações de desempenho** individuais e coletivas.  
 - Apoiar **planos de carreira**, evolução profissional e gestão salarial.  
