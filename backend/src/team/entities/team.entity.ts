@@ -11,11 +11,6 @@ export class Team extends TenantBaseEntity {
   
   @Column('uuid', { nullable: true })
   parentTeamId?: string | null;
-  // @Column('uuid', { nullable: true })
-  // departmentId?: string | null;
-  // @ManyToOne(() => Department, { onDelete: 'SET NULL' })
-  // @JoinColumn({ name: 'departmentId' })
-  // department?: Department | null;
 
   @ManyToOne(() => Company, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'companyId' })
