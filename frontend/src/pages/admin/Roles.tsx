@@ -24,6 +24,10 @@ export default function RolesPage() {
   const { listDistinctDepartments } = useDepartments();
   const { listDistinctRoleTypes } = useRoleTypes();
 
+  useEffect(() => {
+    document.title = "Cargos";
+  }, []);
+
   // ======================================================
   // STATES
   // ======================================================

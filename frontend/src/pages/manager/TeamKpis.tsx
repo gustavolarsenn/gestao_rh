@@ -37,6 +37,10 @@ export default function TeamKpis() {
     error,
   } = useTeamKpis();
 
+  useEffect(() => {
+    document.title = "KPIs de Times";
+  }, []);
+
   const { listDistinctTeams } = useTeams();
   const { listDistinctKpis } = useKpis();
   const { listDistinctEvaluationTypes } = useEvaluationTypes();

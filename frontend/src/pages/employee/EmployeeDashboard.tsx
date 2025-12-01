@@ -85,6 +85,10 @@ export default function EmployeeDashboard() {
   const { listPerformanceReviewsEmployee, createPerformanceReviewEmployee } =
     usePerformanceReviews();
 
+  useEffect(() => {
+    document.title = "Meu Dashboard";
+  }, []);
+
   const [loading, setLoading] = useState(true);
 
   const [kpis, setKpis] = useState<any[]>([]);

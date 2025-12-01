@@ -31,6 +31,10 @@ export default function TeamsPage() {
   } = useTeams();
   const { listTeamMembers, updateTeamMember } = useTeamMembers();
 
+  useEffect(() => {
+    document.title = "Times";
+  }, []);
+
   // ======================================================
   // STATES
   // ======================================================

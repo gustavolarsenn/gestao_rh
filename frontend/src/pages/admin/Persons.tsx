@@ -26,6 +26,10 @@ export default function Persons() {
   const { listStates } = useStates();
   const { listCities } = useCities();
 
+  useEffect(() => {
+    document.title = "Pessoas";
+  }, []);
+
   const [persons, setPersons] = useState<Person[]>([]);
   const [states, setStates] = useState<{ id: string; name: string; uf: string }[]>([]);
   const [cities, setCities] = useState<{ id: string; name: string; stateId: string }[]>([]);

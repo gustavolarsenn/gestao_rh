@@ -122,6 +122,10 @@ export default function CareerPathsPage() {
   const { listDistinctRoles } = useRoles();
   const { listDistinctRoleTypes } = useRoleTypes();
 
+  useEffect(() => {
+    document.title = "Trilhas de Carreira";
+  }, []);
+
   // ======================================================
   // STATIC DATA
   // ======================================================

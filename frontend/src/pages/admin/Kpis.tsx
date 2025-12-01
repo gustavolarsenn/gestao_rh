@@ -34,6 +34,10 @@ export default function Kpis() {
   const { listDistinctDepartments } = useDepartments();
   const { listDistinctEvaluationTypes } = useEvaluationTypes();
 
+  useEffect(() => {
+    document.title = "KPIs";
+  }, []);
+
   const [kpis, setKpis] = useState<Kpi[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [evaluationTypes, setEvaluationTypes] = useState<EvaluationType[]>([]);

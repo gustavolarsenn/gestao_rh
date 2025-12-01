@@ -84,7 +84,7 @@ export default function Sidebar() {
         { to: "/admin/role-types", label: "Tipos de Cargo", level: 3 },
         { to: "/admin/roles", label: "Cargos", level: 3 },
         { to: "/admin/teams", label: "Times", level: 3 },
-        { to: "/admin/employees", label: "Funcionários", level: 3 },
+        { to: "/admin/employees", label: "Colaboradores", level: 3 },
         { to: "/admin/career-paths", label: "Trilhas de Carreira", level: 3 },
         { to: "/admin/org-chart", label: "Organograma", level: 3 },
       ],
@@ -98,11 +98,11 @@ export default function Sidebar() {
         { to: "/manager/kpis", label: "KPIs", level: 2 },
         {
           to: "/manager/employee-kpis",
-          label: "Designar KPIs de Funcionários",
+          label: "KPIs de Colaboradores",
           level: 2,
         },
         { to: "/manager/kpi-review", label: "Revisão de KPIs", level: 2 },
-        { to: "/manager/team-kpis", label: "Designar KPIs de Time", level: 2 },
+        { to: "/manager/team-kpis", label: "KPIs de Time", level: 2 },
       ],
     },
   ];

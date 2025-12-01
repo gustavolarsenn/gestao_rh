@@ -46,6 +46,10 @@ export default function EmployeeKpis() {
   const { listKpis } = useKpis();
   const { listEvaluationTypes } = useEvaluationTypes();
 
+  useEffect(() => {
+    document.title = "KPIs de Colaboradores";
+  }, []);
+
   const [employeeKpis, setEmployeeKpis] = useState<EmployeeKpi[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [kpis, setKpis] = useState<Kpi[]>([]);

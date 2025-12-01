@@ -37,6 +37,10 @@ export default function LeaderPerformanceReview() {
   } = usePerformanceReviews();
 
 
+  useEffect(() => {
+    document.title = "Feedback ao Gestor";
+  }, []);
+
   // ======================================================
   // DATA
   // ======================================================

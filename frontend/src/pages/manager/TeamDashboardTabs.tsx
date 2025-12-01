@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Box, Paper, Typography, Tabs, Tab } from "@mui/material";
 import Sidebar from "@/components/Sidebar";
 import { motion } from "framer-motion";
@@ -10,6 +10,10 @@ const PRIMARY_COLOR = "#0369a1";
 
 export default function TeamDashboardTabs() {
   const [tab, setTab] = useState(0);
+  
+  useEffect(() => {
+    document.title = "Dashboard do Time";
+  }, []);
 
   return (
     <div className="flex min-h-screen bg-[#f7f7f9]">
@@ -54,7 +58,7 @@ export default function TeamDashboardTabs() {
               }}
             />
             <Tab
-              label="KPIs por Funcionário"
+              label="KPIs por Colaborador"
               sx={{
                 fontWeight: 600,
                 color: "#1e293b",

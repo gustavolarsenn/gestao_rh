@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,10 @@ import orgkpiLogo from "@/assets/orgkpi.png";
 type Mode = "login" | "forgot";
 
 export default function LoginPage() {
+  useEffect(() => {
+    document.title = "Login";
+  }, []);
+
   const [mode, setMode] = useState<Mode>("login");
 
   const [email, setEmail] = useState("");

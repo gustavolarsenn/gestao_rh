@@ -27,6 +27,9 @@ export default function Branch() {
   const { listStates } = useStates();
   const { listCities } = useCities();
 
+  useEffect(() => {
+    document.title = "Filiais";
+  }, []);
   // ======================================================
   // DATA
   // ======================================================

@@ -48,6 +48,10 @@ export default function EmployeesPage() {
   const { listDistinctTeams } = useTeams();
   const { listDistinctBranches } = useBranches();
 
+  useEffect(() => {
+    document.title = "Colaboradores";
+  }, []);
+
   // ======================================================
   // DATA
   // ======================================================
@@ -212,7 +216,7 @@ export default function EmployeesPage() {
     loadEmployees();
 
     setMessage(
-      `Funcionário "${newEmployee.person?.name || ""}" criado com sucesso!`
+      `Colaborador "${newEmployee.person?.name || ""}" criado com sucesso!`
     );
 
     // reset
@@ -345,7 +349,7 @@ export default function EmployeesPage() {
       <main className="flex-1 p-8">
         {/* TITLE */}
         <Typography variant="h4" fontWeight={700} color="#1e293b" sx={{ mb: 4 }}>
-          Funcionários
+          Colaboradores
         </Typography>
 
         {message && (
@@ -486,7 +490,7 @@ export default function EmployeesPage() {
                 },
               }}
             >
-              Cadastrar Funcionário
+              Cadastrar colaborador
             </Button>
           </Box>
         </Paper>
@@ -531,7 +535,7 @@ export default function EmployeesPage() {
               ) : employees.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="py-6 text-center text-gray-500">
-                    Nenhum funcionário encontrado.
+                    Nenhum colaborador encontrado.
                   </td>
                 </tr>
               ) : (
@@ -608,7 +612,7 @@ export default function EmployeesPage() {
       <BaseModal
         open={createModalOpen}
         onClose={() => setCreateModalOpen(false)}
-        title="Cadastrar Funcionário"
+        title="Cadastrar Colaborador"
         description="Selecione uma pessoa e preencha os dados do vínculo."
         footer={
           <div className="flex justify-end gap-2">
@@ -773,8 +777,8 @@ export default function EmployeesPage() {
       <BaseModal
         open={editModalOpen}
         onClose={() => setEditModalOpen(false)}
-        title="Editar Funcionário"
-        description="Atualize as informações do funcionário."
+        title="Editar Colaborador"
+        description="Atualize as informações do colaborador."
         maxWidth="lg"
         footer={
           <div className="flex justify-between w-full">
@@ -958,7 +962,7 @@ export default function EmployeesPage() {
               sx={{ mb: 1.5 }}
               color="#1e293b"
             >
-              Histórico do Funcionário
+              Histórico do Colaborador
             </Typography>
 
             <Paper

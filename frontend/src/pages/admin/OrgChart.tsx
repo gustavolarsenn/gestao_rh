@@ -25,6 +25,10 @@ export default function OrgChart() {
   const [orgTree, setOrgTree] = useState<OrgNode[]>([]);
   const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    document.title = "Organograma";
+  }, []);
+
   // ⬅ ref para o MAIN inteiro (tudo que você quer na imagem)
   const exportRef = useRef<HTMLDivElement | null>(null);
 

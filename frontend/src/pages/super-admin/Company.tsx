@@ -35,6 +35,10 @@ export default function CompanyPage() {
   >([]);
   const [loadingTable, setLoadingTable] = useState(false);
 
+  useEffect(() => {
+    document.title = "Empresas";
+  }, []);
+
   const { listCompanies, createCompany, updateCompany, deleteCompany } =
     useCompanies();
   const { listStates } = useStates();

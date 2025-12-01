@@ -21,6 +21,10 @@ export default function RoleTypePage() {
   const { listRoleTypes, createRoleType, updateRoleType, deleteRoleType } =
     useRoleTypes();
 
+  useEffect(() => {
+    document.title = "Tipos de Cargo";
+  }, []);
+
   const { listDistinctDepartments } = useDepartments();
 
   // ===================== DATA ======================

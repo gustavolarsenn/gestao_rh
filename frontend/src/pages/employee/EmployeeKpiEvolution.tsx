@@ -35,6 +35,10 @@ export default function EmployeeKpiEvolution() {
     error,
   } = useEmployeeKpiEvolutions();
 
+  useEffect(() => {
+    document.title = "Meus KPIs";
+  }, []);
+
   const employeeId = localStorage.getItem("employeeId")!;
   const [message, setMessage] = useState("");
 

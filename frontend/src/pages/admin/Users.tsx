@@ -23,6 +23,10 @@ export default function Users() {
   const { listUserRoles } = useUserRoles();
   const { listPersons } = usePersons();
 
+  useEffect(() => {
+    document.title = "Usuários";
+  }, []);
+
   const [users, setUsers] = useState<User[]>([]);
   const [userRoles, setUserRoles] = useState<UserRole[]>([]);
 

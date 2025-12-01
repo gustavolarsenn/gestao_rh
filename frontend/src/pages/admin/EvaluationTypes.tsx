@@ -32,6 +32,10 @@ export default function EvaluationTypesPage() {
   } = useEvaluationTypes();
   const { listDepartments } = useDepartments();
 
+  useEffect(() => {
+    document.title = "Tipos de Avaliação";
+  }, []);
+
   // ======================================================
   // DATA
   // ======================================================

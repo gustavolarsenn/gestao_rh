@@ -14,6 +14,10 @@ export default function DepartmentPage() {
     deleteDepartment,
   } = useDepartments();
 
+  useEffect(() => {
+    document.title = "Departamentos";
+  }, []);
+
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loadingTable, setLoadingTable] = useState(false);
 

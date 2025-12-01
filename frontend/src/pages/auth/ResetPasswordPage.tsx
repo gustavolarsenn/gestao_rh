@@ -1,5 +1,5 @@
 // src/pages/auth/ResetPasswordPage.tsx
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,10 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
 
 export default function ResetPasswordPage() {
+  useEffect(() => {
+    document.title = "Redefinir Senha";
+  }, []);
+    
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [error, setError] = useState("");
