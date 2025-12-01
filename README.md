@@ -101,7 +101,7 @@ A solução é pensada para ser:
 https://orgkpi.com.br/
 
 login: super@admin.com
-senha: 123456
+senha: admin@123
 
 ### Pré-requisitos
 
