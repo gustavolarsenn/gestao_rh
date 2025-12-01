@@ -612,7 +612,7 @@ export default function EmployeesPage() {
       <BaseModal
         open={createModalOpen}
         onClose={() => setCreateModalOpen(false)}
-        title="Cadastrar Colaborador"
+        title="Cadastrar colaborador"
         description="Selecione uma pessoa e preencha os dados do vínculo."
         footer={
           <div className="flex justify-end gap-2">

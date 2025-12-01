@@ -221,7 +221,7 @@ describe("EmployeesPage", () => {
   it("abre modal de cadastro de funcionário", async () => {
     renderWithRouter();
 
-    const openBtn = screen.getByText("Cadastrar Funcionário");
+    const openBtn = screen.getByText("Cadastrar colaborador");
     fireEvent.click(openBtn);
 
     const pessoaLabel = await screen.findByText("Pessoa");
@@ -234,7 +234,7 @@ describe("EmployeesPage", () => {
   it("abre modal de seleção de pessoa a partir do cadastro", async () => {
     renderWithRouter();
 
-    const openBtn = screen.getByText("Cadastrar Funcionário");
+    const openBtn = screen.getByText("Cadastrar colaborador");
     fireEvent.click(openBtn);
 
     const selectPessoaBtn = await screen.findByRole("button", {
@@ -387,7 +387,7 @@ describe("EmployeesPage", () => {
 
     renderWithRouter();
 
-    const emptyText = await screen.findByText("Nenhum funcionário encontrado.");
+    const emptyText = await screen.findByText("Nenhum colaborador encontrado.");
     expect(emptyText).toBeInTheDocument();
   });
 
