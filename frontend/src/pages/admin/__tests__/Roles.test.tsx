@@ -223,7 +223,7 @@ describe("RolesPage", () => {
     const nomeInputs = within(dialog).getAllByLabelText("Nome");
     const modalNameInput = nomeInputs[nomeInputs.length - 1] as HTMLInputElement;
     fireEvent.change(modalNameInput, {
-      target: { value: "Supervisor de Operações" },
+      target: { value: "Supervisor de Operções" },
     });
 
     // Dentro do modal: [0] Departamento, [1] Tipo
@@ -256,7 +256,7 @@ describe("RolesPage", () => {
 
     await waitFor(() => {
       expect(mockRolesHook.createRole).toHaveBeenCalledWith({
-        name: "Supervisor de Operações",
+        name: "Supervisor de Operções",
         departmentId: "dep1",
         roleTypeId: "rt1",
         defaultWage: 7500,
@@ -355,15 +355,29 @@ describe("RolesPage", () => {
     renderWithRouter();
 
     const nextBtn = await screen.findByRole("button", { name: "Próxima" });
+
+    // Espera a primeira carga (page 1) e o botão habilitar
+    await waitFor(() => {
+      expect(mockRolesHook.listRoles).toHaveBeenCalledWith({
+        page: 1,
+        limit: 10,
+        name: undefined,
+        departmentId: undefined,
+        roleTypeId: undefined,
+      });
+      expect(nextBtn).not.toBeDisabled();
+    });
+
     fireEvent.click(nextBtn);
 
     await waitFor(() => {
-      expect(mockRolesHook.listRoles).toHaveBeenCalledWith(
-        expect.objectContaining({
-          page: 2,
-          limit: 10,
-        })
-      );
+      expect(mockRolesHook.listRoles).toHaveBeenLastCalledWith({
+        page: 2,
+        limit: 10,
+        name: undefined,
+        departmentId: undefined,
+        roleTypeId: undefined,
+      });
     });
   });
 
