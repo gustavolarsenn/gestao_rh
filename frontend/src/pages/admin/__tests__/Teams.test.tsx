@@ -117,6 +117,7 @@ describe("TeamsPage", () => {
         parentTeamId: "team3",
       }),
       deleteTeam: vi.fn().mockResolvedValue({}),
+
       loading: false,
       error: null,
     };
@@ -242,7 +243,7 @@ describe("TeamsPage", () => {
     fireEvent.click(openBtn);
 
     // campo "Nome do Time" no modal (pega o último)
-    const nomeInputs = await screen.findAllByLabelText("Nome do Time");
+    const nomeInputs = await screen.findAllByLabelText(/Nome do Time/i);
     const modalNameInput = nomeInputs[nomeInputs.length - 1];
 
     const comboBoxes = await screen.findAllByRole("combobox"); // inclui filtro + modal
@@ -258,14 +259,14 @@ describe("TeamsPage", () => {
     fireEvent.click(openBtn);
 
     // Nome no modal (último "Nome do Time" na tela)
-    const nomeInputs = await screen.findAllByLabelText("Nome do Time");
+    const nomeInputs = await screen.findAllByLabelText(/Nome do Time/i);
     const modalNameInput = nomeInputs[nomeInputs.length - 1] as HTMLInputElement;
     fireEvent.change(modalNameInput, {
       target: { value: "Novo Time" },
     });
 
     // campo Descrição (o de dentro do modal, último da tela)
-    const descInputs = await screen.findAllByLabelText("Descrição");
+    const descInputs = await screen.findAllByLabelText(/Descrição/i);
     const descInput = descInputs[descInputs.length - 1] as HTMLInputElement;
     fireEvent.change(descInput, {
       target: { value: "Descrição do novo time" },
@@ -310,7 +311,7 @@ describe("TeamsPage", () => {
     fireEvent.click(team1Row);
 
     // Depois de abrir o modal, pega o último "Nome do Time" (campo do modal)
-    const nomeInputs = await screen.findAllByLabelText("Nome do Time");
+    const nomeInputs = await screen.findAllByLabelText(/Nome do Time/i);
     const editNameInput = nomeInputs[nomeInputs.length - 1] as HTMLInputElement;
 
     expect(editNameInput.value).toBe("Operações Santarém");
@@ -333,7 +334,7 @@ describe("TeamsPage", () => {
     fireEvent.click(team1Row);
 
     // Nome no modal
-    const nomeInputs = await screen.findAllByLabelText("Nome do Time");
+    const nomeInputs = await screen.findAllByLabelText(/Nome do Time/i);
     const editNameInput = nomeInputs[nomeInputs.length - 1] as HTMLInputElement;
 
     fireEvent.change(editNameInput, {
@@ -341,7 +342,7 @@ describe("TeamsPage", () => {
     });
 
     // Descrição no modal (último "Descrição")
-    const descInputs = await screen.findAllByLabelText("Descrição");
+    const descInputs = await screen.findAllByLabelText(/Descrição/i);
     const descInput = descInputs[descInputs.length - 1] as HTMLInputElement;
     fireEvent.change(descInput, { target: { value: "Editado" } });
 
