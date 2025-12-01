@@ -1,4 +1,6 @@
 .env.development
 .env.production
 *.pptx
-ipynb
+*.ipynb
+*.sql
+*.backup
