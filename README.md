@@ -23,7 +23,10 @@
 1. [Descrição do Projeto](#descrição-do-projeto)  
 2. [Funcionalidades e Demonstração da Aplicação](#funcionalidades-e-demonstração-da-aplicação)
 3. [Acesso ao Projeto](#-acesso-ao-projeto)
-   - [Acesso ao deploy](#acesso-ao-deploy)
+   - [Testando a aplicação](#testando-a-aplicação)
+        - [Acesso colaborador](#acesso-colaborador)
+        - [Acesso colaborador](#acesso-colaborador)
+        - [Acesso admin](#acesso-admin)
    - [Pré-requisitos](#pré-requisitos)  
    - [Clonando o repositório](#clonando-o-repositório)  
    - [Executando com Node (dev)](#executando-com-node-dev)  
@@ -96,12 +99,55 @@ A solução é pensada para ser:
 
 ## 🔗 Acesso ao Projeto
 
-### Acesso ao deploy
+### Testando a aplicação
+
+#### Acesse a aplicação
 
 https://orgkpi.com.br/
 
-login: super@admin.com
-senha: admin@123
+#### Acesso líder
+- Acesse como líder de equipe, para gerar e visualizar KPIs de seus liderados
+  - login: usuario.lider@gmail.com
+  - senha: lider123
+
+##### Crie tipos de avaliação ou use as existentes em KPIs -> Tipos de Avaliação (ex.: Features)
+
+<img width="1915" height="664" alt="image" src="https://github.com/user-attachments/assets/61adf392-318a-43aa-b2cb-3889ecfada3c" />
+
+##### A partir do tipo de avaliação criado, crie uma KPI em KPIs -> KPIs (ex.: Features entregues)
+
+<img width="1918" height="674" alt="image" src="https://github.com/user-attachments/assets/39d1118c-43f6-46bc-9118-c8978613f64a" />
+
+##### Atribua uma ou mais KPI para um ou mais colaborador da sua equipe em KPIs -> KPIs de Colaborador (ex.: 10 features entregues no período designado)
+
+<img width="1915" height="790" alt="image" src="https://github.com/user-attachments/assets/33c8371a-74e1-43fb-bb11-49ec4be52843" />
+
+#### Acesso colaborador
+
+##### Registre uma evolução em uma KPI para seu colaborador, ou acesse com o usuário de colaborador para registrar como colaborador em Meus KPIs (ex.: 3)
+
+- login: usuario.colaborador@gmail.com
+- senha: usuario123
+
+<img width="1917" height="756" alt="image" src="https://github.com/user-attachments/assets/1ca88423-1133-401d-9856-2182370035c7" />
+
+##### Como líder de equipe, aprove ou reprove evoluções registradas em KPIs -> Revisão de KPIs. Com isso, será possível visualizar progressos em Dashboards
+
+<img width="1919" height="701" alt="image" src="https://github.com/user-attachments/assets/b518f997-aff1-40c0-b63a-1a87aef82b97" />
+
+##### Registre um feedback para seu Líder em Feedback ao Gestor
+
+<img width="1919" height="692" alt="image" src="https://github.com/user-attachments/assets/c8fa02e7-ac89-48c4-9500-8fdde3e08461" />
+
+#### Acesso admin
+
+##### Verifique módulos de criações (pessoas, usuários, funcionários, times, etc) utilizando o login de admin:
+
+- login: admin@admin.com
+- senha: admin123
+
+<img width="1892" height="946" alt="image" src="https://github.com/user-attachments/assets/601e0920-fd30-482a-af84-8e19b98c31d1" />
+
 
 ### Pré-requisitos
 
