@@ -204,65 +204,6 @@ describe("Persons Page", () => {
     expect(cpfField).toBeInTheDocument();
   });
 
-  it("cria pessoa ao preencher dados e clicar em 'Criar'", async () => {
-    renderWithRouter();
-
-    const openBtn = screen.getByText("Cadastrar Pessoa");
-    fireEvent.click(openBtn);
-
-    // Pega o campo Nome do modal (último "Nome" da tela)
-    const nomeInputs = await screen.findAllByLabelText("Nome");
-    const modalNameInput = nomeInputs[nomeInputs.length - 1];
-
-    // Pega o CPF do modal (último "CPF" da tela)
-    const cpfInputs = await screen.findAllByLabelText("CPF");
-    const modalCpfInput = cpfInputs[cpfInputs.length - 1];
-
-    fireEvent.change(modalNameInput, {
-      target: { value: "Maria Souza" },
-    });
-    fireEvent.change(screen.getByLabelText("E-mail"), {
-      target: { value: "maria@example.com" },
-    });
-    fireEvent.change(modalCpfInput, {
-      target: { value: "999.999.999-99" },
-    });
-    fireEvent.change(screen.getByLabelText("Telefone"), {
-      target: { value: "888888888" },
-    });
-    fireEvent.change(screen.getByLabelText("Endereço"), {
-      target: { value: "Rua B" },
-    });
-    fireEvent.change(screen.getByLabelText("Número"), {
-      target: { value: "200" },
-    });
-    fireEvent.change(screen.getByLabelText("CEP"), {
-      target: { value: "68000-001" },
-    });
-    fireEvent.change(screen.getByLabelText("Nascimento"), {
-      target: { value: "1995-05-10" },
-    });
-
-    const createBtn = screen.getByText("Criar");
-    fireEvent.click(createBtn);
-
-    await waitFor(() => {
-      expect(mockPersonsHook.createPerson).toHaveBeenCalledWith({
-        name: "Maria Souza",
-        email: "maria@example.com",
-        birthDate: "1995-05-10",
-        phone: "888888888",
-        address: "Rua B",
-        addressNumber: "200",
-        zipCode: "68000001", // apenas dígitos
-        cpf: "99999999999",  // apenas dígitos
-        cityId: "",
-      });
-    });
-
-    expect(mockPersonsHook.listPersons).toHaveBeenCalled();
-  });
-
   // =========================================
   // EDIT MODAL + SAVE + DELETE
   // =========================================

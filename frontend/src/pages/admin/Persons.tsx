@@ -492,6 +492,7 @@ export default function Persons() {
 
               <Button
                 sx={primaryButtonSx}
+                disabled={!name || !email || !cpf || !cityId || !birthDate}
                 onClick={handleCreate}
               >
                 Criar

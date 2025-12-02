@@ -41,7 +41,12 @@ export class PerformanceReviewsService {
   }
 
   async findAllToEmployee(user: any, query: PerformanceReviewQueryDto) {
-    const where = applyScope(user, {}, { company: true, team: false, employee: true, department: false });
+    let where;
+    if (query.leaderView) {
+        where = applyScope(user, {}, { company: true, team: true, employee: true, department: false }, 'performanceReviewEmployeeLeaderView');
+    } else {
+        where = applyScope(user, {}, { company: true, team: true, employee: true, department: false }, 'performanceReviewEmployee');
+    }
 
     if (query.startDate && query.endDate) {
       (where as any).date = Between(query.startDate, query.endDate);
@@ -52,6 +57,7 @@ export class PerformanceReviewsService {
     }
 
     where['employeeToLeader'] = false;
+    
     const page = Math.max(1, Number(query.page ?? 1));
     const limit = Math.max(1, Number(query.limit ?? 10));
     const skip = (page - 1) * limit;
@@ -62,7 +68,7 @@ export class PerformanceReviewsService {
   }
 
   async findAllToLeader(user: any, query: PerformanceReviewQueryDto) {
-    const where = applyScope(user, {}, { company: true, team: true, employee: false, department: false }, 'performanceReview');
+    const where = applyScope(user, {}, { company: true, team: true, employee: false, department: false }, 'performanceReviewLeader');
     if (query.startDate && query.endDate) {
       (where as any).date = Between(query.startDate, query.endDate);
     } else if (query.startDate) {

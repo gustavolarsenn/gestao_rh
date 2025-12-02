@@ -32,9 +32,9 @@ export function ProtectedRoute({
   }
 
   if ((user.level || 1) < requiredLevel) {
-    if (user.level === 1) return <Navigate to="/employee/employee-kpis" replace />;
-    if (user.level === 2) return <Navigate to="/manager/kpi-review" replace />;
-    if (user.level >= 3) return <Navigate to="/admin/employee-kpis" replace />;
+    if (user.level === 1) return <Navigate to="/employee/dashboard" replace />;
+    if (user.level === 2) return <Navigate to="/employee/dashboard" replace />;
+    if (user.level >= 3) return <Navigate to="/employee/dashboard" replace />;
 
     return <Navigate to={redirectTo} replace />;
   }

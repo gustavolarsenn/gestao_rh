@@ -181,6 +181,7 @@ export default function TeamMembersKpiDashboard() {
         employeeId,
         page,
         limit: reviewPageSize,
+        leaderView: true,
       });
 
       const data = ((res as any)?.data ?? res ?? []) as PerformanceReview[];

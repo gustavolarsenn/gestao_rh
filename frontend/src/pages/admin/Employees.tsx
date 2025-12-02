@@ -216,7 +216,7 @@ export default function EmployeesPage() {
     loadEmployees();
 
     setMessage(
-      `Colaborador "${newEmployee.person?.name || ""}" criado com sucesso!`
+      `Colaborador criado com sucesso!`
     );
 
     // reset

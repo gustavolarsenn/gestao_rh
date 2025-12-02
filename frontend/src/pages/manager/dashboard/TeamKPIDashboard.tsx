@@ -91,6 +91,11 @@ function getHeatColor(count: number): string {
   return "#e0e0e0";
 }
 
+// Helper para extrair o valor da evolução de forma consistente
+function getEvolutionValue(ev: any): number {
+  return Number(ev.achievedValueEvolution ?? ev.achievedValue ?? 0);
+}
+
 // ==========================
 // 💠 COMPONENTE PRINCIPAL
 // ==========================
@@ -144,11 +149,18 @@ export default function TeamKpisDashboard() {
 
       const evResult = await listTeamKpiEvolutions({ page: 1, limit: 999 });
       const evAll = (evResult as any)?.data ?? evResult ?? [];
-      
+
+      // apenas evoluções das KPIs de time carregadas
       const evFiltered = evAll.filter((e: any) =>
         teamOnlyKpis.some((k: any) => k.id === e.teamKpiId)
       );
-      setEvolutions(evFiltered);
+
+      // mantém só APPROVED, como no dashboard de funcionários
+      const evApproved = evFiltered.filter(
+        (e: any) => e.status === "APPROVED"
+      );
+
+      setEvolutions(evApproved);
 
       if (teamOnlyKpis.length) setSelectedKpiId(teamOnlyKpis[0].id);
 
@@ -265,10 +277,7 @@ export default function TeamKpisDashboard() {
       const evs = evolutions.filter((ev) => ev.teamKpiId === k.id);
 
       if (type.endsWith("_SUM")) {
-        const total = evs.reduce(
-          (acc, ev) => acc + Number(ev.achievedValueEvolution || 0),
-          0
-        );
+        const total = evs.reduce((acc, ev) => acc + getEvolutionValue(ev), 0);
         map[k.id] = total;
       } else {
         if (evs.length) {
@@ -276,16 +285,11 @@ export default function TeamKpisDashboard() {
             .slice()
             .sort(
               (a, b) =>
-                new Date(a.submittedDate ?? a.submittedAt).getTime() -
-                new Date(b.submittedDate ?? b.submittedAt).getTime()
-            )
-            .pop();
-          map[k.id] = Number(
-            latest?.achievedValueEvolution ??
-              latest?.achievedValue ??
-              k.achievedValue ??
-              0
-          );
+                new Date(b.submittedDate ?? b.submittedAt).getTime() -
+                new Date(a.submittedDate ?? a.submittedAt).getTime()
+            )[0];
+
+          map[k.id] = getEvolutionValue(latest);
         } else {
           map[k.id] = Number(k.achievedValue ?? 0);
         }
@@ -323,10 +327,10 @@ export default function TeamKpisDashboard() {
     return evs;
   }, [selectedKpiId, evolutions, filterStart, filterEnd]);
 
-    // ==========================
+  // ==========================
   // 📈 AGGREGATED EVOLUTIONS
   //  - *_SUM  => soma diária + ACUMULADO
-  //  - *_PCT  => MÉDIA diária
+  //  - *_PCT  => histórico bruto (sem média)
   //  - demais => último valor do dia
   // ==========================
 
@@ -337,14 +341,30 @@ export default function TeamKpisDashboard() {
     const isPct = type.endsWith("_PCT");
     const isSum = type.endsWith("_SUM");
 
-    // Agrupa por dia (YYYY-MM-DD)
+    // ⭐ PERCENTUAIS → histórico puro, sem agrupar/somar
+    if (isPct) {
+      const ordered = selectedEvols
+        .slice()
+        .sort(
+          (a, b) =>
+            new Date(a.submittedDate ?? a.submittedAt).getTime() -
+            new Date(b.submittedDate ?? b.submittedAt).getTime()
+        );
+
+      return ordered.map((ev) => ({
+        date: ev.submittedDate || ev.submittedAt,
+        value: getEvolutionValue(ev),
+      }));
+    }
+
+    // Demais tipos → agrupa por dia (YYYY-MM-DD)
     const grouped: Record<string, any[]> = {};
 
     for (const ev of selectedEvols) {
       const rawDate = ev.submittedDate || ev.submittedAt;
       if (!rawDate) continue;
 
-      const dateStr = rawDate.split("T")[0]; // pega só a parte da data
+      const dateStr = rawDate.split("T")[0];
       if (!grouped[dateStr]) grouped[dateStr] = [];
       grouped[dateStr].push(ev);
     }
@@ -352,27 +372,15 @@ export default function TeamKpisDashboard() {
     let daily = Object.entries(grouped).map(([date, list]) => {
       if (isSum) {
         // *_SUM -> soma diária das evoluções
-        const dayTotal = list.reduce(
-          (acc, e) => acc + Number(e.achievedValueEvolution || 0),
+        const dayTotal = (list as any[]).reduce(
+          (acc, e) => acc + getEvolutionValue(e),
           0
         );
         return { date, value: dayTotal };
       }
 
-      if (isPct) {
-        // *_PCT -> média diária das evoluções
-        const values = list.map((e) =>
-          Number(e.achievedValueEvolution ?? e.achievedValue ?? 0)
-        );
-        const avg =
-          values.length > 0
-            ? values.reduce((a, b) => a + b, 0) / values.length
-            : 0;
-        return { date, value: avg };
-      }
-
       // Demais tipos -> último valor do dia
-      const latest = list
+      const latest = (list as any[])
         .slice()
         .sort(
           (a, b) =>
@@ -382,9 +390,7 @@ export default function TeamKpisDashboard() {
 
       return {
         date,
-        value: Number(
-          latest.achievedValueEvolution ?? latest.achievedValue ?? 0
-        ),
+        value: getEvolutionValue(latest),
       };
     });
 
@@ -420,12 +426,15 @@ export default function TeamKpisDashboard() {
 
     let baseValuesForAverage: number[] = [];
 
+    // Para PCT não calculamos média nenhuma
     if (!isPct) {
       if (isSum) {
         const groupedDaily: Record<string, number> = {};
         for (const ev of selectedEvols) {
-          const dateStr = (ev.submittedDate || ev.submittedAt).split("T")[0];
-          const value = Number(ev.achievedValueEvolution || 0);
+          const raw = ev.submittedDate || ev.submittedAt;
+          if (!raw) continue;
+          const dateStr = raw.split("T")[0];
+          const value = getEvolutionValue(ev);
           groupedDaily[dateStr] = (groupedDaily[dateStr] || 0) + value;
         }
         baseValuesForAverage = Object.values(groupedDaily);

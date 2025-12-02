@@ -1,4 +1,5 @@
-import { IsOptional, IsString, IsNumberString } from 'class-validator';
+import { IsOptional, IsString, IsNumberString, IsBoolean } from 'class-validator';
+import { Transform } from 'class-transformer';
 
 export class PerformanceReviewQueryDto {
   @IsOptional()
@@ -16,4 +17,13 @@ export class PerformanceReviewQueryDto {
   @IsOptional()
   @IsString()
   endDate?: string;
+
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === 'true' || value === true) return true;
+    if (value === 'false' || value === false) return false;
+    return value;
+  })
+  @IsBoolean()
+  leaderView: boolean = false;
 }

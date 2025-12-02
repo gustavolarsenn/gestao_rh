@@ -124,6 +124,11 @@ export default function Users() {
       companyId: localStorage.getItem("companyId")!,
     });
 
+    setSelectedPersonId("");
+    setSelectedPersonName("");
+    setUserRoleId("");
+    setPassword("");
+
     setCreateModalOpen(false);
     setPage(1);
     loadUsers();

@@ -44,8 +44,10 @@ export function applyScope<
       if (options.team) {
         if (entity === 'team') {
           where.parentTeamId = user.teamId
-        } else if (entity === 'performanceReview') {
+        } else if (entity === 'performanceReviewLeader' || entity === 'performanceReviewEmployeeLeaderView') {
           where.leaderId = user.employeeId;
+        } else if (entity === 'performanceReviewEmployee') {
+          where.employeeId = user.employeeId;
         } else where.teamId = user.teamId;
       }
       if (options.department){
@@ -56,8 +58,8 @@ export function applyScope<
 
     case 'usuario':
       if (options.team) {
-        if (entity === 'performanceReview') {
-          where.employeeId = user.employeeId;
+        if (entity === 'performanceReviewEmployee') {
+          where.employeeId = user.employeeId; 
         }
       }
       if (options.company) where.companyId = user.companyId;
