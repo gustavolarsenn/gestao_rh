@@ -1,3 +1,4 @@
+// src/pages/admin/__tests__/Persons.test.tsx
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, beforeEach, afterEach, expect, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
@@ -6,6 +7,7 @@ import Persons from "@/pages/admin/Persons";
 import { usePersons } from "@/hooks/person/usePersons";
 import { useStates } from "@/hooks/geo/useStates";
 import { useCities } from "@/hooks/geo/useCities";
+import { useCompanies } from "@/hooks/company/useCompanies";
 
 // Sidebar -> useAuth
 vi.mock("@/auth/useAuth", () => ({
@@ -18,6 +20,7 @@ vi.mock("@/auth/useAuth", () => ({
 vi.mock("@/hooks/person/usePersons");
 vi.mock("@/hooks/geo/useStates");
 vi.mock("@/hooks/geo/useCities");
+vi.mock("@/hooks/company/useCompanies");
 
 const renderWithRouter = () =>
   render(
@@ -30,6 +33,7 @@ describe("Persons Page", () => {
   let mockPersonsHook: any;
   let mockStatesHook: any;
   let mockCitiesHook: any;
+  let mockCompaniesHook: any;
 
   beforeEach(() => {
     mockPersonsHook = {
@@ -46,6 +50,7 @@ describe("Persons Page", () => {
             addressNumber: "100",
             zipCode: "68000-000",
             cityId: "c1",
+            companyId: "company-1",
           },
         ],
         total: 1,
@@ -72,6 +77,28 @@ describe("Persons Page", () => {
       ]),
     };
     (useCities as any).mockReturnValue(mockCitiesHook);
+
+    mockCompaniesHook = {
+      listCompanies: vi.fn().mockResolvedValue({
+        data: [
+          {
+            id: "company-1",
+            name: "Empresa 1",
+            cnpj: "00000000000000",
+            zipCode: "00000000",
+            address: "Rua X",
+            addressNumber: "123",
+            cityId: "c1",
+            createdAt: "2025-01-01T00:00:00.000Z",
+          },
+        ],
+        total: 1,
+        page: 1,
+        limit: 10,
+        pageCount: 1,
+      }),
+    };
+    (useCompanies as any).mockReturnValue(mockCompaniesHook);
   });
 
   afterEach(() => {
@@ -251,6 +278,7 @@ describe("Persons Page", () => {
 
     await waitFor(() => {
       expect(mockPersonsHook.updatePerson).toHaveBeenCalledWith(
+        "company-1",
         "p1",
         expect.objectContaining({
           name: "João Editado",
@@ -270,7 +298,10 @@ describe("Persons Page", () => {
     fireEvent.click(deleteBtn);
 
     await waitFor(() => {
-      expect(mockPersonsHook.deletePerson).toHaveBeenCalledWith("p1");
+      expect(mockPersonsHook.deletePerson).toHaveBeenCalledWith(
+        "company-1",
+        "p1"
+      );
     });
 
     expect(mockPersonsHook.listPersons).toHaveBeenCalled();
@@ -292,6 +323,7 @@ describe("Persons Page", () => {
         addressNumber: null,
         zipCode: null,
         cityId: "c1",
+        companyId: "company-1",
       }),
       total: 25,
     });

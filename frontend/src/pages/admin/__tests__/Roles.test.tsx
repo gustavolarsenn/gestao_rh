@@ -47,6 +47,7 @@ describe("RolesPage", () => {
             departmentId: "dep1",
             roleTypeId: "rt1",
             defaultWage: 5000,
+            companyId: "company-1",
           },
         ],
         total: 1,
@@ -221,7 +222,8 @@ describe("RolesPage", () => {
 
     // Nome no modal
     const nomeInputs = within(dialog).getAllByLabelText("Nome");
-    const modalNameInput = nomeInputs[nomeInputs.length - 1] as HTMLInputElement;
+    const modalNameInput =
+      nomeInputs[nomeInputs.length - 1] as HTMLInputElement;
     fireEvent.change(modalNameInput, {
       target: { value: "Supervisor de Operções" },
     });
@@ -279,7 +281,8 @@ describe("RolesPage", () => {
     const dialog = await screen.findByRole("dialog");
 
     const nomeInputs = within(dialog).getAllByLabelText("Nome");
-    const editNameInput = nomeInputs[nomeInputs.length - 1] as HTMLInputElement;
+    const editNameInput =
+      nomeInputs[nomeInputs.length - 1] as HTMLInputElement;
 
     const wageInput = within(dialog).getByLabelText(
       "Salário Padrão"
@@ -299,7 +302,8 @@ describe("RolesPage", () => {
     const dialog = await screen.findByRole("dialog");
 
     const nomeInputs = within(dialog).getAllByLabelText("Nome");
-    const editNameInput = nomeInputs[nomeInputs.length - 1] as HTMLInputElement;
+    const editNameInput =
+      nomeInputs[nomeInputs.length - 1] as HTMLInputElement;
 
     fireEvent.change(editNameInput, {
       target: { value: "Operador Editado" },
@@ -309,12 +313,16 @@ describe("RolesPage", () => {
     fireEvent.click(saveBtn);
 
     await waitFor(() => {
-      expect(mockRolesHook.updateRole).toHaveBeenCalledWith("role1", {
-        name: "Operador Editado",
-        departmentId: "dep1",
-        roleTypeId: "rt1",
-        defaultWage: 5000,
-      });
+      expect(mockRolesHook.updateRole).toHaveBeenCalledWith(
+        "company-1",
+        "role1",
+        {
+          name: "Operador Editado",
+          departmentId: "dep1",
+          roleTypeId: "rt1",
+          defaultWage: 5000,
+        }
+      );
     });
   });
 
@@ -330,7 +338,10 @@ describe("RolesPage", () => {
     fireEvent.click(deleteBtn);
 
     await waitFor(() => {
-      expect(mockRolesHook.deleteRole).toHaveBeenCalledWith("role1");
+      expect(mockRolesHook.deleteRole).toHaveBeenCalledWith(
+        "company-1",
+        "role1"
+      );
     });
 
     expect(mockRolesHook.listRoles).toHaveBeenCalled();
@@ -348,6 +359,7 @@ describe("RolesPage", () => {
         departmentId: "dep1",
         roleTypeId: "rt1",
         defaultWage: 3000,
+        companyId: "company-1",
       })),
       total: 25,
     });

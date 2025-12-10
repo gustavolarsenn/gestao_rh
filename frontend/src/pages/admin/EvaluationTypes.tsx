@@ -19,7 +19,13 @@ import {
   EvaluationCode,
 } from "@/hooks/evaluation-type/useEvaluationTypes";
 import { useDepartments, Department } from "@/hooks/department/useDepartments";
-import { PRIMARY_COLOR, PRIMARY_LIGHT, PRIMARY_LIGHT_BG, SECTION_BORDER_COLOR, primaryButtonSx } from '@/utils/utils';
+import {
+  PRIMARY_COLOR,
+  PRIMARY_LIGHT,
+  PRIMARY_LIGHT_BG,
+  SECTION_BORDER_COLOR,
+  primaryButtonSx,
+} from "@/utils/utils";
 
 export default function EvaluationTypesPage() {
   const {
@@ -205,12 +211,22 @@ export default function EvaluationTypesPage() {
   // UI
   // ======================================================
   return (
-    <div className="flex min-h-screen bg-[#f7f7f9]">
+    <div className="flex flex-col md:flex-row min-h-screen bg-[#f7f7f9]">
       <Sidebar />
 
-      <main className="flex-1 p-8">
+      <main className="flex-1 p-4 md:p-8 w-full">
         {/* TITLE */}
-        <Typography variant="h4" fontWeight={700} color="#1e293b" sx={{ mb: 4 }}>
+        <Typography
+          variant="h4"
+          fontWeight={700}
+          color="#1e293b"
+          align="center"
+          sx={{
+            mb: 4,
+            mt: { xs: 2, md: 0 },
+            fontSize: { xs: "1.5rem", md: "2.125rem" },
+          }}
+        >
           Tipos de Métrica
         </Typography>
 
@@ -231,7 +247,7 @@ export default function EvaluationTypesPage() {
           elevation={0}
           sx={{
             width: "100%",
-            p: 4,
+            p: { xs: 2, md: 4 },
             mb: 4,
             borderRadius: 3,
             backgroundColor: "#ffffff",
@@ -239,11 +255,24 @@ export default function EvaluationTypesPage() {
             border: `1px solid ${SECTION_BORDER_COLOR}`,
           }}
         >
-          <Typography variant="h6" fontWeight={600} mb={3}>
+          <Typography
+            variant="h6"
+            fontWeight={600}
+            mb={3}
+            sx={{ fontSize: { xs: "1rem", md: "1.25rem" } }}
+          >
             Filtros
           </Typography>
 
-          <Box display="flex" gap={3} flexWrap="wrap" alignItems="flex-end">
+          <Box
+            display="flex"
+            gap={2}
+            flexWrap="wrap"
+            sx={{
+              flexDirection: { xs: "column", md: "row" },
+              alignItems: { xs: "stretch", md: "flex-end" },
+            }}
+          >
             <TextField
               size="small"
               label="Nome"
@@ -252,10 +281,23 @@ export default function EvaluationTypesPage() {
                 setFilterName(e.target.value);
                 setPage(1);
               }}
-              sx={{ flex: "1 1 200px" }}
+              sx={{
+                flex: {
+                  md: "1 1 200px",
+                },
+              }}
+              fullWidth
             />
 
-            <FormControl size="small" sx={{ flex: "1 1 200px" }}>
+            <FormControl
+              size="small"
+              sx={{
+                flex: {
+                  md: "1 1 200px",
+                },
+              }}
+              fullWidth
+            >
               <InputLabel>Departamento</InputLabel>
               <Select
                 label="Departamento"
@@ -274,7 +316,15 @@ export default function EvaluationTypesPage() {
               </Select>
             </FormControl>
 
-            <FormControl size="small" sx={{ flex: "1 1 220px" }}>
+            <FormControl
+              size="small"
+              sx={{
+                flex: {
+                  md: "1 1 220px",
+                },
+              }}
+              fullWidth
+            >
               <InputLabel>Tipo de Avaliação</InputLabel>
               <Select
                 label="Tipo de Avaliação"
@@ -293,122 +343,140 @@ export default function EvaluationTypesPage() {
               </Select>
             </FormControl>
 
-            <Button
-              size="large"
-              variant="outlined"
+            {/* Botões */}
+            <Box
               sx={{
-                px: 4,
-                borderColor: PRIMARY_COLOR,
-                color: PRIMARY_COLOR,
-                textTransform: "none",
-                fontWeight: 600,
-                "&:hover": {
+                display: "flex",
+                flexDirection: { xs: "column-reverse", md: "row" },
+                gap: 1.5,
+                width: { xs: "100%", md: "auto" },
+                mt: { xs: 1, md: 0 },
+                ml: { md: "auto" },
+              }}
+            >
+              <Button
+                size="large"
+                variant="outlined"
+                sx={{
+                  px: 4,
                   borderColor: PRIMARY_COLOR,
-                  backgroundColor: PRIMARY_LIGHT_BG,
-                },
-              }}
-              onClick={() => {
-                setFilterName("");
-                setFilterDepartmentId("");
-                setFilterCode("");
-                setPage(1);
-              }}
-            >
-              Limpar
-            </Button>
+                  color: PRIMARY_COLOR,
+                  textTransform: "none",
+                  fontWeight: 600,
+                  width: { xs: "100%", md: "auto" },
+                  "&:hover": {
+                    borderColor: PRIMARY_COLOR,
+                    backgroundColor: PRIMARY_LIGHT_BG,
+                  },
+                }}
+                onClick={() => {
+                  setFilterName("");
+                  setFilterDepartmentId("");
+                  setFilterCode("");
+                  setPage(1);
+                }}
+              >
+                Limpar
+              </Button>
 
-            <Button
-              size="large"
-              onClick={() => setCreateModalOpen(true)}
-              sx={{
-                px: 4,
-                ml: "auto",
-                backgroundColor: PRIMARY_COLOR,
-                color: "white",
-                textTransform: "none",
-                fontWeight: 600,
-                "&:hover": {
-                  backgroundColor: PRIMARY_LIGHT,
-                },
-              }}
-            >
-              Criar Tipo de Métrica
-            </Button>
+              <Button
+                size="large"
+                onClick={() => setCreateModalOpen(true)}
+                sx={{
+                  px: 4,
+                  backgroundColor: PRIMARY_COLOR,
+                  color: "white",
+                  textTransform: "none",
+                  fontWeight: 600,
+                  width: { xs: "100%", md: "auto" },
+                  "&:hover": {
+                    backgroundColor: PRIMARY_LIGHT,
+                  },
+                }}
+              >
+                Criar Tipo de Métrica
+              </Button>
+            </Box>
           </Box>
         </Paper>
 
         {/* TABLE */}
         <Paper
           sx={{
-            p: 4,
+            p: { xs: 2, md: 4 },
             borderRadius: 3,
             boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
             border: `1px solid ${SECTION_BORDER_COLOR}`,
           }}
         >
-          <table className="w-full text-sm border-collapse">
-            <thead>
-              <tr className="bg-gray-50">
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">
-                  Nome
-                </th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">
-                  Departamento
-                </th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">
-                  Tipo
-                </th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">
-                  Descrição
-                </th>
-              </tr>
-            </thead>
+          <Box sx={{ width: "100%", overflowX: "auto" }}>
+            <table className="min-w-full text-sm border-collapse">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="text-left px-3 md:px-4 py-2 md:py-3 font-semibold text-gray-700">
+                    Nome
+                  </th>
+                  <th className="text-left px-3 md:px-4 py-2 md:py-3 font-semibold text-gray-700">
+                    Departamento
+                  </th>
+                  <th className="text-left px-3 md:px-4 py-2 md:py-3 font-semibold text-gray-700">
+                    Tipo
+                  </th>
+                  <th className="text-left px-3 md:px-4 py-2 md:py-3 font-semibold text-gray-700">
+                    Descrição
+                  </th>
+                </tr>
+              </thead>
 
-            <tbody>
-              {loadingTable ? (
-                <tr>
-                  <td colSpan={4} className="py-6 text-center text-gray-500">
-                    Carregando...
-                  </td>
-                </tr>
-              ) : types.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="py-6 text-center text-gray-500">
-                    Nenhum tipo de métrica encontrado.
-                  </td>
-                </tr>
-              ) : (
-                types.map((type) => (
-                  <tr
-                    key={type.id}
-                    className="border-b hover:bg-gray-100 cursor-pointer transition"
-                    onClick={() => openEditModal(type)}
-                  >
-                    <td className="px-4 py-3">{type.name}</td>
-                    <td className="px-4 py-3 text-slate-700">
-                      {type.department?.name ||
-                        departments.find((d) => d.id === type.departmentId)
-                          ?.name ||
-                        "—"}
-                    </td>
-                    <td className="px-4 py-3 text-slate-700">
-                      {getCodeLabel(type.code)}
-                    </td>
-                    <td className="px-4 py-3 text-slate-700">
-                      {type.description || "—"}
+              <tbody>
+                {loadingTable ? (
+                  <tr>
+                    <td colSpan={4} className="py-6 text-center text-gray-500">
+                      Carregando...
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : types.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="py-6 text-center text-gray-500">
+                      Nenhum tipo de métrica encontrado.
+                    </td>
+                  </tr>
+                ) : (
+                  types.map((type) => (
+                    <tr
+                      key={type.id}
+                      className="border-b hover:bg-gray-100 cursor-pointer transition"
+                      onClick={() => openEditModal(type)}
+                    >
+                      <td className="px-3 md:px-4 py-2 md:py-3">
+                        {type.name}
+                      </td>
+                      <td className="px-3 md:px-4 py-2 md:py-3 text-slate-700">
+                        {type.department?.name ||
+                          departments.find((d) => d.id === type.departmentId)
+                            ?.name ||
+                          "—"}
+                      </td>
+                      <td className="px-3 md:px-4 py-2 md:py-3 text-slate-700">
+                        {getCodeLabel(type.code)}
+                      </td>
+                      <td className="px-3 md:px-4 py-2 md:py-3 text-slate-700">
+                        {type.description || "—"}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </Box>
 
           {/* PAGINATION */}
           <Box
             display="flex"
             justifyContent="space-between"
-            alignItems="center"
+            alignItems={{ xs: "flex-start", sm: "center" }}
             mt={3}
+            sx={{ flexDirection: { xs: "column", sm: "row" }, gap: 1.5 }}
           >
             <Typography variant="body2">
               Página {page} de {pageCount}
@@ -460,7 +528,7 @@ export default function EvaluationTypesPage() {
         title="Criar Tipo de Métrica"
         description="Preencha os dados do tipo de métrica."
         footer={
-          <div className="flex justify-end gap-2">
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 w-full">
             <Button
               variant="outlined"
               onClick={() => setCreateModalOpen(false)}
@@ -469,6 +537,7 @@ export default function EvaluationTypesPage() {
                 color: PRIMARY_COLOR,
                 textTransform: "none",
                 fontWeight: 600,
+                width: { xs: "100%", sm: "auto" },
                 "&:hover": {
                   borderColor: PRIMARY_COLOR,
                   backgroundColor: PRIMARY_LIGHT_BG,
@@ -480,7 +549,10 @@ export default function EvaluationTypesPage() {
             <Button
               onClick={handleCreate}
               disabled={!name || !departmentId || !code}
-              sx={primaryButtonSx}
+              sx={{
+                ...primaryButtonSx,
+                width: { xs: "100%", sm: "auto" },
+              }}
             >
               Criar
             </Button>
@@ -543,12 +615,16 @@ export default function EvaluationTypesPage() {
         title="Editar Tipo de Métrica"
         description="Atualize as informações ou exclua o registro."
         footer={
-          <div className="flex justify-between w-full">
+          <div className="flex flex-col sm:flex-row justify-between w-full gap-2">
             <Button
               color="error"
               variant="outlined"
               onClick={handleDelete}
-              sx={{ textTransform: "none", fontWeight: 600 }}
+              sx={{
+                textTransform: "none",
+                fontWeight: 600,
+                width: { xs: "100%", sm: "auto" },
+              }}
             >
               Excluir
             </Button>
@@ -560,6 +636,7 @@ export default function EvaluationTypesPage() {
                 color: "white",
                 textTransform: "none",
                 fontWeight: 600,
+                width: { xs: "100%", sm: "auto" },
                 "&:hover": {
                   backgroundColor: PRIMARY_LIGHT,
                 },

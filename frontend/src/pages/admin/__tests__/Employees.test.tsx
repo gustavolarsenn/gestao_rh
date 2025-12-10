@@ -67,6 +67,7 @@ describe("EmployeesPage", () => {
             hiringDate: "2024-01-01",
             departureDate: null,
             wage: 3000,
+            companyId: "company-1", // <<< IMPORTANTE
             person: { id: "person1", name: "João da Silva" },
             role: { id: "role1", name: "Analista" },
             department: { id: "dep1", name: "Operações" },
@@ -242,12 +243,9 @@ describe("EmployeesPage", () => {
     });
     fireEvent.click(selectPessoaBtn);
 
-    // Em vez do título, usamos o campo exclusivo "Email" do modal,
-    // que só existe dentro do modal de seleção de pessoa.
     const emailInput = await screen.findByLabelText("Email");
     expect(emailInput).toBeInTheDocument();
   });
-
 
   // =========================================
   // EDIT MODAL + SAVE + DELETE
@@ -263,7 +261,9 @@ describe("EmployeesPage", () => {
     expect(pessoaInput).toBeInTheDocument();
     expect(pessoaInput).toHaveValue("João da Silva");
 
-    const salarioInput = screen.getByLabelText("Salário (R$)") as HTMLInputElement;
+    const salarioInput = screen.getByLabelText(
+      "Salário (R$)"
+    ) as HTMLInputElement;
     expect(salarioInput.value).toBe("3000");
   });
 
@@ -279,6 +279,7 @@ describe("EmployeesPage", () => {
       hiringDate: "2024-01-01",
       departureDate: "2024-02-01",
       wage: 5000,
+      companyId: "company-1",
       person: { id: "person1", name: "João da Silva" },
       role: { id: "role1", name: "Analista" },
       department: { id: "dep1", name: "Operações" },
@@ -306,6 +307,7 @@ describe("EmployeesPage", () => {
 
     await waitFor(() => {
       expect(mockEmployeesHook.updateEmployee).toHaveBeenCalledWith(
+        "company-1",
         "emp1",
         expect.objectContaining({
           wage: "5000",
@@ -328,7 +330,10 @@ describe("EmployeesPage", () => {
     fireEvent.click(deleteBtn);
 
     await waitFor(() => {
-      expect(mockEmployeesHook.deleteEmployee).toHaveBeenCalledWith("emp1");
+      expect(mockEmployeesHook.deleteEmployee).toHaveBeenCalledWith(
+        "company-1",
+        "emp1"
+      );
     });
 
     expect(mockEmployeesHook.listEmployees).toHaveBeenCalled();
@@ -338,7 +343,6 @@ describe("EmployeesPage", () => {
   // PAGINATION (lista principal)
   // =========================================
   it("avança para a próxima página de funcionários", async () => {
-    // primeira chamada com total maior
     mockEmployeesHook.listEmployees.mockResolvedValueOnce({
       data: Array(10).fill({
         id: "empX",
@@ -351,6 +355,7 @@ describe("EmployeesPage", () => {
         hiringDate: "2024-01-01",
         departureDate: null,
         wage: 3000,
+        companyId: "company-1",
         person: { id: "person1", name: "João da Silva" },
         role: { id: "role1", name: "Analista" },
         department: { id: "dep1", name: "Operações" },

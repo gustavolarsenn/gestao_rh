@@ -56,6 +56,7 @@ import CancelRoundedIcon from "@mui/icons-material/CancelRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import RadioButtonUncheckedRoundedIcon from "@mui/icons-material/RadioButtonUncheckedRounded";
 import ScheduleRoundedIcon from "@mui/icons-material/ScheduleRounded";
+import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
 
 import {
   ResponsiveContainer,
@@ -90,12 +91,15 @@ export default function EmployeeDashboard() {
   }, []);
 
   const [loading, setLoading] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
 
   const [kpis, setKpis] = useState<any[]>([]);
   const [evolutions, setEvolutions] = useState<any[]>([]);
 
   // 🔥 FILTROS
-  const [filterStart, setFilterStart] = useState<string>("");
+  const [filterStart, setFilterStart] = useState<string>(() =>
+    format(new Date(), "yyyy-MM-dd")
+  );
   const [filterEnd, setFilterEnd] = useState<string>("");
   const [filterType, setFilterType] = useState<string>("");
   const [filterKpi, setFilterKpi] = useState<string>("");
@@ -175,6 +179,90 @@ export default function EmployeeDashboard() {
     1,
     Math.ceil((reviewTotal || 1) / reviewPageSize)
   );
+
+  // 🔥 Função de exportação para PDF (esconde filtros)
+  const handleExportPDF = async () => {
+    setIsExporting(true);
+
+    const sidebar = document.querySelector("aside") as HTMLElement | null;
+    const filters = document.getElementById(
+      "dashboard-filters"
+    ) as HTMLElement | null;
+    const exportBtn = document.getElementById(
+      "dashboard-export-btn"
+    ) as HTMLElement | null;
+
+    const originalSidebarDisplay = sidebar?.style.display ?? "";
+    const originalFiltersDisplay = filters?.style.display ?? "";
+
+    try {
+      const html2canvas = (await import("html2canvas")).default;
+      const jsPDF = (await import("jspdf")).default;
+
+      if (sidebar) sidebar.style.display = "none";
+      if (filters) filters.style.display = "none";
+      if (exportBtn) exportBtn.style.display = "none";
+
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      const mainElement = document.querySelector("main");
+      if (!mainElement) {
+        throw new Error("Elemento main não encontrado");
+      }
+
+      (mainElement as HTMLElement).scrollTop = 0;
+      window.scrollTo(0, 0);
+
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      const canvas = await html2canvas(mainElement as HTMLElement, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: "#f7f7f9",
+        windowWidth: (mainElement as HTMLElement).scrollWidth,
+        windowHeight: (mainElement as HTMLElement).scrollHeight,
+        x: 0,
+        y: 0,
+      });
+
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
+
+      const imgWidth = 210; // A4 width
+      const pageHeight = 297; // A4 height
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      const fileName = `dashboard-desempenho-${format(
+        new Date(),
+        "yyyy-MM-dd"
+      )}.pdf`;
+      pdf.save(fileName);
+    } catch (error) {
+      console.error("Erro ao exportar PDF:", error);
+      alert("Erro ao exportar o dashboard. Por favor, tente novamente.");
+    } finally {
+      if (sidebar) sidebar.style.display = originalSidebarDisplay;
+      if (filters) filters.style.display = originalFiltersDisplay;
+      setIsExporting(false);
+    }
+  };
 
   // 🔥 Agrupa evoluções por KPI
   const groupedEvolutions = useMemo(() => {
@@ -277,9 +365,6 @@ export default function EmployeeDashboard() {
   }, [groupedEvolutions, selectedKpiId, filterStart, filterEnd]);
 
   // 🔥 Evoluções agregadas (gráfico)
-  //  - *_PCT => histórico bruto (sem agrupar por dia)
-  //  - *_SUM => soma diária + ACUMULADO
-  //  - demais => último valor do dia
   const aggregatedEvolutions = useMemo(() => {
     if (!selectedKpi || !selectedEvols.length) return [];
 
@@ -287,7 +372,6 @@ export default function EmployeeDashboard() {
     const isPct = type.endsWith("_PCT");
     const isSum = type.endsWith("_SUM");
 
-    // Percentuais -> histórico bruto
     if (isPct) {
       const ordered = selectedEvols
         .slice()
@@ -304,7 +388,6 @@ export default function EmployeeDashboard() {
       }));
     }
 
-    // Demais tipos -> agrupar por dia
     const grouped: Record<string, any[]> = {};
 
     for (const ev of selectedEvols) {
@@ -336,12 +419,10 @@ export default function EmployeeDashboard() {
       }
     });
 
-    // Ordena por data
     daily = daily
       .slice()
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-    // Para *_SUM, converte em acumulado
     if (isSum) {
       let running = 0;
       daily = daily.map((d) => {
@@ -363,8 +444,7 @@ export default function EmployeeDashboard() {
       );
   }, [aggregatedEvolutions]);
 
-  // 🔥 Dados do gráfico (Recharts) — valor, média e meta
-  //  - Para *_PCT não calcula média
+  // 🔥 Dados do gráfico (Recharts)
   const chartData = useMemo(() => {
     if (!sortedAggregatedEvolutions.length || !selectedKpi) return [];
 
@@ -406,7 +486,7 @@ export default function EmployeeDashboard() {
     }));
   }, [sortedAggregatedEvolutions, selectedKpi, selectedEvols]);
 
-  // 👉 Domínio do eixo Y: 0 até 10% acima do maior valor (meta, média ou progresso)
+  // 👉 Domínio do eixo Y
   const yDomain = useMemo<[number, number]>(() => {
     if (!chartData.length) return [0, 10];
 
@@ -421,7 +501,7 @@ export default function EmployeeDashboard() {
 
     if (maxValue === 0) return [0, 10];
 
-    return [0, Math.ceil(maxValue * 1.1)]; // 10% acima do maior valor
+    return [0, Math.ceil(maxValue * 1.1)];
   }, [chartData]);
 
   // 🔥 Totais
@@ -577,27 +657,65 @@ export default function EmployeeDashboard() {
   // ============================================================
 
   return (
-    <div className="flex min-h-screen bg-[#f7f7f9]">
+    <div className="flex flex-col md:flex-row min-h-screen bg-[#f7f7f9]">
       <Sidebar />
 
-      <main className="flex-1 p-8 overflow-y-auto">
-        {/* ===================== TÍTULO ===================== */}
-        <Typography
-          variant="h4"
-          fontWeight={700}
-          color="#1e293b"
-          gutterBottom
-          sx={{ mb: 4 }}
+      <main className="flex-1 p-4 md:p-8 overflow-y-auto">
+        {/* ===================== TÍTULO E BOTÃO EXPORTAR ===================== */}
+        <Box
+          display="flex"
+          justifyContent="space-between"
+          alignItems="center"
+          mb={4}
+          sx={{
+            flexDirection: { xs: "column", md: "row" },
+            gap: { xs: 2, md: 0 },
+          }}
         >
-          Dashboard de Desempenho
-        </Typography>
+          <Typography
+            variant="h4"
+            fontWeight={700}
+            color="#1e293b"
+            sx={{
+              textAlign: { xs: "center", md: "left" },
+              fontSize: { xs: "1.5rem", md: "2.125rem" },
+            }}
+          >
+            Dashboard de Desempenho
+          </Typography>
+
+          <Button
+            id="dashboard-export-btn"
+            variant="contained"
+            startIcon={
+              isExporting ? (
+                <CircularProgress size={18} color="inherit" />
+              ) : (
+                <DownloadRoundedIcon />
+              )
+            }
+            onClick={handleExportPDF}
+            disabled={isExporting}
+            sx={{
+              ...primaryButtonSx,
+              textTransform: "none",
+              fontWeight: 600,
+              px: 3,
+              py: 1,
+              borderRadius: 2,
+            }}
+          >
+            {isExporting ? "Exportando..." : "Exportar PDF"}
+          </Button>
+        </Box>
 
         {/* ===================== CARDS RESUMO ===================== */}
         <Box
           display="grid"
           gridTemplateColumns={{
             xs: "1fr",
-            md: "repeat(4, minmax(0, 1fr))",
+            md: "repeat(2, minmax(0, 1fr))",
+            lg: "repeat(4, minmax(0, 1fr))",
           }}
           gap={3}
           mb={4}
@@ -786,10 +904,11 @@ export default function EmployeeDashboard() {
 
         {/* =====================   FILTROS   ===================== */}
         <Paper
+          id="dashboard-filters"
           elevation={0}
           sx={{
             width: "100%",
-            p: 4,
+            p: { xs: 2, md: 4 },
             mb: 4,
             borderRadius: 3,
             backgroundColor: "#ffffff",
@@ -802,7 +921,15 @@ export default function EmployeeDashboard() {
             Filtros
           </Typography>
 
-          <Box display="flex" gap={3} flexWrap="wrap">
+          <Box
+            display="flex"
+            gap={2}
+            flexWrap="wrap"
+            sx={{
+              flexDirection: { xs: "column", md: "row" },
+              alignItems: { xs: "stretch", md: "flex-end" },
+            }}
+          >
             <TextField
               size="small"
               label="Data inicial"
@@ -810,7 +937,8 @@ export default function EmployeeDashboard() {
               value={filterStart}
               onChange={(e) => setFilterStart(e.target.value)}
               InputLabelProps={{ shrink: true }}
-              sx={{ flex: "1 1 200px" }}
+              fullWidth
+              sx={{ flex: { md: "1 1 200px" } }}
             />
 
             <TextField
@@ -820,10 +948,15 @@ export default function EmployeeDashboard() {
               value={filterEnd}
               onChange={(e) => setFilterEnd(e.target.value)}
               InputLabelProps={{ shrink: true }}
-              sx={{ flex: "1 1 200px" }}
+              fullWidth
+              sx={{ flex: { md: "1 1 200px" } }}
             />
 
-            <FormControl sx={{ flex: "1 1 200px" }} size="small">
+            <FormControl
+              sx={{ flex: { md: "1 1 200px" } }}
+              size="small"
+              fullWidth
+            >
               <InputLabel>Tipo de KPI</InputLabel>
               <Select
                 label="Tipo de KPI"
@@ -847,7 +980,11 @@ export default function EmployeeDashboard() {
               </Select>
             </FormControl>
 
-            <FormControl sx={{ flex: "1 1 200px" }} size="small">
+            <FormControl
+              sx={{ flex: { md: "1 1 200px" } }}
+              size="small"
+              fullWidth
+            >
               <InputLabel>KPI</InputLabel>
               <Select
                 label="KPI"
@@ -878,6 +1015,7 @@ export default function EmployeeDashboard() {
                 color: PRIMARY_COLOR,
                 textTransform: "none",
                 fontWeight: 600,
+                width: { xs: "100%", md: "auto" },
                 "&:hover": {
                   borderColor: PRIMARY_COLOR,
                   backgroundColor: PRIMARY_LIGHT_BG,
@@ -889,19 +1027,20 @@ export default function EmployeeDashboard() {
           </Box>
         </Paper>
 
-        {/* ==================== LINHA 1: METAS + (ATIVIDADE ACIMA DE FEEDBACKS) ==================== */}
+        {/* ==================== LINHA 1: METAS + ATIVIDADE/FEEDBACKS ==================== */}
         <Box
           display="flex"
           gap={3}
           mb={4}
-          flexWrap="nowrap"
-          alignItems="stretch"
+          sx={{
+            flexDirection: { xs: "column", lg: "row" },
+          }}
         >
           {/* METAS / PROGRESSO POR KPI */}
           <Paper
             elevation={0}
             sx={{
-              flex: "0 0 50%",
+              flex: { xs: "1 1 100%", lg: "0 0 50%" },
               p: 4,
               borderRadius: 3,
               backgroundColor: "#ffffff",
@@ -956,9 +1095,10 @@ export default function EmployeeDashboard() {
                 }}
               >
                 {orderedKpisForList.map((k) => {
-                  const achieved = Number(k.achievedValue) || 0;
-                  const goal = Number(k.goal) || 0;
-                  const pct =
+                  const type = k.kpi?.evaluationType?.code || "";
+                  let achieved = Number(k.achievedValue ?? 0);
+                  let goal = Number(k.goal) || 0;
+                  let pct =
                     goal > 0 ? Math.min((achieved / goal) * 100, 100) : 0;
 
                   const deadline = k.periodEnd
@@ -971,35 +1111,62 @@ export default function EmployeeDashboard() {
                   let StatusIcon: any = RadioButtonUncheckedRoundedIcon;
                   let iconColor = "#9CA3AF";
 
-                if (pct < 100 && new Date() > new Date(k.periodEnd)) {
-                  statusLabel = "Expirada";
-                  statusBg = "#c52d2250";
-                  statusColor = "#c52d22ff";
-                  StatusIcon = CancelRoundedIcon;
-                  iconColor = "#c52d22ff";
-                } else if (
-                  k.achievedValue !== null &&
-                  k.achievedValue !== undefined &&
-                  pct >= 100
-                ) {
-                  statusLabel = "Concluída";
-                  statusBg = "#22c55e2a";
-                  statusColor = "#22C55E";
-                  StatusIcon = CheckCircleRoundedIcon;
-                  iconColor = "#22C55E";
-                } else if (
-                  k.achievedValue !== null &&
-                  k.achievedValue !== undefined &&
-                  pct < 100
-                ) {
-                  statusLabel = "Em andamento";
-                  statusBg = "#E0ECFF";
-                  statusColor = "#1D4ED8";
-                  StatusIcon = ScheduleRoundedIcon;
-                  iconColor = PRIMARY_COLOR;
-                } else {
-                  statusLabel = "Pendente";
-                }
+                  if (type === "BINARY") {
+                    goal = 1;
+                    if (
+                      (k.achievedValue != "Sim" &&
+                        new Date() > new Date(k.periodEnd)) ||
+                      k.achievedValue == "Não"
+                    ) {
+                      statusLabel = "Expirada";
+                      statusBg = "#c52d2250";
+                      statusColor = "#c52d22ff";
+                      StatusIcon = CancelRoundedIcon;
+                      iconColor = "#c52d22ff";
+                      achieved = 0;
+                      pct = 0;
+                    } else if (k.achievedValue === "Sim") {
+                      statusLabel = "Concluída";
+                      statusBg = "#22c55e2a";
+                      statusColor = "#22C55E";
+                      StatusIcon = CheckCircleRoundedIcon;
+                      iconColor = "#22C55E";
+                      achieved = 1;
+                      pct = 100;
+                    }
+                  }
+
+                  if (type.endsWith("_SUM") || type.endsWith("_PCT")) {
+                    if (pct < 100 && new Date() > new Date(k.periodEnd)) {
+                      statusLabel = "Expirada";
+                      statusBg = "#c52d2250";
+                      statusColor = "#c52d22ff";
+                      StatusIcon = CancelRoundedIcon;
+                      iconColor = "#c52d22ff";
+                    } else if (
+                      k.achievedValue !== null &&
+                      k.achievedValue !== undefined &&
+                      pct >= 100
+                    ) {
+                      statusLabel = "Concluída";
+                      statusBg = "#22c55e2a";
+                      statusColor = "#22C55E";
+                      StatusIcon = CheckCircleRoundedIcon;
+                      iconColor = "#22C55E";
+                    } else if (
+                      k.achievedValue !== null &&
+                      k.achievedValue !== undefined &&
+                      pct < 100
+                    ) {
+                      statusLabel = "Em andamento";
+                      statusBg = "#E0ECFF";
+                      statusColor = "#1D4ED8";
+                      StatusIcon = ScheduleRoundedIcon;
+                      iconColor = PRIMARY_COLOR;
+                    } else {
+                      statusLabel = "Pendente";
+                    }
+                  }
 
                   return (
                     <Box
@@ -1018,17 +1185,18 @@ export default function EmployeeDashboard() {
                         gap={2}
                         mb={1.5}
                       >
-                        <Box sx={{ mt: 0.3 }}>
+                        <Box sx={{ mt: 0.3, flexShrink: 0 }}>
                           <StatusIcon
                             sx={{ fontSize: 26, color: iconColor }}
                           />
                         </Box>
 
-                        <Box flex={1}>
+                        <Box flex={1} sx={{ minWidth: 0 }}>
                           <Typography
                             variant="subtitle1"
                             fontWeight={600}
                             color="#111827"
+                            sx={{ wordBreak: "break-word" }}
                           >
                             {k.kpi?.name || "KPI"}
                           </Typography>
@@ -1049,6 +1217,11 @@ export default function EmployeeDashboard() {
                                 fontWeight: 600,
                                 backgroundColor: statusBg,
                                 color: statusColor,
+                                whiteSpace: "nowrap",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                lineHeight: 1.2,
                               }}
                             >
                               {statusLabel}
@@ -1057,6 +1230,7 @@ export default function EmployeeDashboard() {
                             <Typography
                               variant="caption"
                               color="text.secondary"
+                              sx={{ whiteSpace: "nowrap" }}
                             >
                               Prazo: {deadline}
                             </Typography>
@@ -1074,6 +1248,7 @@ export default function EmployeeDashboard() {
                             variant="caption"
                             color="text.secondary"
                             fontWeight={500}
+                            sx={{ whiteSpace: "nowrap" }}
                           >
                             Progresso (real/meta)
                           </Typography>
@@ -1081,6 +1256,7 @@ export default function EmployeeDashboard() {
                             variant="caption"
                             color="text.secondary"
                             fontWeight={600}
+                            sx={{ whiteSpace: "nowrap" }}
                           >
                             {`${achieved} / ${goal} (${pct.toFixed(0)}%)`}
                           </Typography>
@@ -1094,7 +1270,8 @@ export default function EmployeeDashboard() {
                             borderRadius: 999,
                             backgroundColor: "#edf2f7",
                             "& .MuiLinearProgress-bar": {
-                              backgroundColor: PRIMARY_COLOR,
+                              backgroundColor:
+                                pct < 100 ? PRIMARY_COLOR : "#22c55e",
                               borderRadius: 999,
                             },
                           }}
@@ -1107,10 +1284,10 @@ export default function EmployeeDashboard() {
             )}
           </Paper>
 
-          {/* COLUNA DIREITA: ATIVIDADE EM CIMA, FEEDBACKS EMBAIXO */}
+          {/* COLUNA DIREITA: ATIVIDADE + FEEDBACKS */}
           <Box
             sx={{
-              flex: "calc(50% - 16px)",
+              flex: { xs: "1 1 100%", lg: "calc(50% - 12px)" },
               display: "flex",
               flexDirection: "column",
               gap: 3,
@@ -1121,7 +1298,7 @@ export default function EmployeeDashboard() {
               elevation={0}
               sx={{
                 flex: 1,
-                p: 4,
+                p: { xs: 2.5, md: 4 },
                 borderRadius: 3,
                 backgroundColor: "#ffffff",
                 boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
@@ -1139,16 +1316,22 @@ export default function EmployeeDashboard() {
                     key={`${m}-${i}`}
                     variant="caption"
                     fontWeight={600}
-                    sx={{ mx: 2 }}
+                    sx={{
+                      mx: { xs: 1, md: 2 },
+                      fontSize: { xs: 10, md: 12 },
+                    }}
                   >
                     {m}
                   </Typography>
                 ))}
               </Box>
 
-              {/* Heatmap centralizado */}
               <Box display="flex" justifyContent="center">
-                <Box display="flex" gap={1} sx={{ mx: "auto" }}>
+                <Box
+                  display="flex"
+                  gap={{ xs: 0.5, sm: 0.75, md: 1 }}
+                  sx={{ mx: "auto" }}
+                >
                   <Box
                     display="flex"
                     flexDirection="column"
@@ -1161,6 +1344,7 @@ export default function EmployeeDashboard() {
                           key={`${d}-${index}`}
                           variant="caption"
                           color="#6b7280"
+                          sx={{ fontSize: { xs: 9, md: 11 } }}
                         >
                           {d}
                         </Typography>
@@ -1168,13 +1352,13 @@ export default function EmployeeDashboard() {
                     )}
                   </Box>
 
-                  <Box display="flex" gap={0.75}>
+                  <Box display="flex" gap={{ xs: 0.4, sm: 0.6, md: 0.75 }}>
                     {weeks.map((week, wi) => (
                       <Box
                         key={wi}
                         display="flex"
                         flexDirection="column"
-                        gap={0.75}
+                        gap={{ xs: 0.4, sm: 0.6, md: 0.75 }}
                       >
                         {week.map((d, di) => (
                           <Tooltip
@@ -1188,8 +1372,8 @@ export default function EmployeeDashboard() {
                           >
                             <Box
                               sx={{
-                                width: 22,
-                                height: 22,
+                                width: { xs: 14, sm: 18, md: 22 },
+                                height: { xs: 14, sm: 18, md: 22 },
                                 borderRadius: 4,
                                 backgroundColor: getHeatColor(d.count),
                                 opacity: isSameMonth(d.day, new Date())
@@ -1293,7 +1477,6 @@ export default function EmployeeDashboard() {
                   </table>
                 </div>
 
-                {/* Paginação */}
                 <Box
                   sx={{
                     borderTop: "1px solid #e5e7eb",
@@ -1302,6 +1485,8 @@ export default function EmployeeDashboard() {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
+                    flexDirection: { xs: "column", sm: "row" },
+                    gap: 1,
                   }}
                 >
                   <Typography variant="caption" color="text.secondary">
@@ -1345,7 +1530,7 @@ export default function EmployeeDashboard() {
             elevation={0}
             sx={{
               width: "100%",
-              p: 4,
+              p: { xs: 2, md: 4 },
               borderRadius: 3,
               backgroundColor: "#ffffff",
               boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
@@ -1416,7 +1601,6 @@ export default function EmployeeDashboard() {
                     />
                     <Legend />
 
-                    {/* Área preenchida da linha de progresso */}
                     <Area
                       type="monotone"
                       dataKey="value"
@@ -1428,7 +1612,6 @@ export default function EmployeeDashboard() {
                       dot={true}
                     />
 
-                    {/* Linha da média (somente para tipos não percentuais) */}
                     {!isPctType && (
                       <Line
                         type="monotone"
@@ -1441,7 +1624,6 @@ export default function EmployeeDashboard() {
                       />
                     )}
 
-                    {/* Linha da meta (se existir) */}
                     {Number(selectedKpi?.goal ?? 0) > 0 && (
                       <Line
                         type="monotone"

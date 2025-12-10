@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body, ParseUUIDPipe, UsePipes, ValidationPipe, Query } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Body, ParseUUIDPipe, UsePipes, ValidationPipe, Query, Req } from '@nestjs/common';
 import { CompaniesService } from './companies.service';
 import { CreateCompanyDto } from './dto/create-company.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
@@ -19,8 +19,11 @@ export class CompaniesController {
   }
 
   @Get()
-  findAll(@Query() query: CompanyQueryDto) {
-    return this.service.findAll(query);
+  findAll(
+    @Req() req: any,
+    @Query() query: CompanyQueryDto
+  ) {
+    return this.service.findAll(req.user, query);
   }
 
   @Get(':id')

@@ -26,7 +26,7 @@ export function useUsers() {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await api.post("/users", { ...user, companyId });
+      const { data } = await api.post("/users", { ...user });
       return data;
     } catch (err: any) {
       setError(err?.response?.data?.message || "Erro ao criar usuário.");
@@ -36,12 +36,12 @@ export function useUsers() {
     }
   }
 
-  async function updateUser(id: string, user: Partial<User>) {
+  async function updateUser(companyId: string, id: string, user: Partial<User>) {
     const { data } = await api.patch(`/users/${id}?companyId=${companyId}`, user);
     return data;
   }
 
-  async function deleteUser(id: string) {
+  async function deleteUser(companyId: string, id: string) {
     await api.delete(`/users/${id}?companyId=${companyId}`);
   }
 

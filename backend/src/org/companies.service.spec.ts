@@ -20,15 +20,19 @@ describe('CompaniesService', () => {
       merge: jest.fn((a, b) => ({ ...a, ...b })),
       save: jest.fn((e) => Promise.resolve({ ...e, id: e.id ?? 'generated-id' })),
       remove: jest.fn(),
-      createQueryBuilder: jest.fn(() => ({
-        andWhere: jest.fn().mockReturnThis(),
-        skip: jest.fn().mockReturnThis(),
-        take: jest.fn().mockReturnThis(),
-        getManyAndCount: jest.fn().mockResolvedValue([
-          [{ id: 'c1' }], // ← data esperado pelo teste
-          1               // ← total esperado pelo teste
-        ]),
-      })),
+      createQueryBuilder: jest.fn(() => {
+        const qb: any = {
+          where: jest.fn().mockReturnThis(),
+          andWhere: jest.fn().mockReturnThis(),
+          skip: jest.fn().mockReturnThis(),
+          take: jest.fn().mockReturnThis(),
+          getManyAndCount: jest.fn().mockResolvedValue([
+            [{ id: 'c1' }], // data
+            1,              // total
+          ]),
+        };
+        return qb;
+      }),
     } as any;
   }
 
@@ -91,9 +95,17 @@ describe('CompaniesService', () => {
 
   // FIND ALL
   it('findAll deve retornar paginação', async () => {
-    (repo.createQueryBuilder().getManyAndCount as jest.Mock).mockResolvedValueOnce([[{ id: 'c1' }], 1]);
+    // garante que usamos o mock do qb
+    const qb = repo.createQueryBuilder();
+    (qb.getManyAndCount as jest.Mock).mockResolvedValueOnce([[{ id: 'c1' }], 1]);
 
-    const result = await service.findAll({ page: '1', limit: '10' });
+    const user: any = {
+      id: 'u1',
+      level: 4,          // > 3 → cai no branch qb.where('1=1')
+      companyId: 'comp1',
+    };
+
+    const result = await service.findAll(user, { page: '1', limit: '10' } as any);
 
     expect(result).toMatchObject({
       data: [{ id: 'c1' }],

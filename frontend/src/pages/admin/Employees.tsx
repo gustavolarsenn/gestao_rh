@@ -13,14 +13,11 @@ import {
 } from "@mui/material";
 import { BaseModal } from "@/components/modals/BaseModal";
 
-import {
-  useEmployees,
-  Employee,
-} from "@/hooks/employee/useEmployees";
+import { useEmployees, Employee } from "@/hooks/employee/useEmployees";
 
-import { 
-  useEmployeeHistories, 
-  EmployeeHistory 
+import {
+  useEmployeeHistories,
+  EmployeeHistory,
 } from "@/hooks/employee/useEmployeeHistories";
 import { usePersons, Person } from "@/hooks/person/usePersons";
 import { useDepartments, Department } from "@/hooks/department/useDepartments";
@@ -29,7 +26,13 @@ import { useRoles, Role } from "@/hooks/role/useRoles";
 import { useTeams, Team } from "@/hooks/team/useTeams";
 import { useBranches, Branch } from "@/hooks/branch/useBranches";
 import { format } from "date-fns";
-import { PRIMARY_COLOR, PRIMARY_LIGHT, PRIMARY_LIGHT_BG, SECTION_BORDER_COLOR, primaryButtonSx } from '@/utils/utils';
+import {
+  PRIMARY_COLOR,
+  PRIMARY_LIGHT,
+  PRIMARY_LIGHT_BG,
+  SECTION_BORDER_COLOR,
+  primaryButtonSx,
+} from "@/utils/utils";
 
 export default function EmployeesPage() {
   const {
@@ -78,11 +81,14 @@ export default function EmployeesPage() {
   const [filterBranchId, setFilterBranchId] = useState("");
   const [loadingTable, setLoadingTable] = useState(false);
 
-  async function loadEmployees() {
+  // Agora aceita página customizada para evitar race ao setar page
+  async function loadEmployees(customPage?: number) {
     setLoadingTable(true);
 
+    const currentPage = customPage ?? page;
+
     const result = await listEmployees({
-      page,
+      page: currentPage,
       limit,
       name: filterName || undefined,
       departmentId: filterDepartmentId || undefined,
@@ -210,14 +216,13 @@ export default function EmployeesPage() {
       wage: wage ? String(wage) : undefined,
     };
 
-    const newEmployee = await createEmployee(payload as any);
+    await createEmployee(payload as any);
 
+    // força a tabela a carregar página 1 já atualizada
     setPage(1);
-    loadEmployees();
+    await loadEmployees(1);
 
-    setMessage(
-      `Colaborador criado com sucesso!`
-    );
+    setMessage(`Colaborador criado com sucesso!`);
 
     // reset
     setSelectedPersonId("");
@@ -294,25 +299,26 @@ export default function EmployeesPage() {
   const handleSaveEmployee = async () => {
     if (!selectedEmployee) return;
 
-    const updated = await updateEmployee(selectedEmployee.id, {
+    await updateEmployee(selectedEmployee.companyId!, selectedEmployee.id, {
       ...editData,
       wage: String(editData.wage ?? ""),
       departureDate: editData.departureDate || undefined,
     });
 
-    setEmployees((prev) =>
-      prev.map((e) => (e.id === selectedEmployee.id ? updated : e))
-    );
+    // re-carrega a lista para refletir os relacionamentos atualizados
+    await loadEmployees();
+
     setEditModalOpen(false);
   };
 
   const handleDeleteEmployee = async () => {
     if (!selectedEmployee) return;
 
-    await deleteEmployee(selectedEmployee.id);
-    setEmployees((prev) => prev.filter((e) => e.id !== selectedEmployee.id));
+    await deleteEmployee(selectedEmployee.companyId!, selectedEmployee.id);
+
+    // Recarrega a página atual (poderia ajustar página se ficar vazia)
+    await loadEmployees();
     setEditModalOpen(false);
-    loadEmployees();
   };
 
   // Filtragem de tipos de cargo e cargos conforme departamento (edição)
@@ -343,12 +349,22 @@ export default function EmployeesPage() {
   // UI
   // ======================================================
   return (
-    <div className="flex min-h-screen bg-[#f7f7f9]">
+    <div className="flex flex-col md:flex-row min-h-screen bg-[#f7f7f9]">
       <Sidebar />
 
-      <main className="flex-1 p-8">
+      <main className="flex-1 p-4 md:p-8 w-full">
         {/* TITLE */}
-        <Typography variant="h4" fontWeight={700} color="#1e293b" sx={{ mb: 4 }}>
+        <Typography
+          variant="h4"
+          fontWeight={700}
+          color="#1e293b"
+          align="center"
+          sx={{
+            mb: 4,
+            mt: { xs: 2, md: 0 },
+            fontSize: { xs: "1.5rem", md: "2.125rem" },
+          }}
+        >
           Colaboradores
         </Typography>
 
@@ -369,7 +385,7 @@ export default function EmployeesPage() {
           elevation={0}
           sx={{
             width: "100%",
-            p: 4,
+            p: { xs: 2, md: 4 },
             mb: 4,
             borderRadius: 3,
             backgroundColor: "#ffffff",
@@ -377,23 +393,41 @@ export default function EmployeesPage() {
             border: `1px solid ${SECTION_BORDER_COLOR}`,
           }}
         >
-          <Typography variant="h6" fontWeight={600} mb={3}>
+          <Typography
+            variant="h6"
+            fontWeight={600}
+            mb={3}
+            sx={{ fontSize: { xs: "1rem", md: "1.25rem" } }}
+          >
             Filtros
           </Typography>
 
-          <Box display="flex" gap={3} flexWrap="wrap" alignItems="flex-end">
+          <Box
+            display="flex"
+            gap={2}
+            flexWrap="wrap"
+            sx={{
+              flexDirection: { xs: "column", md: "row" },
+              alignItems: { xs: "stretch", md: "flex-end" },
+            }}
+          >
             <TextField
               size="small"
+              fullWidth
               label="Nome"
               value={filterName}
               onChange={(e) => {
                 setFilterName(e.target.value);
                 setPage(1);
               }}
-              sx={{ flex: "1 1 200px" }}
+              sx={{ flex: { md: "1 1 200px" } }}
             />
 
-            <FormControl size="small" sx={{ flex: "1 1 200px" }}>
+            <FormControl
+              size="small"
+              fullWidth
+              sx={{ flex: { md: "1 1 200px" } }}
+            >
               <InputLabel>Departamento</InputLabel>
               <Select
                 label="Departamento"
@@ -412,7 +446,11 @@ export default function EmployeesPage() {
               </Select>
             </FormControl>
 
-            <FormControl size="small" sx={{ flex: "1 1 200px" }}>
+            <FormControl
+              size="small"
+              fullWidth
+              sx={{ flex: { md: "1 1 200px" } }}
+            >
               <InputLabel>Cargo</InputLabel>
               <Select
                 label="Cargo"
@@ -431,7 +469,11 @@ export default function EmployeesPage() {
               </Select>
             </FormControl>
 
-            <FormControl size="small" sx={{ flex: "1 1 200px" }}>
+            <FormControl
+              size="small"
+              fullWidth
+              sx={{ flex: { md: "1 1 200px" } }}
+            >
               <InputLabel>Filial</InputLabel>
               <Select
                 label="Filial"
@@ -450,120 +492,140 @@ export default function EmployeesPage() {
               </Select>
             </FormControl>
 
-            <Button
-              size="large"
-              variant="outlined"
+            {/* Botões */}
+            <Box
               sx={{
-                px: 4,
-                borderColor: PRIMARY_COLOR,
-                color: PRIMARY_COLOR,
-                textTransform: "none",
-                fontWeight: 600,
-                "&:hover": {
+                display: "flex",
+                flexDirection: { xs: "column-reverse", md: "row" },
+                gap: 1.5,
+                width: { xs: "100%", md: "auto" },
+                mt: { xs: 1, md: 0 },
+                ml: { md: "auto" },
+              }}
+            >
+              <Button
+                size="large"
+                variant="outlined"
+                sx={{
+                  px: 4,
                   borderColor: PRIMARY_COLOR,
-                  backgroundColor: PRIMARY_LIGHT_BG,
-                },
-              }}
-              onClick={() => {
-                setFilterName("");
-                setFilterDepartmentId("");
-                setFilterRoleId("");
-                setFilterBranchId("");
-                setPage(1);
-              }}
-            >
-              Limpar
-            </Button>
+                  color: PRIMARY_COLOR,
+                  textTransform: "none",
+                  fontWeight: 600,
+                  width: { xs: "100%", md: "auto" },
+                  "&:hover": {
+                    borderColor: PRIMARY_COLOR,
+                    backgroundColor: PRIMARY_LIGHT_BG,
+                  },
+                }}
+                onClick={() => {
+                  setFilterName("");
+                  setFilterDepartmentId("");
+                  setFilterRoleId("");
+                  setFilterBranchId("");
+                  setPage(1);
+                }}
+              >
+                Limpar
+              </Button>
 
-            <Button
-              size="large"
-              onClick={() => setCreateModalOpen(true)}
-              sx={{
-                px: 4,
-                ml: "auto",
-                backgroundColor: PRIMARY_COLOR,
-                color: "white",
-                textTransform: "none",
-                fontWeight: 600,
-                "&:hover": {
-                  backgroundColor: PRIMARY_LIGHT,
-                },
-              }}
-            >
-              Cadastrar colaborador
-            </Button>
+              <Button
+                size="large"
+                onClick={() => setCreateModalOpen(true)}
+                sx={{
+                  px: 4,
+                  backgroundColor: PRIMARY_COLOR,
+                  color: "white",
+                  textTransform: "none",
+                  fontWeight: 600,
+                  width: { xs: "100%", md: "auto" },
+                  "&:hover": {
+                    backgroundColor: PRIMARY_LIGHT,
+                  },
+                }}
+              >
+                Cadastrar colaborador
+              </Button>
+            </Box>
           </Box>
         </Paper>
 
         {/* TABLE */}
         <Paper
           sx={{
-            p: 4,
+            p: { xs: 2, md: 4 },
             borderRadius: 3,
             boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
             border: `1px solid ${SECTION_BORDER_COLOR}`,
           }}
         >
-          <table className="w-full text-sm border-collapse">
-            <thead>
-              <tr className="bg-gray-50">
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">
-                  Nome
-                </th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">
-                  Cargo
-                </th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">
-                  Departamento
-                </th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">
-                  Filial
-                </th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">
-                  Salário
-                </th>
-              </tr>
-            </thead>
+          <Box sx={{ width: "100%", overflowX: "auto" }}>
+            <table className="min-w-full text-sm border-collapse">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="text-left px-4 py-3 font-semibold text-gray-700">
+                    Nome
+                  </th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-700">
+                    Cargo
+                  </th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-700">
+                    Departamento
+                  </th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-700">
+                    Time
+                  </th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-700">
+                    Filial
+                  </th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-700">
+                    Salário
+                  </th>
+                </tr>
+              </thead>
 
-            <tbody>
-              {loadingTable ? (
-                <tr>
-                  <td colSpan={5} className="py-6 text-center text-gray-500">
-                    Carregando...
-                  </td>
-                </tr>
-              ) : employees.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="py-6 text-center text-gray-500">
-                    Nenhum colaborador encontrado.
-                  </td>
-                </tr>
-              ) : (
-                employees.map((emp) => (
-                  <tr
-                    key={emp.id}
-                    className="border-b hover:bg-gray-100 cursor-pointer transition"
-                    onClick={() => openEditModal(emp)}
-                  >
-                    <td className="px-4 py-3">{emp.person?.name}</td>
-                    <td className="px-4 py-3">{emp.role?.name}</td>
-                    <td className="px-4 py-3">{emp.department?.name}</td>
-                    <td className="px-4 py-3">
-                      {emp.branch?.name || "—"}
+              <tbody>
+                {loadingTable ? (
+                  <tr>
+                    <td colSpan={6} className="py-6 text-center text-gray-500">
+                      Carregando...
                     </td>
-                    <td className="px-4 py-3">{formatWage(emp.wage)}</td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : employees.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-6 text-center text-gray-500">
+                      Nenhum colaborador encontrado.
+                    </td>
+                  </tr>
+                ) : (
+                  employees.map((emp) => (
+                    <tr
+                      key={emp.id}
+                      className="border-b hover:bg-gray-100 cursor-pointer transition"
+                      onClick={() => openEditModal(emp)}
+                    >
+                      <td className="px-4 py-3">{emp.person?.name}</td>
+                      <td className="px-4 py-3">{emp.role?.name}</td>
+                      <td className="px-4 py-3">{emp.department?.name}</td>
+                      <td className="px-4 py-3">{emp.team?.name}</td>
+                      <td className="px-4 py-3">
+                        {emp.branch?.name || "—"}
+                      </td>
+                      <td className="px-4 py-3">{formatWage(emp.wage)}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </Box>
 
           {/* PAGINATION */}
           <Box
             display="flex"
             justifyContent="space-between"
-            alignItems="center"
+            alignItems={{ xs: "flex-start", sm: "center" }}
             mt={3}
+            sx={{ flexDirection: { xs: "column", sm: "row" }, gap: 1.5 }}
           >
             <Typography variant="body2">
               Página {page} de {employeesPageCount}
@@ -615,7 +677,7 @@ export default function EmployeesPage() {
         title="Cadastrar colaborador"
         description="Selecione uma pessoa e preencha os dados do vínculo."
         footer={
-          <div className="flex justify-end gap-2">
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 w-full">
             <Button
               variant="outlined"
               onClick={() => setCreateModalOpen(false)}
@@ -625,6 +687,7 @@ export default function EmployeesPage() {
                 color: PRIMARY_COLOR,
                 textTransform: "none",
                 fontWeight: 600,
+                width: { xs: "100%", sm: "auto" },
                 "&:hover": {
                   borderColor: PRIMARY_COLOR,
                   backgroundColor: PRIMARY_LIGHT_BG,
@@ -644,7 +707,10 @@ export default function EmployeesPage() {
                 !hiringDate ||
                 !wage
               }
-              sx={primaryButtonSx}
+              sx={{
+                ...primaryButtonSx,
+                width: { xs: "100%", sm: "auto" },
+              }}
             >
               Cadastrar
             </Button>
@@ -781,11 +847,12 @@ export default function EmployeesPage() {
         description="Atualize as informações do colaborador."
         maxWidth="lg"
         footer={
-          <div className="flex justify-between w-full">
+          <div className="flex flex-col sm:flex-row justify-between w-full gap-2">
             <Button
               color="error"
               variant="outlined"
               onClick={handleDeleteEmployee}
+              sx={{ width: { xs: "100%", sm: "auto" } }}
             >
               Excluir
             </Button>
@@ -795,6 +862,7 @@ export default function EmployeesPage() {
               sx={{
                 backgroundColor: PRIMARY_COLOR,
                 color: "white",
+                width: { xs: "100%", sm: "auto" },
                 "&:hover": {
                   backgroundColor: PRIMARY_LIGHT,
                 },
@@ -1008,13 +1076,19 @@ export default function EmployeesPage() {
                   <tbody>
                     {historyLoading ? (
                       <tr>
-                        <td colSpan={8} className="py-4 text-center text-gray-500">
+                        <td
+                          colSpan={8}
+                          className="py-4 text-center text-gray-500"
+                        >
                           Carregando histórico...
                         </td>
                       </tr>
                     ) : employeeHistories.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="py-4 text-center text-gray-500">
+                        <td
+                          colSpan={8}
+                          className="py-4 text-center text-gray-500"
+                        >
                           Nenhum histórico encontrado.
                         </td>
                       </tr>
@@ -1022,10 +1096,18 @@ export default function EmployeesPage() {
                       employeeHistories.map((h) => (
                         <tr key={h.id} className="border-b">
                           <td className="px-2 py-2">{h.role?.name || "—"}</td>
-                          <td className="px-2 py-2">{h.roleType?.name || "—"}</td>
-                          <td className="px-2 py-2">{h.department?.name || "—"}</td>
-                          <td className="px-2 py-2">{h.branch?.name || "—"}</td>
-                          <td className="px-2 py-2">{h.team?.name || "—"}</td>
+                          <td className="px-2 py-2">
+                            {h.roleType?.name || "—"}
+                          </td>
+                          <td className="px-2 py-2">
+                            {h.department?.name || "—"}
+                          </td>
+                          <td className="px-2 py-2">
+                            {h.branch?.name || "—"}
+                          </td>
+                          <td className="px-2 py-2">
+                            {h.team?.name || "—"}
+                          </td>
                           <td className="px-2 py-2">{formatWage(h.wage)}</td>
                           <td className="px-2 py-2">
                             {formatDate(h.startDate)}
@@ -1044,14 +1126,15 @@ export default function EmployeesPage() {
               <Box
                 display="flex"
                 justifyContent="space-between"
-                alignItems="center"
+                alignItems={{ xs: "flex-start", sm: "center" }}
                 mt={2}
+                sx={{ flexDirection: { xs: "column", sm: "row" }, gap: 1.5 }}
               >
                 <Typography variant="body2">
                   Página {historyPage} de {historyPageCount}
                 </Typography>
 
-                <Box display="flex" gap={1}>
+                <Box display="flex" gap={1.5}>
                   <Button
                     variant="outlined"
                     size="small"
@@ -1071,7 +1154,9 @@ export default function EmployeesPage() {
                   <Button
                     variant="outlined"
                     size="small"
-                    disabled={historyPage >= historyPageCount || historyLoading}
+                    disabled={
+                      historyPage >= historyPageCount || historyLoading
+                    }
                     onClick={() => setHistoryPage((p) => p + 1)}
                     sx={{
                       borderColor: PRIMARY_COLOR,
@@ -1100,7 +1185,11 @@ export default function EmployeesPage() {
         footer={null}
       >
         <div className="flex flex-col gap-4">
-          <Box display="flex" gap={2}>
+          <Box
+            display="flex"
+            gap={2}
+            sx={{ flexDirection: { xs: "column", sm: "row" } }}
+          >
             <TextField
               size="small"
               sx={{ flex: 1 }}
@@ -1136,7 +1225,12 @@ export default function EmployeesPage() {
             ))}
           </Paper>
 
-          <Box display="flex" justifyContent="space-between" alignItems="center">
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems={{ xs: "flex-start", sm: "center" }}
+            sx={{ flexDirection: { xs: "column", sm: "row" }, gap: 1.5 }}
+          >
             <Typography variant="body2">
               Página {personPage} de {personPageCount}
             </Typography>

@@ -36,14 +36,6 @@ export class UsersController {
     return this.service.findAll(req.user, query);
   }
 
-  @Get(':id')
-  findOne(
-    @Param('id', new ParseUUIDPipe()) id: string,
-    @Query('companyId', ParseUUIDPipe) companyId: string,
-  ): Promise<User> {
-    return this.service.findOne(companyId, id);
-  }
-
   @Patch(':id')
   update(
     @Param('id', ParseUUIDPipe) id: string,
@@ -51,6 +43,14 @@ export class UsersController {
     @Body() dto: UpdateUserDto,
   ): Promise<User> {
     return this.service.update(companyId, id, dto);
+  }
+
+  @Get(':id')
+  findOne(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Query('companyId', ParseUUIDPipe) companyId: string,
+  ): Promise<User> {
+    return this.service.findOne(companyId, id);
   }
 
   @Delete(':id')

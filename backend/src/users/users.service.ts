@@ -32,7 +32,6 @@ export class UsersService {
     const person = await this.personRepo.findOne({ where: { id: dto.personId } });
     if (!person) throw new NotFoundException('Person not found');
 
-
     const passwordHash = await bcrypt.hash(dto.password, 10);
     const entity = this.repo.create({
       companyId: dto.companyId,
@@ -92,6 +91,7 @@ export class UsersService {
     const merged = this.repo.merge(row, {
       name: dto.name ?? row.name,
       email: dto.email ?? row.email,
+      companyId: dto.companyId ?? row.companyId,
       role: { id: dto.userRoleId ?? row.userRoleId },
       passwordHash,
     } as Partial<User>);

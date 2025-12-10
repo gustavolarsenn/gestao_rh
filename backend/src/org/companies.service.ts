@@ -39,13 +39,19 @@ export class CompaniesService {
     return entity;
   }
 
-  async findAll(query: CompanyQueryDto) {
+  async findAll(user: any, query: CompanyQueryDto) {
+
     const page = Number(query.page) || 1;
     const limit = Number(query.limit) || 10;
     const skip = (page - 1) * limit;
 
     const qb = this.repo.createQueryBuilder('company');
 
+    if (user.level <= 3) {
+      qb.where('company.id = :companyId', { companyId: user.companyId });
+    } else {
+      qb.where('1=1');
+    }
     // Filtros opcionais
     if (query.name) {
       qb.andWhere('company.name ILIKE :name', { name: `%${query.name}%` });

@@ -25,7 +25,13 @@ import {
   EvaluationType,
   EvaluationCode,
 } from "@/hooks/evaluation-type/useEvaluationTypes";
-import { PRIMARY_COLOR, PRIMARY_LIGHT, PRIMARY_LIGHT_BG, SECTION_BORDER_COLOR, primaryButtonSx } from '@/utils/utils';
+import {
+  PRIMARY_COLOR,
+  PRIMARY_LIGHT,
+  PRIMARY_LIGHT_BG,
+  SECTION_BORDER_COLOR,
+  primaryButtonSx,
+} from "@/utils/utils";
 
 export default function TeamKpis() {
   const {
@@ -177,6 +183,13 @@ export default function TeamKpis() {
     if (selectedKpiObj) setEvaluationTypeId(selectedKpiObj.evaluationTypeId);
   }, [kpiId, kpis]);
 
+  // Helper para obter o evaluationTypeId a partir do kpiId
+  const getKPIEvaluationType = (kpiIdParam: string) => {
+    const selectedKpiObj = kpis.find((k) => k.id === kpiIdParam);
+    if (selectedKpiObj) return selectedKpiObj.evaluationTypeId;
+    return "";
+  };
+
   const handleCreate = async () => {
     setMessage("");
 
@@ -246,21 +259,25 @@ export default function TeamKpis() {
     setEditModalOpen(false);
     loadTeamKpis();
   };
-
   // ======================================================
   // UI
   // ======================================================
   return (
-    <div className="flex min-h-screen bg-[#f7f7f9]">
+    <div className="flex flex-col md:flex-row min-h-screen bg-[#f7f7f9]">
       <Sidebar />
 
-      <main className="flex-1 p-8">
+      <main className="flex-1 p-4 md:p-8 w-full">
         {/* TITLE */}
         <Typography
           variant="h4"
           fontWeight={700}
           color="#1e293b"
-          sx={{ mb: 4 }}
+          align="center"
+          sx={{
+            mb: 4,
+            mt: { xs: 2, md: 0 },
+            fontSize: { xs: "1.5rem", md: "2.125rem" },
+          }}
         >
           KPIs de Times
         </Typography>
@@ -282,7 +299,7 @@ export default function TeamKpis() {
           elevation={0}
           sx={{
             width: "100%",
-            p: 4,
+            p: { xs: 2, md: 4 },
             mb: 4,
             borderRadius: 3,
             backgroundColor: "#ffffff",
@@ -290,12 +307,29 @@ export default function TeamKpis() {
             border: `1px solid ${SECTION_BORDER_COLOR}`,
           }}
         >
-          <Typography variant="h6" fontWeight={600} mb={3}>
+          <Typography
+            variant="h6"
+            fontWeight={600}
+            mb={3}
+            sx={{ fontSize: { xs: "1rem", md: "1.25rem" } }}
+          >
             Filtros
           </Typography>
 
-          <Box display="flex" gap={3} flexWrap="wrap" alignItems="flex-end">
-            <FormControl size="small" sx={{ flex: "1 1 220px" }}>
+          <Box
+            display="flex"
+            gap={2}
+            flexWrap="wrap"
+            sx={{
+              flexDirection: { xs: "column", md: "row" },
+              alignItems: { xs: "stretch", md: "flex-end" },
+            }}
+          >
+            <FormControl
+              fullWidth
+              size="small"
+              sx={{ flex: { md: "1 1 220px" } }}
+            >
               <InputLabel>Time</InputLabel>
               <Select
                 label="Time"
@@ -314,7 +348,11 @@ export default function TeamKpis() {
               </Select>
             </FormControl>
 
-            <FormControl size="small" sx={{ flex: "1 1 220px" }}>
+            <FormControl
+              fullWidth
+              size="small"
+              sx={{ flex: { md: "1 1 220px" } }}
+            >
               <InputLabel>KPI</InputLabel>
               <Select
                 label="KPI"
@@ -333,7 +371,11 @@ export default function TeamKpis() {
               </Select>
             </FormControl>
 
-            <FormControl size="small" sx={{ flex: "1 1 180px" }}>
+            <FormControl
+              fullWidth
+              size="small"
+              sx={{ flex: { md: "1 1 180px" } }}
+            >
               <InputLabel>Status</InputLabel>
               <Select
                 label="Status"
@@ -354,6 +396,7 @@ export default function TeamKpis() {
 
             {/* Filtros de Período */}
             <TextField
+              fullWidth
               size="small"
               label="Período início"
               type="date"
@@ -362,10 +405,11 @@ export default function TeamKpis() {
                 setFilterPeriodStart(e.target.value);
                 setPage(1);
               }}
-              sx={{ flex: "1 1 180px" }}
+              sx={{ flex: { md: "1 1 180px" } }}
               InputLabelProps={{ shrink: true }}
             />
             <TextField
+              fullWidth
               size="small"
               label="Período fim"
               type="date"
@@ -374,140 +418,162 @@ export default function TeamKpis() {
                 setFilterPeriodEnd(e.target.value);
                 setPage(1);
               }}
-              sx={{ flex: "1 1 180px" }}
+              sx={{ flex: { md: "1 1 180px" } }}
               InputLabelProps={{ shrink: true }}
             />
 
-            <Button
-              size="large"
-              variant="outlined"
+            {/* Botões */}
+            <Box
               sx={{
-                px: 4,
-                borderColor: PRIMARY_COLOR,
-                color: PRIMARY_COLOR,
-                textTransform: "none",
-                fontWeight: 600,
-                "&:hover": {
+                display: "flex",
+                flexDirection: { xs: "column-reverse", md: "row" },
+                gap: 1.5,
+                width: { xs: "100%", md: "auto" },
+                mt: { xs: 1, md: 0 },
+                ml: { md: "auto" },
+              }}
+            >
+              <Button
+                size="large"
+                variant="outlined"
+                sx={{
+                  px: 4,
                   borderColor: PRIMARY_COLOR,
-                  backgroundColor: PRIMARY_LIGHT_BG,
-                },
-              }}
-              onClick={() => {
-                setFilterTeamId("");
-                setFilterKpiId("");
-                setFilterStatus("");
-                setFilterPeriodStart("");
-                setFilterPeriodEnd("");
-                setPage(1);
-              }}
-            >
-              Limpar
-            </Button>
+                  color: PRIMARY_COLOR,
+                  textTransform: "none",
+                  fontWeight: 600,
+                  width: { xs: "100%", md: "auto" },
+                  "&:hover": {
+                    borderColor: PRIMARY_COLOR,
+                    backgroundColor: PRIMARY_LIGHT_BG,
+                  },
+                }}
+                onClick={() => {
+                  setFilterTeamId("");
+                  setFilterKpiId("");
+                  setFilterStatus("");
+                  setFilterPeriodStart("");
+                  setFilterPeriodEnd("");
+                  setPage(1);
+                }}
+              >
+                Limpar
+              </Button>
 
-            <Button
-              size="large"
-              onClick={() => setCreateModalOpen(true)}
-              sx={{
-                px: 4,
-                ml: "auto",
-                backgroundColor: PRIMARY_COLOR,
-                color: "white",
-                textTransform: "none",
-                fontWeight: 600,
-                "&:hover": {
-                  backgroundColor: PRIMARY_LIGHT,
-                },
-              }}
-            >
-              Designar KPI
-            </Button>
+              <Button
+                size="large"
+                onClick={() => setCreateModalOpen(true)}
+                sx={{
+                  px: 4,
+                  backgroundColor: PRIMARY_COLOR,
+                  color: "white",
+                  textTransform: "none",
+                  fontWeight: 600,
+                  width: { xs: "100%", md: "auto" },
+                  "&:hover": {
+                    backgroundColor: PRIMARY_LIGHT,
+                  },
+                }}
+              >
+                Designar KPI
+              </Button>
+            </Box>
           </Box>
         </Paper>
 
         {/* TABLE */}
         <Paper
           sx={{
-            p: 4,
+            p: { xs: 2, md: 4 },
             borderRadius: 3,
             boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
             border: `1px solid ${SECTION_BORDER_COLOR}`,
           }}
         >
-          <table className="w-full text-sm border-collapse">
-            <thead>
-              <tr className="bg-gray-50">
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">
-                  Time
-                </th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">
-                  KPI
-                </th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">
-                  Meta
-                </th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">
-                  Status
-                </th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">
-                  Período
-                </th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {loadingTable ? (
-                <tr>
-                  <td colSpan={5} className="py-6 text-center text-gray-500">
-                    Carregando...
-                  </td>
+          <Box sx={{ width: "100%", overflowX: "auto" }}>
+            <table className="min-w-full text-sm border-collapse">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="text-left px-3 md:px-4 py-2 md:py-3 font-semibold text-gray-700">
+                    Time
+                  </th>
+                  <th className="text-left px-3 md:px-4 py-2 md:py-3 font-semibold text-gray-700">
+                    KPI
+                  </th>
+                  <th className="text-left px-3 md:px-4 py-2 md:py-3 font-semibold text-gray-700">
+                    Meta
+                  </th>
+                  <th className="text-left px-3 md:px-4 py-2 md:py-3 font-semibold text-gray-700">
+                    Status
+                  </th>
+                  <th className="text-left px-3 md:px-4 py-2 md:py-3 font-semibold text-gray-700">
+                    Período
+                  </th>
                 </tr>
-              ) : teamKpis.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="py-6 text-center text-gray-500">
-                    Nenhuma KPI de time encontrada.
-                  </td>
-                </tr>
-              ) : (
-                teamKpis.map((tk) => {
-                  const teamName =
-                    tk.team?.name ||
-                    teams.find((t) => t.id === tk.teamId)?.name ||
-                    tk.teamId;
+              </thead>
 
-                  const kpiName =
-                    tk.kpi?.name ||
-                    kpis.find((k) => k.id === tk.kpiId)?.name ||
-                    tk.kpiId;
+              <tbody>
+                {loadingTable ? (
+                  <tr>
+                    <td colSpan={5} className="py-6 text-center text-gray-500">
+                      Carregando...
+                    </td>
+                  </tr>
+                ) : teamKpis.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-6 text-center text-gray-500">
+                      Nenhuma KPI de time encontrada.
+                    </td>
+                  </tr>
+                ) : (
+                  teamKpis.map((tk) => {
+                    const teamName =
+                      tk.team?.name ||
+                      teams.find((t) => t.id === tk.teamId)?.name ||
+                      tk.teamId;
 
-                  return (
-                    <tr
-                      key={tk.id}
-                      className="border-b hover:bg-gray-100 cursor-pointer transition"
-                      onClick={() => openEditModal(tk)}
-                    >
-                      <td className="px-4 py-3">{teamName}</td>
-                      <td className="px-4 py-3 text-slate-700">{kpiName}</td>
-                      <td className="px-4 py-3 text-slate-700">{tk.goal}</td>
-                      <td className="px-4 py-3 text-slate-700">
-                        {statusLabelMap[tk.status] || tk.status}
-                      </td>
-                      <td className="px-4 py-3 text-slate-700">
-                        {new Date(tk.periodStart).toLocaleDateString()} -{" "}
-                        {new Date(tk.periodEnd).toLocaleDateString()}
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+                    const kpiName =
+                      tk.kpi?.name ||
+                      kpis.find((k) => k.id === tk.kpiId)?.name ||
+                      tk.kpiId;
+
+                    return (
+                      <tr
+                        key={tk.id}
+                        className="border-b hover:bg-gray-100 cursor-pointer transition"
+                        onClick={() => openEditModal(tk)}
+                      >
+                        <td className="px-3 md:px-4 py-2 md:py-3">
+                          {teamName}
+                        </td>
+                        <td className="px-3 md:px-4 py-2 md:py-3 text-slate-700">
+                          {kpiName}
+                        </td>
+                        <td className="px-3 md:px-4 py-2 md:py-3 text-slate-700">
+                          {tk.goal}
+                        </td>
+                        <td className="px-3 md:px-4 py-2 md:py-3 text-slate-700">
+                          {statusLabelMap[tk.status] || tk.status}
+                        </td>
+                        <td className="px-3 md:px-4 py-2 md:py-3 text-slate-700">
+                          {new Date(tk.periodStart).toLocaleDateString()} -{" "}
+                          {new Date(tk.periodEnd).toLocaleDateString()}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </Box>
 
           {/* PAGINATION */}
           <Box
             display="flex"
             justifyContent="space-between"
-            alignItems="center"
+            alignItems={{ xs: "flex-start", sm: "center" }}
             mt={3}
+            sx={{ flexDirection: { xs: "column", sm: "row" }, gap: 1.5 }}
           >
             <Typography variant="body2">
               Página {page} de {pageCount}
@@ -559,7 +625,7 @@ export default function TeamKpis() {
         title="Designar KPI a Time"
         description="Preencha os dados para atribuir a KPI ao time."
         footer={
-          <div className="flex justify-end gap-2">
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 w-full">
             <Button
               variant="outlined"
               onClick={() => setCreateModalOpen(false)}
@@ -568,6 +634,7 @@ export default function TeamKpis() {
                 color: PRIMARY_COLOR,
                 textTransform: "none",
                 fontWeight: 600,
+                width: { xs: "100%", sm: "auto" },
                 "&:hover": {
                   borderColor: PRIMARY_COLOR,
                   backgroundColor: PRIMARY_LIGHT_BG,
@@ -579,7 +646,10 @@ export default function TeamKpis() {
             <Button
               onClick={handleCreate}
               disabled={!teamId || !kpiId || !periodStart || !goal}
-              sx={primaryButtonSx}
+              sx={{
+                ...primaryButtonSx,
+                width: { xs: "100%", sm: "auto" },
+              }}
             >
               Designar
             </Button>
@@ -617,7 +687,11 @@ export default function TeamKpis() {
             </Select>
           </FormControl>
 
-          <Box display="flex" gap={2}>
+          <Box
+            display="flex"
+            gap={2}
+            flexDirection={{ xs: "column", sm: "row" }}
+          >
             <TextField
               size="small"
               label="Início do Período"
@@ -634,16 +708,51 @@ export default function TeamKpis() {
               inputProps={{ min: 1, max: 12 }}
               value={deltaMonths}
               onChange={(e) => setDeltaMonths(Number(e.target.value))}
-              sx={{ width: 140 }}
+              sx={{ flex: { xs: 1, sm: "0 0 140px" } }}
             />
           </Box>
 
-          <TextField
-            size="small"
-            label="Meta (goal)"
-            value={goal}
-            onChange={(e) => setGoal(e.target.value)}
-          />
+          {(() => {
+            const selectedEvalId = getKPIEvaluationType(kpiId);
+            const selectedEvalType = evaluationTypes.find(
+              (et) => et.id === selectedEvalId
+            );
+            const evalCode = selectedEvalType?.code || "";
+
+            const isBinary = evalCode.includes("BINARY");
+            const isPct = evalCode.includes("PCT");
+
+            return (
+              <TextField
+                size="small"
+                label="Meta (goal)"
+                value={goal}
+                type={isBinary ? "text" : "number"}
+                inputProps={isPct ? { min: 0, max: 100 } : undefined}
+                onChange={(e) => {
+                  const val = e.target.value;
+
+                  if (isPct) {
+                    if (val === "") {
+                      setGoal("");
+                      return;
+                    }
+
+                    const num = Number(val);
+                    if (Number.isNaN(num)) {
+                      setGoal(val);
+                      return;
+                    }
+
+                    const clamped = Math.min(100, Math.max(0, num));
+                    setGoal(String(clamped));
+                  } else {
+                    setGoal(val);
+                  }
+                }}
+              />
+            );
+          })()}
 
           <FormControl size="small" fullWidth>
             <InputLabel>Status</InputLabel>
@@ -669,12 +778,16 @@ export default function TeamKpis() {
         title="Editar KPI do Time"
         description="Atualize a meta ou status desta KPI."
         footer={
-          <div className="flex justify-between w-full">
+          <div className="flex flex-col sm:flex-row justify-between w-full gap-2">
             <Button
               color="error"
               variant="outlined"
               onClick={handleDelete}
-              sx={{ textTransform: "none", fontWeight: 600 }}
+              sx={{
+                textTransform: "none",
+                fontWeight: 600,
+                width: { xs: "100%", sm: "auto" },
+              }}
             >
               Excluir
             </Button>
@@ -686,6 +799,7 @@ export default function TeamKpis() {
                 color: "white",
                 textTransform: "none",
                 fontWeight: 600,
+                width: { xs: "100%", sm: "auto" },
                 "&:hover": {
                   backgroundColor: PRIMARY_LIGHT,
                 },
@@ -697,12 +811,58 @@ export default function TeamKpis() {
         }
       >
         <div className="flex flex-col gap-4">
-          <TextField
-            size="small"
-            label="Meta"
-            value={editGoal}
-            onChange={(e) => setEditGoal(e.target.value)}
-          />
+          {(() => {
+            if (!selectedKpi) {
+              return (
+                <TextField
+                  size="small"
+                  label="Meta"
+                  value={editGoal}
+                  onChange={(e) => setEditGoal(e.target.value)}
+                />
+              );
+            }
+
+            const selectedEvalId = getKPIEvaluationType(selectedKpi.kpiId);
+            const selectedEvalType = evaluationTypes.find(
+              (et) => et.id === selectedEvalId
+            );
+            const evalCode = selectedEvalType?.code || "";
+
+            const isBinary = evalCode.includes("BINARY");
+            const isPct = evalCode.includes("PCT");
+
+            return (
+              <TextField
+                size="small"
+                label="Meta (goal)"
+                value={editGoal}
+                type={isBinary ? "text" : "number"}
+                inputProps={isPct ? { min: 0, max: 100 } : undefined}
+                onChange={(e) => {
+                  const val = e.target.value;
+
+                  if (isPct) {
+                    if (val === "") {
+                      setEditGoal("");
+                      return;
+                    }
+
+                    const num = Number(val);
+                    if (Number.isNaN(num)) {
+                      setEditGoal(val);
+                      return;
+                    }
+
+                    const clamped = Math.min(100, Math.max(0, num));
+                    setEditGoal(String(clamped));
+                  } else {
+                    setEditGoal(val);
+                  }
+                }}
+              />
+            );
+          })()}
 
           <FormControl size="small" fullWidth>
             <InputLabel>Status</InputLabel>

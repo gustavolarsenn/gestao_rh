@@ -12,18 +12,22 @@ import {
   FiHome,
   FiList,
   FiMessageCircle,
+  FiMenu,
+  FiX,
 } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/auth/useAuth";
 import orgkpiLogo from "@/assets/orgkpi.png";
 
 // cores inspiradas nas barras do gráfico da logo
-const ORGKPI_BLUE_DARK = "#0369a1";   // azul mais escuro (principal)
-const ORGKPI_BLUE_LIGHT = "#0ea5e9";  // azul mais claro
+const ORGKPI_BLUE_DARK = "#0369a1"; // azul mais escuro (principal)
+const ORGKPI_BLUE_LIGHT = "#0ea5e9"; // azul mais claro
 
 export default function Sidebar() {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(false); // desktop
   const [openMenus, setOpenMenus] = useState<string[]>([]);
+  const [mobileOpen, setMobileOpen] = useState(false); // mobile drawer
+
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
@@ -118,173 +122,272 @@ export default function Sidebar() {
     navigate("/login");
   }
 
-  return (
-    <aside
-      className="
-        fixed inset-y-0 left-0
-        bg-white text-slate-800
-        flex flex-col shadow-md z-50
-        transition-[width] duration-200 ease-in-out
-        relative
-      "
-      style={{ width: sidebarWidth }}
-    >
-      {/* FAIXA COM GRADIENTE NA BORDA DIREITA */}
-      <div
-        className="absolute top-0 right-0 h-full w-[2.5px]"
-        style={{
-          backgroundImage: `linear-gradient(to bottom, ${ORGKPI_BLUE_LIGHT}, ${ORGKPI_BLUE_DARK})`,
-        }}
-      />
+  // ====== CONTEÚDO DO MENU (reutilizado em desktop e mobile) ======
+  const renderMenuContent = (opts?: { collapsedOverride?: boolean; onItemClick?: () => void }) => {
+    const collapsedLocal = opts?.collapsedOverride ?? collapsed;
+    const onItemClick = opts?.onItemClick;
 
-      {/* Cabeçalho: logo + botão de collapse */}
-      <div className="flex items-center justify-between px-4 pt-4 pb-3">
-        <div className="flex items-center gap-2">
-          <img
-            src={orgkpiLogo}
-            alt="OrgKPI"
-            className="h-9 w-auto object-contain"
-          />
-          {!collapsed && (
-            <span className="text-sm font-semibold text-slate-800">
-            </span>
-          )}
-        </div>
+    return (
+      <>
+        {/* Divisor */}
+        {!collapsedLocal && <div className="mx-4 mb-3 h-px bg-slate-100" />}
 
-        <button
-          onClick={() => setCollapsed((prev) => !prev)}
-          className="ml-2 flex h-7 w-7 items-center justify-center rounded-full border text-xs
-                     border-[#dbeafe] text-[#64748b] hover:bg-[#eff6ff] hover:text-[#0f172a]
-                     transition-colors bg-white"
-        >
-          {collapsed ? (
-            <FiChevronRight className="text-[14px]" />
-          ) : (
-            <FiChevronLeft className="text-[14px]" />
-          )}
-        </button>
-      </div>
+        {/* Título MENU PRINCIPAL */}
+        {!collapsedLocal && (
+          <p className="px-4 mb-2 text-[11px] font-semibold tracking-[0.18em] text-slate-400">
+            MENU PRINCIPAL
+          </p>
+        )}
 
-      {/* Divisor */}
-      {!collapsed && <div className="mx-4 mb-3 h-px bg-slate-100" />}
+        {/* Wrapper que controla o scroll + posicionamento do logout */}
+        <div className="mt-1 flex-1 flex flex-col overflow-hidden">
+          {/* Menus (scroll próprio) */}
+          <nav className="flex-1 overflow-y-auto overflow-x-hidden scroll-smooth scrollbar-thin scrollbar-thumb-[#bae6fd] scrollbar-track-transparent pb-4">
+            {/* LINKS PRINCIPAIS NO TOPO */}
+            {primaryLinks
+              .filter((item) => userLevel >= item.level)
+              .map(({ to, label, icon: Icon }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  onClick={onItemClick}
+                  className={({ isActive }) =>
+                    [
+                      "flex items-center gap-3 px-4 py-2 text-[13px] transition-colors",
+                      collapsedLocal ? "justify-center" : "justify-start",
+                      isActive
+                        ? "bg-[#e0f2ff] text-[#0369a1] font-medium"
+                        : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
+                    ].join(" ")
+                  }
+                >
+                  <Icon className="text-[18px] text-[#0369a1]" />
+                  {!collapsedLocal && <span className="truncate">{label}</span>}
+                </NavLink>
+              ))}
 
-      {/* Título MENU PRINCIPAL */}
-      {!collapsed && (
-        <p className="px-4 mb-2 text-[11px] font-semibold tracking-[0.18em] text-slate-400">
-          MENU PRINCIPAL
-        </p>
-      )}
+            {/* pequeno separador entre principais e colapsáveis */}
+            {!collapsedLocal && <div className="mx-4 my-3 h-px bg-slate-100" />}
 
-      {/* Wrapper que controla o scroll + posicionamento do logout */}
-      <div className="mt-1 flex-1 flex flex-col overflow-hidden">
-        {/* Menus (scroll próprio) */}
-        <nav className="flex-1 overflow-y-auto overflow-x-hidden scroll-smooth scrollbar-thin scrollbar-thumb-[#bae6fd] scrollbar-track-transparent pb-4">
-          {/* LINKS PRINCIPAIS NO TOPO */}
-          {primaryLinks
-            .filter((item) => userLevel >= item.level)
-            .map(({ to, label, icon: Icon }) => (
-              <NavLink
-                key={to}
-                to={to}
-                className={({ isActive }) =>
-                  [
-                    "flex items-center gap-3 px-4 py-2 text-[13px] transition-colors",
-                    collapsed ? "justify-center" : "justify-start",
-                    isActive
-                      ? "bg-[#e0f2ff] text-[#0369a1] font-medium"
-                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
-                  ].join(" ")
-                }
-              >
-                <Icon className="text-[18px] text-[#0369a1]" />
-                {!collapsed && <span className="truncate">{label}</span>}
-              </NavLink>
-            ))}
+            {/* MENUS COLAPSÁVEIS */}
+            {menuStructure
+              .filter((menu) => userLevel >= menu.level)
+              .map((menu) => {
+                const isOpen = openMenus.includes(menu.label);
+                const Icon = menu.icon;
+                return (
+                  <div key={menu.label} className="mb-1">
+                    <button
+                      onClick={() => toggleMenu(menu.label)}
+                      className={`
+                        flex items-center w-full px-4 py-2 gap-3 text-left
+                        text-[13px] font-medium
+                        text-slate-600 hover:bg-slate-50 hover:text-slate-900
+                        transition-colors
+                        ${collapsedLocal ? "justify-center" : "justify-between"}
+                      `}
+                    >
+                      <Icon className="text-[18px] text-[#64748b]" />
+                      {!collapsedLocal && (
+                        <div className="flex-1 flex items-center justify-between gap-2">
+                          <span className="whitespace-nowrap">{menu.label}</span>
+                          <FiChevronDown
+                            className={`text-[14px] text-slate-400 transition-transform ${
+                              isOpen ? "rotate-180" : ""
+                            }`}
+                          />
+                        </div>
+                      )}
+                    </button>
 
-          {/* pequeno separador entre principais e colapsáveis */}
-          {!collapsed && <div className="mx-4 my-3 h-px bg-slate-100" />}
+                    <AnimatePresence>
+                      {!collapsedLocal && isOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.15 }}
+                          className="mt-1 space-y-1"
+                        >
+                          {menu.items
+                            .filter((item) => userLevel >= item.level)
+                            .map(({ to, label }) => (
+                              <NavLink
+                                key={to}
+                                to={to}
+                                onClick={onItemClick}
+                                className={({ isActive }) =>
+                                  [
+                                    "flex items-center rounded-full mx-3 px-4 py-2 text-[13px] transition-colors",
+                                    isActive
+                                      ? "bg-[#e0f2ff] text-[#0369a1] font-medium"
+                                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
+                                  ].join(" ")
+                                }
+                              >
+                                <span className="truncate">{label}</span>
+                              </NavLink>
+                            ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                );
+              })}
+          </nav>
 
-          {/* MENUS COLAPSÁVEIS */}
-          {menuStructure
-            .filter((menu) => userLevel >= menu.level)
-            .map((menu) => {
-              const isOpen = openMenus.includes(menu.label);
-              const Icon = menu.icon;
-              return (
-                <div key={menu.label} className="mb-1">
-                  <button
-                    onClick={() => toggleMenu(menu.label)}
-                    className={`
-                      flex items-center w-full px-4 py-2 gap-3 text-left
-                      text-[13px] font-medium
-                      text-slate-600 hover:bg-slate-50 hover:text-slate-900
-                      transition-colors
-                      ${collapsed ? "justify-center" : "justify-between"}
-                    `}
-                  >
-                    <Icon className="text-[18px] text-[#64748b]" />
-                    {!collapsed && (
-                      <div className="flex-1 flex items-center justify-between gap-2">
-                        <span className="whitespace-nowrap">{menu.label}</span>
-                        <FiChevronDown
-                          className={`text-[14px] text-slate-400 transition-transform ${
-                            isOpen ? "rotate-180" : ""
-                          }`}
-                        />
-                      </div>
-                    )}
-                  </button>
-
-                  <AnimatePresence>
-                    {!collapsed && isOpen && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: 0.15 }}
-                        className="mt-1 space-y-1"
-                      >
-                        {menu.items
-                          .filter((item) => userLevel >= item.level)
-                          .map(({ to, label }) => (
-                            <NavLink
-                              key={to}
-                              to={to}
-                              className={({ isActive }) =>
-                                [
-                                  "flex items-center rounded-full mx-3 px-4 py-2 text-[13px] transition-colors",
-                                  isActive
-                                    ? "bg-[#e0f2ff] text-[#0369a1] font-medium"
-                                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
-                                ].join(" ")
-                              }
-                            >
-                              <span className="truncate">{label}</span>
-                            </NavLink>
-                          ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              );
-            })}
-        </nav>
-
-        {/* Logout sempre no rodapé da sidebar (altura da tela) */}
-        <div
-          className="mt-auto border-t border-slate-100 px-4 py-3 cursor-pointer hover:bg-slate-50 transition-colors bg-white"
-          onClick={handleLogout}
-        >
+          {/* Logout sempre no rodapé da sidebar (altura da tela) */}
           <div
-            className={`flex items-center gap-3 text-slate-500 hover:text-slate-800 ${
-              collapsed ? "justify-center" : ""
-            }`}
+            className="mt-auto border-t border-slate-100 px-4 py-3 cursor-pointer hover:bg-slate-50 transition-colors bg-white"
+            onClick={() => {
+              onItemClick?.();
+              handleLogout();
+            }}
           >
-            <FiLogOut className="text-[18px]" />
-            {!collapsed && <span className="text-sm font-medium">Sair</span>}
+            <div
+              className={`flex items-center gap-3 text-slate-500 hover:text-slate-800 ${
+                collapsedLocal ? "justify-center" : ""
+              }`}
+            >
+              <FiLogOut className="text-[18px]" />
+              {!collapsedLocal && <span className="text-sm font-medium">Sair</span>}
+            </div>
           </div>
         </div>
-      </div>
-    </aside>
+      </>
+    );
+  };
+
+  return (
+    <>
+      {/* ====== BOTÃO HAMBURGER (MOBILE) ====== */}
+      <button
+        className="
+          fixed top-3 left-3 z-40
+          flex items-center justify-center
+          h-9 w-9 rounded-full
+          bg-white shadow-md border border-slate-200
+          text-slate-700
+          md:hidden
+        "
+        onClick={() => setMobileOpen(true)}
+      >
+        <FiMenu className="text-[18px]" />
+      </button>
+
+      {/* ====== SIDEBAR MOBILE - DRAWER ====== */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <>
+            {/* overlay escuro */}
+            <motion.div
+              className="fixed inset-0 bg-black/30 z-40 md:hidden"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileOpen(false)}
+            />
+            {/* drawer */}
+            <motion.aside
+              className="
+                fixed inset-y-0 left-0 z-50
+                bg-white text-slate-800
+                flex flex-col shadow-lg
+                w-[260px]
+                md:hidden
+              "
+              initial={{ x: -260 }}
+              animate={{ x: 0 }}
+              exit={{ x: -260 }}
+              transition={{ type: "tween", duration: 0.2 }}
+            >
+              {/* FAIXA COM GRADIENTE NA BORDA DIREITA */}
+              <div
+                className="absolute top-0 right-0 h-full w-[2.5px] z-20 pointer-events-none"
+                style={{
+                  backgroundImage: `linear-gradient(to bottom, ${ORGKPI_BLUE_LIGHT}, ${ORGKPI_BLUE_DARK})`,
+                }}
+              />
+
+              {/* Cabeçalho mobile: logo + fechar */}
+              <div className="flex items-center justify-between px-4 pt-4 pb-3 relative z-10 bg-white">
+                <div className="flex items-center gap-2">
+                  <img
+                    src={orgkpiLogo}
+                    alt="OrgKPI"
+                    className="h-9 w-auto object-contain"
+                  />
+                  <span className="text-sm font-semibold text-slate-800" />
+                </div>
+
+                <button
+                  onClick={() => setMobileOpen(false)}
+                  className="ml-2 flex h-7 w-7 items-center justify-center rounded-full border text-xs
+                             border-[#dbeafe] text-[#64748b] hover:bg-[#eff6ff] hover:text-[#0f172a]
+                             transition-colors bg-white"
+                >
+                  <FiX className="text-[14px]" />
+                </button>
+              </div>
+
+              {renderMenuContent({
+                collapsedOverride: false,
+                onItemClick: () => setMobileOpen(false),
+              })}
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* ====== SIDEBAR DESKTOP ====== */}
+      <aside
+        className="
+          fixed inset-y-0 left-0
+          bg-white text-slate-800
+          flex flex-col shadow-md z-30
+          transition-[width] duration-200 ease-in-out
+          relative
+          hidden md:flex
+        "
+        style={{ width: sidebarWidth }}
+      >
+        {/* FAIXA COM GRADIENTE NA BORDA DIREITA */}
+        <div
+          className="absolute top-0 right-0 h-full w-[2.5px] z-20 pointer-events-none"
+          style={{
+            backgroundImage: `linear-gradient(to bottom, ${ORGKPI_BLUE_LIGHT}, ${ORGKPI_BLUE_DARK})`,
+          }}
+        />
+
+        {/* Cabeçalho: logo + botão de collapse */}
+        <div className="flex items-center justify-between px-4 pt-4 pb-3">
+          <div className="flex items-center gap-2">
+            <img
+              src={orgkpiLogo}
+              alt="OrgKPI"
+              className="h-9 w-auto object-contain"
+            />
+            {!collapsed && (
+              <span className="text-sm font-semibold text-slate-800" />
+            )}
+          </div>
+
+          <button
+            onClick={() => setCollapsed((prev) => !prev)}
+            className="ml-2 flex h-7 w-7 items-center justify-center rounded-full border text-xs
+                       border-[#dbeafe] text-[#64748b] hover:bg-[#eff6ff] hover:text-[#0f172a]
+                       transition-colors bg-white"
+          >
+            {collapsed ? (
+              <FiChevronRight className="text-[14px]" />
+            ) : (
+              <FiChevronLeft className="text-[14px]" />
+            )}
+          </button>
+        </div>
+
+        {renderMenuContent()}
+      </aside>
+    </>
   );
 }

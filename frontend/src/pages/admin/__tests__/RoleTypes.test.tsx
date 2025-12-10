@@ -46,6 +46,7 @@ describe("RoleTypePage", () => {
             name: "Operacional",
             departmentId: "dep1",
             department: { id: "dep1", name: "Operações" },
+            companyId: "company-1",
           },
         ],
         total: 1,
@@ -183,7 +184,8 @@ describe("RoleTypePage", () => {
     const dialog = await screen.findByRole("dialog");
 
     const nomeInputs = within(dialog).getAllByLabelText("Nome");
-    const modalNameInput = nomeInputs[nomeInputs.length - 1] as HTMLInputElement;
+    const modalNameInput =
+      nomeInputs[nomeInputs.length - 1] as HTMLInputElement;
     fireEvent.change(modalNameInput, {
       target: { value: "Coordenador" },
     });
@@ -226,7 +228,8 @@ describe("RoleTypePage", () => {
     const dialog = await screen.findByRole("dialog");
 
     const nomeInputs = within(dialog).getAllByLabelText("Nome");
-    const editNameInput = nomeInputs[nomeInputs.length - 1] as HTMLInputElement;
+    const editNameInput =
+      nomeInputs[nomeInputs.length - 1] as HTMLInputElement;
 
     expect(editNameInput.value).toBe("Operacional");
   });
@@ -241,7 +244,8 @@ describe("RoleTypePage", () => {
     const dialog = await screen.findByRole("dialog");
 
     const nomeInputs = within(dialog).getAllByLabelText("Nome");
-    const editNameInput = nomeInputs[nomeInputs.length - 1] as HTMLInputElement;
+    const editNameInput =
+      nomeInputs[nomeInputs.length - 1] as HTMLInputElement;
 
     fireEvent.change(editNameInput, {
       target: { value: "Operacional Editado" },
@@ -260,10 +264,14 @@ describe("RoleTypePage", () => {
     fireEvent.click(saveBtn);
 
     await waitFor(() => {
-      expect(mockRoleTypesHook.updateRoleType).toHaveBeenCalledWith("rt1", {
-        name: "Operacional Editado",
-        departmentId: "dep2",
-      });
+      expect(mockRoleTypesHook.updateRoleType).toHaveBeenCalledWith(
+        "company-1",
+        "rt1",
+        {
+          name: "Operacional Editado",
+          departmentId: "dep2",
+        }
+      );
     });
   });
 
@@ -279,7 +287,10 @@ describe("RoleTypePage", () => {
     fireEvent.click(deleteBtn);
 
     await waitFor(() => {
-      expect(mockRoleTypesHook.deleteRoleType).toHaveBeenCalledWith("rt1");
+      expect(mockRoleTypesHook.deleteRoleType).toHaveBeenCalledWith(
+        "company-1",
+        "rt1"
+      );
     });
 
     expect(mockRoleTypesHook.listRoleTypes).toHaveBeenCalled();
@@ -295,6 +306,7 @@ describe("RoleTypePage", () => {
         id: `rtX-${i}`,
         name: `Tipo ${i}`,
         departmentId: "dep1",
+        companyId: "company-1",
       })),
       total: 25, // garante pageCount >= 2
     });

@@ -42,11 +42,16 @@ describe('UserRolesController', () => {
   });
 
   it('GET findAll', async () => {
+    // simula req com user (como viria do guard)
+    const req: any = {
+      user: { level: 1 },
+    };
+
     service.findAll.mockResolvedValue([{ id: 'r1' }] as any);
 
-    const result = await controller.findAll();
+    const result = await controller.findAll(req);
 
-    expect(service.findAll).toHaveBeenCalled();
+    expect(service.findAll).toHaveBeenCalledWith(req.user);
     expect(result).toEqual([{ id: 'r1' }]);
   });
 

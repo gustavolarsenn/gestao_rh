@@ -3,8 +3,17 @@ import { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
 import { Typography, Paper, Box, TextField, Button } from "@mui/material";
 import { BaseModal } from "@/components/modals/BaseModal";
-import { useDepartments, Department } from "@/hooks/department/useDepartments";
-import { PRIMARY_COLOR, PRIMARY_LIGHT, PRIMARY_LIGHT_BG, SECTION_BORDER_COLOR, primaryButtonSx } from '@/utils/utils';
+import {
+  useDepartments,
+  Department,
+} from "@/hooks/department/useDepartments";
+import {
+  PRIMARY_COLOR,
+  PRIMARY_LIGHT,
+  PRIMARY_LIGHT_BG,
+  SECTION_BORDER_COLOR,
+  primaryButtonSx,
+} from "@/utils/utils";
 
 export default function DepartmentPage() {
   const {
@@ -80,7 +89,7 @@ export default function DepartmentPage() {
   const handleSave = async () => {
     if (!selectedDept) return;
 
-    await updateDepartment(selectedDept.id, { name: editName });
+    await updateDepartment(selectedDept.companyId,selectedDept.id, { name: editName });
     setEditModalOpen(false);
     loadDepartments();
   };
@@ -88,21 +97,27 @@ export default function DepartmentPage() {
   const handleDelete = async () => {
     if (!selectedDept) return;
 
-    await deleteDepartment(selectedDept.id);
+    await deleteDepartment(selectedDept.companyId, selectedDept.id);
     setEditModalOpen(false);
     loadDepartments();
   };
 
   return (
-    <div className="flex min-h-screen bg-[#f7f7f9]">
+    // responsividade igual à página de Filiais
+    <div className="flex flex-col md:flex-row min-h-screen bg-[#f7f7f9]">
       <Sidebar />
 
-      <main className="flex-1 p-8">
+      <main className="flex-1 p-4 md:p-8 w-full">
         <Typography
           variant="h4"
           fontWeight={700}
           color="#1e293b"
-          sx={{ mb: 4 }}
+          align="center"
+          sx={{
+            mb: 4,
+            mt: { xs: 2, md: 0 },
+            fontSize: { xs: "1.5rem", md: "2.125rem" },
+          }}
         >
           Departamentos
         </Typography>
@@ -112,7 +127,7 @@ export default function DepartmentPage() {
           elevation={0}
           sx={{
             width: "100%",
-            p: 4,
+            p: { xs: 2, md: 4 },
             mb: 4,
             borderRadius: 3,
             backgroundColor: "#ffffff",
@@ -120,11 +135,24 @@ export default function DepartmentPage() {
             border: `1px solid ${SECTION_BORDER_COLOR}`,
           }}
         >
-          <Typography variant="h6" fontWeight={600} mb={3}>
+          <Typography
+            variant="h6"
+            fontWeight={600}
+            mb={3}
+            sx={{ fontSize: { xs: "1rem", md: "1.25rem" } }}
+          >
             Filtros
           </Typography>
 
-          <Box display="flex" gap={3} alignItems="flex-end">
+          <Box
+            display="flex"
+            gap={2}
+            flexWrap="wrap"
+            sx={{
+              flexDirection: { xs: "column", md: "row" },
+              alignItems: { xs: "stretch", md: "flex-end" },
+            }}
+          >
             <TextField
               label="Nome"
               size="small"
@@ -133,109 +161,134 @@ export default function DepartmentPage() {
                 setFilterName(e.target.value);
                 setPage(1);
               }}
-              sx={{ flex: "1 1 200px" }}
+              fullWidth
+              sx={{
+                flex: { md: "1 1 200px" },
+              }}
               inputProps={{ "data-testid": "filter-name-input" }}
             />
 
-            <Button
-              size="large"
-              variant="outlined"
-              onClick={() => {
-                setFilterName("");
-                setPage(1);
-              }}
+            {/* Botões */}
+            <Box
               sx={{
-                px: 4,
-                borderColor: PRIMARY_COLOR,
-                color: PRIMARY_COLOR,
-                textTransform: "none",
-                fontWeight: 600,
-                "&:hover": {
+                display: "flex",
+                flexDirection: { xs: "column-reverse", md: "row" },
+                gap: 1.5,
+                width: { xs: "100%", md: "auto" },
+                mt: { xs: 1, md: 0 },
+                ml: { md: "auto" },
+              }}
+            >
+              <Button
+                size="large"
+                variant="outlined"
+                onClick={() => {
+                  setFilterName("");
+                  setPage(1);
+                }}
+                sx={{
+                  px: 4,
                   borderColor: PRIMARY_COLOR,
-                  backgroundColor: PRIMARY_LIGHT_BG,
-                },
-              }}
-              data-testid="clear-filter-btn"
-            >
-              Limpar
-            </Button>
+                  color: PRIMARY_COLOR,
+                  textTransform: "none",
+                  fontWeight: 600,
+                  width: { xs: "100%", md: "auto" },
+                  "&:hover": {
+                    borderColor: PRIMARY_COLOR,
+                    backgroundColor: PRIMARY_LIGHT_BG,
+                  },
+                }}
+                data-testid="clear-filter-btn"
+              >
+                Limpar
+              </Button>
 
-            <Button
-              size="large"
-              onClick={() => setCreateModalOpen(true)}
-              sx={{
-                px: 4,
-                ml: "auto",
-                backgroundColor: PRIMARY_COLOR,
-                color: "white",
-                textTransform: "none",
-                fontWeight: 600,
-                "&:hover": {
-                  backgroundColor: PRIMARY_LIGHT,
-                },
-              }}
-              data-testid="open-create-modal-btn"
-            >
-              Criar Departamento
-            </Button>
+              <Button
+                size="large"
+                onClick={() => setCreateModalOpen(true)}
+                sx={{
+                  px: 4,
+                  backgroundColor: PRIMARY_COLOR,
+                  color: "white",
+                  textTransform: "none",
+                  fontWeight: 600,
+                  width: { xs: "100%", md: "auto" },
+                  "&:hover": {
+                    backgroundColor: PRIMARY_LIGHT,
+                  },
+                }}
+                data-testid="open-create-modal-btn"
+              >
+                Criar Departamento
+              </Button>
+            </Box>
           </Box>
         </Paper>
 
         {/* TABELA */}
         <Paper
           sx={{
-            p: 4,
+            p: { xs: 2, md: 4 },
             borderRadius: 3,
             boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
             border: `1px solid ${SECTION_BORDER_COLOR}`,
           }}
         >
-          <table className="w-full text-sm border-collapse">
-            <thead>
-              <tr className="bg-gray-50">
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">
-                  Nome
-                </th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {loadingTable && (
-                <tr data-testid="loading-row">
-                  <td colSpan={1} className="py-6 text-center text-gray-500">
-                    Carregando...
-                  </td>
+          <Box sx={{ width: "100%", overflowX: "auto" }}>
+            <table className="min-w-full text-sm border-collapse">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="text-left px-4 py-3 font-semibold text-gray-700">
+                    Nome
+                  </th>
                 </tr>
-              )}
+              </thead>
 
-              {!loadingTable && departments.length === 0 && (
-                <tr data-testid="empty-row">
-                  <td colSpan={1} className="py-6 text-center text-gray-500">
-                    Nenhum departamento encontrado.
-                  </td>
-                </tr>
-              )}
-
-              {!loadingTable &&
-                departments.map((d) => (
-                  <tr
-                    key={d.id}
-                    className="border-b hover:bg-gray-100 cursor-pointer transition"
-                    onClick={() => openEditModal(d)}
-                    data-testid="department-row"
-                  >
-                    <td className="px-4 py-3">{d.name}</td>
+              <tbody>
+                {loadingTable && (
+                  <tr data-testid="loading-row">
+                    <td
+                      colSpan={1}
+                      className="py-6 text-center text-gray-500"
+                    >
+                      Carregando...
+                    </td>
                   </tr>
-                ))}
-            </tbody>
-          </table>
+                )}
+
+                {!loadingTable && departments.length === 0 && (
+                  <tr data-testid="empty-row">
+                    <td
+                      colSpan={1}
+                      className="py-6 text-center text-gray-500"
+                    >
+                      Nenhum departamento encontrado.
+                    </td>
+                  </tr>
+                )}
+
+                {!loadingTable &&
+                  departments.map((d) => (
+                    <tr
+                      key={d.id}
+                      className="border-b hover:bg-gray-100 cursor-pointer transition"
+                      onClick={() => openEditModal(d)}
+                      data-testid="department-row"
+                    >
+                      <td className="px-4 py-3">{d.name}</td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </Box>
 
           {/* PAGINATION */}
           <Box
             display="flex"
             justifyContent="space-between"
-            alignItems="center"
+            alignItems={{ xs: "flex-start", sm: "center" }}
             mt={3}
+            sx={{ flexDirection: { xs: "column", sm: "row" }, gap: 1.5 }}
           >
             <Typography variant="body2">
               Página {page} de {pageCount || 1}
@@ -290,7 +343,7 @@ export default function DepartmentPage() {
         description="Preencha os dados para cadastrar."
         data-testid="create-department-modal"
         footer={
-          <div className="flex justify-end gap-2">
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 w-full">
             <Button
               variant="outlined"
               onClick={() => setCreateModalOpen(false)}
@@ -300,6 +353,7 @@ export default function DepartmentPage() {
                 color: PRIMARY_COLOR,
                 textTransform: "none",
                 fontWeight: 600,
+                width: { xs: "100%", sm: "auto" },
                 "&:hover": {
                   borderColor: PRIMARY_COLOR,
                   backgroundColor: PRIMARY_LIGHT_BG,
@@ -310,7 +364,10 @@ export default function DepartmentPage() {
             </Button>
             <Button
               onClick={handleCreate}
-              sx={primaryButtonSx}
+              sx={{
+                ...primaryButtonSx,
+                width: { xs: "100%", sm: "auto" },
+              }}
               data-testid="save-create-btn"
             >
               Criar
@@ -337,11 +394,12 @@ export default function DepartmentPage() {
         description="Atualize ou remova."
         data-testid="edit-department-modal"
         footer={
-          <div className="flex justify-between w-full">
+          <div className="flex flex-col sm:flex-row justify-between w-full gap-2">
             <Button
               color="error"
               variant="outlined"
               onClick={handleDelete}
+              sx={{ width: { xs: "100%", sm: "auto" } }}
             >
               Excluir
             </Button>
@@ -350,6 +408,7 @@ export default function DepartmentPage() {
               sx={{
                 backgroundColor: PRIMARY_COLOR,
                 color: "white",
+                width: { xs: "100%", sm: "auto" },
                 "&:hover": {
                   backgroundColor: PRIMARY_LIGHT,
                 },

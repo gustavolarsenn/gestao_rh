@@ -38,7 +38,9 @@ export class TeamKpiEvolutionsService {
 
     const team = await this.teamRepo.findOne({ where: { id: user.teamId, companyId: user.companyId } });
     const allChildTeams = await this.teamsService.findLowerTeamsRecursive(user.companyId, team!);
-    where.teamId = In([...allChildTeams.map(t => t.id), user.teamId]);
+    if (user.level <= 2) {
+      where.teamId = In([...allChildTeams.map(t => t.id), user.teamId]);
+    }
 
     if (query?.status) where.status = query.status;
 

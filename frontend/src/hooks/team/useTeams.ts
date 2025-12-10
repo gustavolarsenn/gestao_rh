@@ -6,6 +6,7 @@ export type Team = {
   id: string;
   name: string;
   description?: string;
+  companyId?: string;
 };
 
 export function useTeams() {
@@ -37,12 +38,12 @@ export function useTeams() {
     }
   }
 
-  async function updateTeam(id: string, payload: Partial<Team>) {
+  async function updateTeam(companyId: string, id: string, payload: Partial<Team>) {
     const { data } = await api.patch(`/teams/${id}?companyId=${companyId}`, payload);
     return data;
   }
 
-  async function deleteTeam(id: string) {
+  async function deleteTeam(companyId: string, id: string) {
     await api.delete(`/teams/${id}?companyId=${companyId}`);
   }
 

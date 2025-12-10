@@ -39,14 +39,14 @@ describe("DepartmentPage", () => {
   beforeEach(() => {
     mockHook = makeMockDepartments({
       listDepartments: vi.fn().mockResolvedValue({
-        data: [{ id: "1", name: "Operações" }],
+        data: [{ id: "1", name: "Operações", companyId: "123" }],
         total: 1,
       }),
     });
 
     (useDepartments as any).mockReturnValue(mockHook);
 
-    // companyId usado no create
+    // companyId usado no create e também existe no objeto do departamento
     vi.spyOn(Storage.prototype, "getItem").mockReturnValue("123");
   });
 
@@ -148,9 +148,7 @@ describe("DepartmentPage", () => {
     const row = await screen.findByTestId("department-row");
     fireEvent.click(row);
 
-    const editInput = await screen.findByTestId(
-      "department-edit-name-input"
-    );
+    const editInput = await screen.findByTestId("department-edit-name-input");
     expect(editInput).toBeInTheDocument();
     expect(editInput).toHaveValue("Operações");
   });
@@ -170,9 +168,11 @@ describe("DepartmentPage", () => {
     fireEvent.click(screen.getByTestId("save-edit-btn"));
 
     await waitFor(() => {
-      expect(mockHook.updateDepartment).toHaveBeenCalledWith("1", {
-        name: "Operações Atualizado",
-      });
+      expect(mockHook.updateDepartment).toHaveBeenCalledWith(
+        "123",
+        "1",
+        { name: "Operações Atualizado" }
+      );
     });
 
     expect(mockHook.listDepartments).toHaveBeenCalled();
@@ -189,7 +189,7 @@ describe("DepartmentPage", () => {
     fireEvent.click(screen.getByText("Excluir"));
 
     await waitFor(() => {
-      expect(mockHook.deleteDepartment).toHaveBeenCalledWith("1");
+      expect(mockHook.deleteDepartment).toHaveBeenCalledWith("123", "1");
     });
 
     expect(mockHook.listDepartments).toHaveBeenCalled();
@@ -201,7 +201,7 @@ describe("DepartmentPage", () => {
   it("avança para a próxima página", async () => {
     // primeira chamada: total 30 para habilitar botão "Próxima"
     mockHook.listDepartments.mockResolvedValueOnce({
-      data: Array(10).fill({ id: "x", name: "Teste" }),
+      data: Array(10).fill({ id: "x", name: "Teste", companyId: "123" }),
       total: 30,
     });
 
@@ -245,7 +245,7 @@ describe("DepartmentPage", () => {
           setTimeout(
             () =>
               resolve({
-                data: [{ id: "1", name: "Op" }],
+                data: [{ id: "1", name: "Op", companyId: "123" }],
                 total: 1,
               }),
             200

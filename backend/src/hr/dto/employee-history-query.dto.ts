@@ -8,4 +8,7 @@ export class EmployeeHistoryQueryDto {
   @IsOptional()
   @IsNumberString()
   limit?: string;
+
+  @IsOptional()
+  employeeId?: string;
 }

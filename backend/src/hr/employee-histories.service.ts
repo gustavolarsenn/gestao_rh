@@ -21,7 +21,7 @@ export class EmployeeHistoriesService {
   async findAll(user: any, query: EmployeeHistoryQueryDto) {
     const where = applyScope(user, {}, { company: true, team: false, employee: false, department: false });
     
-
+    where['employeeId'] = query.employeeId;
     const page = Math.max(1, Number(query.page ?? 1));
     const limit = Math.max(1, Number(query.limit ?? 10));
     const skip = (page - 1) * limit;

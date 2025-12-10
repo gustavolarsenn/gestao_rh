@@ -17,7 +17,13 @@ import { BaseModal } from "@/components/modals/BaseModal";
 import { useTeams, Team } from "@/hooks/team/useTeams";
 import { useTeamMembers, TeamMember } from "@/hooks/team-member/useTeamMembers";
 import { format } from "date-fns";
-import { PRIMARY_COLOR, PRIMARY_LIGHT, PRIMARY_LIGHT_BG, SECTION_BORDER_COLOR, primaryButtonSx } from '@/utils/utils';
+import {
+  PRIMARY_COLOR,
+  PRIMARY_LIGHT,
+  PRIMARY_LIGHT_BG,
+  SECTION_BORDER_COLOR,
+  primaryButtonSx,
+} from "@/utils/utils";
 
 export default function TeamsPage() {
   const {
@@ -42,7 +48,9 @@ export default function TeamsPage() {
   const [allTeamsOptions, setAllTeamsOptions] = useState<Team[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [filteredMembers, setFilteredMembers] = useState<TeamMember[]>([]);
-  const [filterStatus, setFilterStatus] = useState<"ativos" | "inativos" | "todos">("ativos");
+  const [filterStatus, setFilterStatus] = useState<
+    "ativos" | "inativos" | "todos"
+  >("ativos");
 
   // pagination (backend)
   const [page, setPage] = useState(1);
@@ -84,6 +92,7 @@ export default function TeamsPage() {
       setTeamMembers(members || []);
     }
     loadStatic();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ======================================================
@@ -121,9 +130,13 @@ export default function TeamsPage() {
     let filtered = members;
 
     if (filterStatus === "ativos") {
-      filtered = members.filter((m) => !m.endDate || new Date(m.endDate) > now);
+      filtered = members.filter(
+        (m) => !m.endDate || new Date(m.endDate) > now
+      );
     } else if (filterStatus === "inativos") {
-      filtered = members.filter((m) => m.endDate && new Date(m.endDate) <= now);
+      filtered = members.filter(
+        (m) => m.endDate && new Date(m.endDate) <= now
+      );
     }
 
     setFilteredMembers(filtered);
@@ -179,13 +192,15 @@ export default function TeamsPage() {
   // ======================================================
   const handleSave = async () => {
     if (!selectedTeam) return;
-    const updated = await updateTeam(selectedTeam.id, {
+    const updated = await updateTeam(selectedTeam.companyId!, selectedTeam.id, {
       name: editName,
       description: editDescription,
       parentTeamId: editParentTeamId || null,
     });
 
-    setTeams((prev) => prev.map((t) => (t.id === selectedTeam.id ? updated : t)));
+    setTeams((prev) =>
+      prev.map((t) => (t.id === selectedTeam.id ? updated : t))
+    );
 
     setAllTeamsOptions((prev) => {
       const exists = prev.some((t) => t.id === updated.id);
@@ -201,7 +216,7 @@ export default function TeamsPage() {
   // ======================================================
   const handleDelete = async () => {
     if (!selectedTeam) return;
-    await deleteTeam(selectedTeam.id);
+    await deleteTeam(selectedTeam.companyId!, selectedTeam.id);
     setTeams((prev) => prev.filter((t) => t.id !== selectedTeam.id));
     setEditModalOpen(false);
     loadTeams();
@@ -214,7 +229,8 @@ export default function TeamsPage() {
     if (!member) return;
     try {
       await updateTeamMember(member.id, { isLeader: true });
-      const updatedMembers = await listTeamMembers(selectedTeam?.id);
+
+      const updatedMembers = await listTeamMembers();
       setTeamMembers(updatedMembers || []);
     } catch (err) {
       console.error("Erro ao definir líder:", err);
@@ -231,23 +247,41 @@ export default function TeamsPage() {
   // UI
   // ======================================================
   return (
-    <div className="flex min-h-screen bg-[#f7f7f9]">
+    <div className="flex flex-col md:flex-row min-h-screen bg-[#f7f7f9]">
       <Sidebar />
 
-      <main className="flex-1 p-8">
+      <main className="flex-1 p-4 md:p-8 w-full">
         {/* TITLE */}
-        <Typography variant="h4" fontWeight={700} color="#1e293b" sx={{ mb: 4 }}>
+        <Typography
+          variant="h4"
+          fontWeight={700}
+          color="#1e293b"
+          align="center"
+          sx={{
+            mb: 4,
+            mt: { xs: 2, md: 0 },
+            fontSize: { xs: "1.5rem", md: "2.125rem" },
+          }}
+        >
           Times
         </Typography>
 
         {message && (
-          <Typography variant="body2" sx={{ mb: 2 }} color="success.main">
+          <Typography
+            variant="body2"
+            sx={{ mb: 2, textAlign: "center" }}
+            color="success.main"
+          >
             {message}
           </Typography>
         )}
 
         {error && (
-          <Typography variant="body2" sx={{ mb: 2 }} color="error.main">
+          <Typography
+            variant="body2"
+            sx={{ mb: 2, textAlign: "center" }}
+            color="error.main"
+          >
             {error}
           </Typography>
         )}
@@ -256,7 +290,7 @@ export default function TeamsPage() {
         <Paper
           sx={{
             width: "100%",
-            p: 4,
+            p: { xs: 2, md: 4 },
             mb: 4,
             borderRadius: 3,
             backgroundColor: "#ffffff",
@@ -264,23 +298,41 @@ export default function TeamsPage() {
             border: `1px solid ${SECTION_BORDER_COLOR}`,
           }}
         >
-          <Typography variant="h6" fontWeight={600} mb={3}>
+          <Typography
+            variant="h6"
+            fontWeight={600}
+            mb={3}
+            sx={{ fontSize: { xs: "1rem", md: "1.25rem" } }}
+          >
             Filtros
           </Typography>
 
-          <Box display="flex" gap={3} flexWrap="wrap" alignItems="flex-end">
+          <Box
+            display="flex"
+            gap={2}
+            flexWrap="wrap"
+            sx={{
+              flexDirection: { xs: "column", md: "row" },
+              alignItems: { xs: "stretch", md: "flex-end" },
+            }}
+          >
             <TextField
               size="small"
+              fullWidth
               label="Nome"
               value={filterName}
               onChange={(e) => {
                 setFilterName(e.target.value);
                 setPage(1);
               }}
-              sx={{ flex: "1 1 200px" }}
+              sx={{ flex: { md: "1 1 200px" } }}
             />
 
-            <FormControl size="small" sx={{ flex: "1 1 200px" }}>
+            <FormControl
+              size="small"
+              fullWidth
+              sx={{ flex: { md: "1 1 200px" } }}
+            >
               <InputLabel>Time Pai</InputLabel>
               <Select
                 label="Time Pai"
@@ -299,112 +351,129 @@ export default function TeamsPage() {
               </Select>
             </FormControl>
 
-            <Button
-              size="large"
-              variant="outlined"
+            <Box
               sx={{
-                px: 4,
-                borderColor: PRIMARY_COLOR,
-                color: PRIMARY_COLOR,
-                textTransform: "none",
-                fontWeight: 600,
-                "&:hover": {
+                display: "flex",
+                flexDirection: { xs: "column-reverse", md: "row" },
+                gap: 1.5,
+                width: { xs: "100%", md: "auto" },
+                mt: { xs: 1, md: 0 },
+                ml: { md: "auto" },
+              }}
+            >
+              <Button
+                size="large"
+                variant="outlined"
+                sx={{
+                  px: 4,
                   borderColor: PRIMARY_COLOR,
-                  backgroundColor: PRIMARY_LIGHT_BG,
-                },
-              }}
-              onClick={() => {
-                setFilterName("");
-                setFilterParentTeamId("");
-                setPage(1);
-              }}
-            >
-              Limpar
-            </Button>
+                  color: PRIMARY_COLOR,
+                  textTransform: "none",
+                  fontWeight: 600,
+                  width: { xs: "100%", md: "auto" },
+                  "&:hover": {
+                    borderColor: PRIMARY_COLOR,
+                    backgroundColor: PRIMARY_LIGHT_BG,
+                  },
+                }}
+                onClick={() => {
+                  setFilterName("");
+                  setFilterParentTeamId("");
+                  setPage(1);
+                }}
+              >
+                Limpar
+              </Button>
 
-            <Button
-              size="large"
-              sx={{
-                px: 4,
-                ml: "auto",
-                backgroundColor: PRIMARY_COLOR,
-                color: "white",
-                textTransform: "none",
-                fontWeight: 600,
-                "&:hover": {
-                  backgroundColor: PRIMARY_LIGHT,
-                },
-              }}
-              onClick={() => setCreateModalOpen(true)}
-            >
-              Criar Time
-            </Button>
+              <Button
+                size="large"
+                sx={{
+                  px: 4,
+                  backgroundColor: PRIMARY_COLOR,
+                  color: "white",
+                  textTransform: "none",
+                  fontWeight: 600,
+                  width: { xs: "100%", md: "auto" },
+                  "&:hover": {
+                    backgroundColor: PRIMARY_LIGHT,
+                  },
+                }}
+                onClick={() => setCreateModalOpen(true)}
+              >
+                Criar Time
+              </Button>
+            </Box>
           </Box>
         </Paper>
 
         {/* TABLE */}
         <Paper
           sx={{
-            p: 4,
+            p: { xs: 2, md: 4 },
             borderRadius: 3,
             boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
             border: `1px solid ${SECTION_BORDER_COLOR}`,
           }}
         >
-          <table className="w-full text-sm border-collapse">
-            <thead>
-              <tr className="bg-gray-50">
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">
-                  Nome
-                </th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">
-                  Descrição
-                </th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">
-                  Time Pai
-                </th>
-              </tr>
-            </thead>
+          <Box sx={{ width: "100%", overflowX: "auto" }}>
+            <table className="min-w-full text-sm border-collapse">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="text-left px-3 md:px-4 py-2 md:py-3 font-semibold text-gray-700">
+                    Nome
+                  </th>
+                  <th className="text-left px-3 md:px-4 py-2 md:py-3 font-semibold text-gray-700">
+                    Descrição
+                  </th>
+                  <th className="text-left px-3 md:px-4 py-2 md:py-3 font-semibold text-gray-700">
+                    Time Pai
+                  </th>
+                </tr>
+              </thead>
 
-            <tbody>
-              {loadingTable ? (
-                <tr>
-                  <td colSpan={3} className="py-6 text-center text-gray-500">
-                    Carregando...
-                  </td>
-                </tr>
-              ) : teams.length === 0 ? (
-                <tr>
-                  <td colSpan={3} className="py-6 text-center text-gray-500">
-                    Nenhum time encontrado.
-                  </td>
-                </tr>
-              ) : (
-                teams.map((team) => (
-                  <tr
-                    key={team.id}
-                    className="border-b hover:bg-gray-100 cursor-pointer transition"
-                    onClick={() => openEditModal(team)}
-                  >
-                    <td className="px-4 py-3">{team.name}</td>
-                    <td className="px-4 py-3 text-slate-700">
-                      {team.description || "—"}
-                    </td>
-                    <td className="px-4 py-3 text-slate-700">
-                      {getParentTeamName(team.parentTeamId)}
+              <tbody>
+                {loadingTable ? (
+                  <tr>
+                    <td colSpan={3} className="py-6 text-center text-gray-500">
+                      Carregando...
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : teams.length === 0 ? (
+                  <tr>
+                    <td colSpan={3} className="py-6 text-center text-gray-500">
+                      Nenhum time encontrado.
+                    </td>
+                  </tr>
+                ) : (
+                  teams.map((team) => (
+                    <tr
+                      key={team.id}
+                      className="border-b hover:bg-gray-100 cursor-pointer transition"
+                      onClick={() => openEditModal(team)}
+                    >
+                      <td className="px-3 md:px-4 py-2 md:py-3">
+                        {team.name}
+                      </td>
+                      <td className="px-3 md:px-4 py-2 md:py-3 text-slate-700">
+                        {team.description || "—"}
+                      </td>
+                      <td className="px-3 md:px-4 py-2 md:py-3 text-slate-700">
+                        {getParentTeamName(team.parentTeamId)}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </Box>
 
           {/* PAGINATION */}
           <Box
             display="flex"
             justifyContent="space-between"
-            alignItems="center"
+            alignItems={{ xs: "flex-start", sm: "center" }}
             mt={3}
+            sx={{ flexDirection: { xs: "column", sm: "row" }, gap: 1.5 }}
           >
             <Typography variant="body2">
               Página {page} de {pageCount}
@@ -454,7 +523,7 @@ export default function TeamsPage() {
           title="Criar Time"
           description="Preencha os dados."
           footer={
-            <div className="flex justify-end gap-2">
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 w-full">
               <Button
                 variant="outlined"
                 onClick={() => setCreateModalOpen(false)}
@@ -464,6 +533,7 @@ export default function TeamsPage() {
                   color: PRIMARY_COLOR,
                   textTransform: "none",
                   fontWeight: 600,
+                  width: { xs: "100%", sm: "auto" },
                   "&:hover": {
                     borderColor: PRIMARY_COLOR,
                     backgroundColor: PRIMARY_LIGHT_BG,
@@ -473,7 +543,7 @@ export default function TeamsPage() {
                 Cancelar
               </Button>
               <Button
-                sx={primaryButtonSx}
+                sx={{ ...primaryButtonSx, width: { xs: "100%", sm: "auto" } }}
                 onClick={handleCreate}
                 disabled={!name}
               >
@@ -524,11 +594,12 @@ export default function TeamsPage() {
           title="Editar Time"
           description="Atualize informações ou veja os membros vinculados."
           footer={
-            <div className="flex justify-between w-full">
+            <div className="flex flex-col sm:flex-row justify-between w-full gap-2">
               <Button
                 variant="outlined"
                 color="error"
                 onClick={handleDelete}
+                sx={{ width: { xs: "100%", sm: "auto" } }}
               >
                 Excluir
               </Button>
@@ -536,14 +607,15 @@ export default function TeamsPage() {
                 sx={{
                   backgroundColor: PRIMARY_COLOR,
                   color: "white",
+                  width: { xs: "100%", sm: "auto" },
                   "&:hover": {
                     backgroundColor: PRIMARY_LIGHT,
                   },
                 }}
                 onClick={handleSave}
-                disabled={!editName}
+                disabled={!editName || loading}
               >
-                Salvar
+                {loading ? "Salvando..." : "Salvar"}
               </Button>
             </div>
           }
@@ -589,6 +661,8 @@ export default function TeamsPage() {
               justifyContent="space-between"
               alignItems="center"
               mt={2}
+              flexDirection={{ xs: "column", sm: "row" }}
+              gap={1.5}
             >
               <Typography variant="subtitle2" fontWeight={600}>
                 Membros do Time
@@ -600,7 +674,9 @@ export default function TeamsPage() {
                   label="Status"
                   value={filterStatus}
                   onChange={(e) =>
-                    setFilterStatus(e.target.value as "ativos" | "inativos" | "todos")
+                    setFilterStatus(
+                      e.target.value as "ativos" | "inativos" | "todos"
+                    )
                   }
                 >
                   <MenuItem value="ativos">Ativos</MenuItem>
@@ -610,69 +686,77 @@ export default function TeamsPage() {
               </FormControl>
             </Box>
 
-            {filteredMembers.length === 0 ? (
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                Nenhum membro encontrado.
-              </Typography>
-            ) : (
-              <table className="w-full border-collapse text-sm mt-2">
-                <thead>
-                  <tr className="border-b text-left">
-                    <th className="py-2 px-2">Nome</th>
-                    <th className="py-2 px-2">Entrada</th>
-                    <th className="py-2 px-2">Saída</th>
-                    <th className="py-2 px-2 text-center">Líder</th>
-                    <th className="py-2 px-2 text-center">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredMembers.map((m) => (
-                    <tr key={m.id} className="border-b">
-                      <td className="py-2 px-2">
-                        {m.employee?.person?.name || "—"}
-                      </td>
-                      <td className="py-2 px-2">
-                        {m.startDate
-                          ? format(new Date(m.startDate), "dd/MM/yyyy")
-                          : "—"}
-                      </td>
-                      <td className="py-2 px-2">
-                        {m.endDate
-                          ? format(new Date(m.endDate), "dd/MM/yyyy")
-                          : "—"}
-                      </td>
-                      <td className="py-2 px-2 text-center">
-                        {m.isLeader ? (
-                          <span className="text-emerald-600 font-semibold">Sim</span>
-                        ) : (
-                          "Não"
-                        )}
-                      </td>
-                      <td className="py-2 px-2 text-center">
-                        {!m.isLeader && (
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            sx={{
-                              textTransform: "none",
-                              borderColor: PRIMARY_COLOR,
-                              color: PRIMARY_COLOR,
-                              "&:hover": {
-                                borderColor: PRIMARY_COLOR,
-                                backgroundColor: PRIMARY_LIGHT_BG,
-                              },
-                            }}
-                            onClick={() => handleMakeLeader(m)}
-                          >
-                            Tornar Líder
-                          </Button>
-                        )}
-                      </td>
+            <Box sx={{ width: "100%", overflowX: "auto" }}>
+              {filteredMembers.length === 0 ? (
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ mt: 1 }}
+                >
+                  Nenhum membro encontrado.
+                </Typography>
+              ) : (
+                <table className="min-w-full border-collapse text-sm mt-2">
+                  <thead>
+                    <tr className="border-b text-left">
+                      <th className="py-2 px-2">Nome</th>
+                      <th className="py-2 px-2">Entrada</th>
+                      <th className="py-2 px-2">Saída</th>
+                      <th className="py-2 px-2 text-center">Líder</th>
+                      <th className="py-2 px-2 text-center">Ações</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+                  </thead>
+                  <tbody>
+                    {filteredMembers.map((m) => (
+                      <tr key={m.id} className="border-b">
+                        <td className="py-2 px-2">
+                          {m.employee?.person?.name || "—"}
+                        </td>
+                        <td className="py-2 px-2">
+                          {m.startDate
+                            ? format(new Date(m.startDate), "dd/MM/yyyy")
+                            : "—"}
+                        </td>
+                        <td className="py-2 px-2">
+                          {m.endDate
+                            ? format(new Date(m.endDate), "dd/MM/yyyy")
+                            : "—"}
+                        </td>
+                        <td className="py-2 px-2 text-center">
+                          {m.isLeader ? (
+                            <span className="text-emerald-600 font-semibold">
+                              Sim
+                            </span>
+                          ) : (
+                            "Não"
+                          )}
+                        </td>
+                        <td className="py-2 px-2 text-center">
+                          {!m.isLeader && (
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              sx={{
+                                textTransform: "none",
+                                borderColor: PRIMARY_COLOR,
+                                color: PRIMARY_COLOR,
+                                "&:hover": {
+                                  borderColor: PRIMARY_COLOR,
+                                  backgroundColor: PRIMARY_LIGHT_BG,
+                                },
+                              }}
+                              onClick={() => handleMakeLeader(m)}
+                            >
+                              Tornar Líder
+                            </Button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </Box>
           </div>
         </BaseModal>
       </main>

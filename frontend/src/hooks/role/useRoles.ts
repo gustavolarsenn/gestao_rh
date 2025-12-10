@@ -8,6 +8,7 @@ export type Role = {
   defaultWage: number;
   departmentId: string;
   roleTypeId: string;
+  companyId?: string;
   department?: { id: string; name: string };
   roleType?: { id: string; name: string };
 };
@@ -41,12 +42,12 @@ export function useRoles() {
     }
   }
 
-  async function updateRole(id: string, payload: Partial<Role>) {
+  async function updateRole(companyId: string, id: string, payload: Partial<Role>) {
     const { data } = await api.patch(`/roles/${id}?companyId=${companyId}`, payload);
     return data;
   }
 
-  async function deleteRole(id: string) {
+  async function deleteRole(companyId: string, id: string) {
     await api.delete(`/roles/${id}?companyId=${companyId}`);
   }
 

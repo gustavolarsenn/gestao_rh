@@ -7,6 +7,7 @@ import { UpdateTeamMemberDto } from './dto/update-team-member.dto';
 import { applyScope } from '../common/utils/scoped-query.util';
 import { Team } from './entities/team.entity';
 import { TeamsService } from './teams.service';
+import { use } from 'passport';
 
 export type TeamMemberFilters = {
   teamId?: string;
@@ -51,7 +52,9 @@ export class TeamMembersService {
     const team = await this.teamRepo.findOne({ where: { id: user.teamId, companyId: user.companyId } });
     const allChildTeams = await this.teamsService.findLowerTeamsRecursive(user.companyId, team!);
 
-    where.teamId = In([...allChildTeams.map(t => t.id), user.teamId]);
+    if (user.level <= 2) {
+      where.teamId = In([...allChildTeams.map(t => t.id), user.teamId]);
+    }
     if (filters.teamId) where.teamId = filters.teamId;
     if (filters.employeeId) where.employeeId = filters.employeeId;
     if (filters.parentTeamId) where.parentTeamId = filters.parentTeamId;

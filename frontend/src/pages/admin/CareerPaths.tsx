@@ -33,7 +33,13 @@ import ReactFlow, {
   NodeProps,
 } from "reactflow";
 import "reactflow/dist/style.css";
-import { PRIMARY_COLOR, PRIMARY_LIGHT, PRIMARY_LIGHT_BG, SECTION_BORDER_COLOR, primaryButtonSx } from '@/utils/utils';
+import {
+  PRIMARY_COLOR,
+  PRIMARY_LIGHT,
+  PRIMARY_LIGHT_BG,
+  SECTION_BORDER_COLOR,
+  primaryButtonSx,
+} from "@/utils/utils";
 
 // ======================================================
 // NODE CUSTOMIZADO DO REACT FLOW (CÍRCULO + LABEL)
@@ -339,7 +345,6 @@ export default function CareerPathsPage() {
   // ======================================================
   // VISUALIZAÇÃO EM LINHA (TRILHA + Y) - BASE DE DADOS
   // ======================================================
-
   const pathsByCurrentRole = useMemo(() => {
     const map = new Map<string, CareerPath[]>();
     for (const p of paths) {
@@ -426,7 +431,6 @@ export default function CareerPathsPage() {
   // ======================================================
   // VISUALIZAÇÃO EM LINHA (TRILHA + Y) - REACT FLOW
   // ======================================================
-
   type FlowGraph = {
     entryId: string;
     nodes: FlowNode[];
@@ -567,7 +571,8 @@ export default function CareerPathsPage() {
   // UI
   // ======================================================
   return (
-    <div className="flex min-h-screen bg-[#f7f7f9]">
+    // >>> ÚNICA MUDANÇA AQUI: overflow-x-auto em mobile
+    <div className="flex min-h-screen bg-[#f7f7f9] overflow-x-auto md:overflow-x-hidden">
       <Sidebar />
 
       <main className="flex-1 p-8">

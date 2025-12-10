@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Sidebar from "@/components/Sidebar";
 import {
   Typography,
@@ -16,32 +16,53 @@ import { BaseModal } from "@/components/modals/BaseModal";
 import { usePersons, Person } from "@/hooks/person/usePersons";
 import { useStates } from "@/hooks/geo/useStates";
 import { useCities } from "@/hooks/geo/useCities";
+import { useCompanies, type Company } from "@/hooks/company/useCompanies";
 
 // utils de formatação
-import { onlyDigits, formatCpf, formatCep, formatPhone } from "@/utils/format";
-import { PRIMARY_COLOR, PRIMARY_LIGHT, PRIMARY_LIGHT_BG, SECTION_BORDER_COLOR, primaryButtonSx } from '@/utils/utils';
+import {
+  onlyDigits,
+  formatCpf,
+  formatCep,
+  formatPhone,
+} from "@/utils/format";
+import {
+  PRIMARY_COLOR,
+  PRIMARY_LIGHT,
+  PRIMARY_LIGHT_BG,
+  SECTION_BORDER_COLOR,
+  primaryButtonSx,
+} from "@/utils/utils";
 
 export default function Persons() {
-  const { listPersons, createPerson, updatePerson, deletePerson } = usePersons();
+  const { listPersons, createPerson, updatePerson, deletePerson } =
+    usePersons();
   const { listStates } = useStates();
   const { listCities } = useCities();
+  const { listCompanies } = useCompanies();
 
   useEffect(() => {
     document.title = "Pessoas";
   }, []);
 
   const [persons, setPersons] = useState<Person[]>([]);
-  const [states, setStates] = useState<{ id: string; name: string; uf: string }[]>([]);
-  const [cities, setCities] = useState<{ id: string; name: string; stateId: string }[]>([]);
+  const [states, setStates] = useState<
+    { id: string; name: string; uf: string }[]
+  >([]);
+  const [cities, setCities] = useState<
+    { id: string; name: string; stateId: string }[]
+  >([]);
   const [loadingTable, setLoadingTable] = useState(false);
 
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [selectedCompanyId, setSelectedCompanyId] = useState("");
+  const [editCompanyId, setEditCompanyId] = useState("");
   // ================================
   // PAGINATION
   // ================================
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const [total, setTotal] = useState(0);
-  const pageCount = Math.ceil(total / limit);
+  const pageCount = Math.ceil(total / limit) || 1;
 
   // ================================
   // FILTERS
@@ -56,17 +77,68 @@ export default function Persons() {
     ? cities.filter((c) => c.stateId === filterState)
     : cities;
 
+  // filtros que realmente vão para o backend (com debounce)
+  const [debouncedFilters, setDebouncedFilters] = useState({
+    name: "",
+    email: "",
+    cpf: "",
+    cityId: "",
+  });
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedFilters({
+        name: filterName,
+        email: filterEmail,
+        cpf: filterCpf,
+        cityId: filterCity,
+      });
+    }, 400);
+
+    return () => clearTimeout(handler);
+  }, [filterName, filterEmail, filterCpf, filterCity]);
+
   // ================================
-  // LOAD STATES & CITIES (once)
+  // LOAD STATES, CITIES, COMPANIES (once)
   // ================================
   useEffect(() => {
-    async function loadGeo() {
-      const [s, c] = await Promise.all([listStates(), listCities()]);
+    async function loadStaticData() {
+      const [s, c, compRes] = await Promise.all([
+        listStates(),
+        listCities(),
+        listCompanies(),
+      ]);
+
       setStates(s);
       setCities(c);
+
+      const list = (compRes as any)?.data ?? compRes ?? [];
+      setCompanies(list);
     }
-    loadGeo();
+
+    loadStaticData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // ================================
+  // MAPAS DE CIDADE / ESTADO (para evitar vários finds)
+  // ================================
+  const cityMap = useMemo(() => {
+    const map: Record<string, { id: string; name: string; stateId: string }> =
+      {};
+    cities.forEach((c) => {
+      map[c.id] = c;
+    });
+    return map;
+  }, [cities]);
+
+  const stateMap = useMemo(() => {
+    const map: Record<string, { id: string; name: string; uf: string }> = {};
+    states.forEach((s) => {
+      map[s.id] = s;
+    });
+    return map;
+  }, [states]);
 
   // ================================
   // LOAD PERSONS (backend pagination)
@@ -77,10 +149,10 @@ export default function Persons() {
     const params = {
       page,
       limit,
-      name: filterName || undefined,
-      email: filterEmail || undefined,
-      cpf: filterCpf || undefined, // já limpo
-      cityId: filterCity || undefined,
+      name: debouncedFilters.name || undefined,
+      email: debouncedFilters.email || undefined,
+      cpf: debouncedFilters.cpf || undefined, // já limpo
+      cityId: debouncedFilters.cityId || undefined,
     };
 
     const result = await listPersons(params);
@@ -93,7 +165,7 @@ export default function Persons() {
   useEffect(() => {
     loadPersons();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, filterName, filterEmail, filterCpf, filterState, filterCity]);
+  }, [page, debouncedFilters]);
 
   // ================================
   // CREATE MODAL
@@ -103,11 +175,11 @@ export default function Persons() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [birthDate, setBirthDate] = useState("");
-  const [phone, setPhone] = useState("");      // só dígitos
+  const [phone, setPhone] = useState(""); // só dígitos
   const [address, setAddress] = useState("");
   const [addressNumber, setAddressNumber] = useState("");
-  const [zipCode, setZipCode] = useState("");  // só dígitos
-  const [cpf, setCpf] = useState("");          // só dígitos
+  const [zipCode, setZipCode] = useState(""); // só dígitos
+  const [cpf, setCpf] = useState(""); // só dígitos
   const [stateId, setStateId] = useState("");
   const [cityId, setCityId] = useState("");
 
@@ -116,17 +188,20 @@ export default function Persons() {
     : [];
 
   const handleCreate = async () => {
+    if (!selectedCompanyId) return;
+
     await createPerson({
       name,
       email,
       birthDate,
-      phone,      // limpo
+      phone, // limpo
       address,
       addressNumber,
-      zipCode,    // limpo
-      cpf,        // limpo
+      zipCode, // limpo
+      cpf, // limpo
       cityId,
-    });
+      companyId: selectedCompanyId,
+    } as any);
 
     setCreateModalOpen(false);
 
@@ -141,6 +216,7 @@ export default function Persons() {
     setCpf("");
     setStateId("");
     setCityId("");
+    setSelectedCompanyId("");
 
     // reload page 1
     setPage(1);
@@ -172,13 +248,15 @@ export default function Persons() {
       addressNumber: p.addressNumber || "",
       zipCode: onlyDigits(p.zipCode || ""),
       cityId: p.cityId,
+      companyId: (p as any).companyId,
     });
 
-    const related = cities.find((c) => c.id === p.cityId);
+    const related = cityMap[p.cityId];
     const state = related?.stateId || "";
 
     setEditStateId(state);
     setEditCities(cities.filter((c) => c.stateId === state));
+    setEditCompanyId(((p as any).companyId as string) || "");
 
     setEditModalOpen(true);
   };
@@ -186,12 +264,13 @@ export default function Persons() {
   const handleSave = async () => {
     if (!selectedPerson) return;
 
-    await updatePerson(selectedPerson.id, {
+    await updatePerson(selectedPerson.companyId, selectedPerson.id, {
       ...editData,
       cpf: (editData.cpf as string) || "",
       zipCode: (editData.zipCode as string) || "",
       phone: (editData.phone as string) || "",
-    });
+      companyId: editCompanyId || (editData as any).companyId,
+    } as any);
 
     setEditModalOpen(false);
     loadPersons();
@@ -200,7 +279,7 @@ export default function Persons() {
   const handleDelete = async () => {
     if (!selectedPerson) return;
 
-    await deletePerson(selectedPerson.id);
+    await deletePerson(selectedPerson.companyId, selectedPerson.id);
 
     setEditModalOpen(false);
     loadPersons();
@@ -210,11 +289,21 @@ export default function Persons() {
   // UI
   // ================================
   return (
-    <div className="flex min-h-screen bg-[#f7f7f9]">
+    <div className="flex flex-col md:flex-row min-h-screen bg-[#f7f7f9]">
       <Sidebar />
 
-      <main className="flex-1 p-8">
-        <Typography variant="h4" fontWeight={700} color="#1e293b" sx={{ mb: 4 }}>
+      <main className="flex-1 p-4 md:p-8 w-full">
+        <Typography
+          variant="h4"
+          fontWeight={700}
+          color="#1e293b"
+          align="center"
+          sx={{
+            mb: 4,
+            mt: { xs: 2, md: 0 },
+            fontSize: { xs: "1.5rem", md: "2.125rem" },
+          }}
+        >
           Pessoas
         </Typography>
 
@@ -223,7 +312,7 @@ export default function Persons() {
           elevation={0}
           sx={{
             width: "100%",
-            p: 4,
+            p: { xs: 2, md: 4 },
             mb: 4,
             borderRadius: 3,
             backgroundColor: "#ffffff",
@@ -231,45 +320,81 @@ export default function Persons() {
             border: `1px solid ${SECTION_BORDER_COLOR}`,
           }}
         >
-          <Typography variant="h6" fontWeight={600} mb={3}>
+          <Typography
+            variant="h6"
+            fontWeight={600}
+            mb={3}
+            sx={{ fontSize: { xs: "1rem", md: "1.25rem" } }}
+          >
             Filtros
           </Typography>
 
-          <Box display="flex" gap={3} flexWrap="wrap" alignItems="flex-end">
+          <Box
+            display="flex"
+            gap={2}
+            flexWrap="wrap"
+            sx={{
+              flexDirection: { xs: "column", md: "row" },
+              alignItems: { xs: "stretch", md: "flex-end" },
+            }}
+          >
             <TextField
               size="small"
+              fullWidth
               label="Nome"
               value={filterName}
               onChange={(e) => {
                 setFilterName(e.target.value);
                 setPage(1);
               }}
-              sx={{ flex: "1 1 220px" }}
+              sx={{
+                flex: {
+                  md: "1 1 220px",
+                },
+              }}
             />
 
             <TextField
               size="small"
+              fullWidth
               label="Email"
               value={filterEmail}
               onChange={(e) => {
                 setFilterEmail(e.target.value);
                 setPage(1);
               }}
-              sx={{ flex: "1 1 220px" }}
+              sx={{
+                flex: {
+                  md: "1 1 220px",
+                },
+              }}
             />
 
             <TextField
               size="small"
+              fullWidth
               label="CPF"
               value={formatCpf(filterCpf)}
               onChange={(e) => {
                 setFilterCpf(onlyDigits(e.target.value));
                 setPage(1);
               }}
-              sx={{ flex: "1 1 200px" }}
+              sx={{
+                flex: {
+                  md: "1 1 200px",
+                },
+              }}
             />
 
-            <FormControl size="small" sx={{ flex: "1 1 200px" }}>
+            <FormControl
+              size="small"
+              fullWidth
+              sx={{
+                flex: {
+                  md: "1 1 200px",
+                },
+              }}
+            >
               <InputLabel>Estado</InputLabel>
               <Select
                 label="Estado"
@@ -289,12 +414,20 @@ export default function Persons() {
               </Select>
             </FormControl>
 
-            <FormControl size="small" sx={{ flex: "1 1 200px" }}>
+            <FormControl
+              size="small"
+              fullWidth
+              sx={{
+                flex: {
+                  md: "1 1 200px",
+                },
+              }}
+              disabled={!filterState}
+            >
               <InputLabel>Cidade</InputLabel>
               <Select
                 label="Cidade"
                 value={filterCity}
-                disabled={!filterState}
                 onChange={(e) => {
                   setFilterCity(e.target.value);
                   setPage(1);
@@ -309,121 +442,189 @@ export default function Persons() {
               </Select>
             </FormControl>
 
-            <Button
-              size="large"
-              variant="outlined"
+            {/* Botões */}
+            <Box
               sx={{
-                px: 4,
-                borderColor: PRIMARY_COLOR,
-                color: PRIMARY_COLOR,
-                textTransform: "none",
-                fontWeight: 600,
-                "&:hover": {
+                display: "flex",
+                flexDirection: { xs: "column-reverse", md: "row" },
+                gap: 1.5,
+                width: { xs: "100%", md: "auto" },
+                mt: { xs: 1, md: 0 },
+                ml: { md: "auto" },
+              }}
+            >
+              <Button
+                size="large"
+                variant="outlined"
+                sx={{
+                  px: 4,
                   borderColor: PRIMARY_COLOR,
-                  backgroundColor: PRIMARY_LIGHT_BG,
-                },
-              }}
-              onClick={() => {
-                setFilterName("");
-                setFilterEmail("");
-                setFilterCpf("");
-                setFilterState("");
-                setFilterCity("");
-                setPage(1);
-              }}
-            >
-              Limpar
-            </Button>
+                  color: PRIMARY_COLOR,
+                  textTransform: "none",
+                  fontWeight: 600,
+                  width: { xs: "100%", md: "auto" },
+                  "&:hover": {
+                    borderColor: PRIMARY_COLOR,
+                    backgroundColor: PRIMARY_LIGHT_BG,
+                  },
+                }}
+                onClick={() => {
+                  setFilterName("");
+                  setFilterEmail("");
+                  setFilterCpf("");
+                  setFilterState("");
+                  setFilterCity("");
+                  setPage(1);
+                }}
+              >
+                Limpar
+              </Button>
 
-            <Button
-              size="large"
-              onClick={() => setCreateModalOpen(true)}
-              sx={{
-                px: 4,
-                ml: "auto",
-                backgroundColor: PRIMARY_COLOR,
-                color: "white",
-                textTransform: "none",
-                fontWeight: 600,
-                "&:hover": {
-                  backgroundColor: PRIMARY_LIGHT,
-                },
-              }}
-            >
-              Cadastrar Pessoa
-            </Button>
+              <Button
+                size="large"
+                onClick={() => setCreateModalOpen(true)}
+                sx={{
+                  px: 4,
+                  backgroundColor: PRIMARY_COLOR,
+                  color: "white",
+                  textTransform: "none",
+                  fontWeight: 600,
+                  width: { xs: "100%", md: "auto" },
+                  "&:hover": {
+                    backgroundColor: PRIMARY_LIGHT,
+                  },
+                }}
+              >
+                Cadastrar Pessoa
+              </Button>
+            </Box>
           </Box>
         </Paper>
 
         {/* TABLE */}
         <Paper
           sx={{
-            p: 4,
+            p: { xs: 2, md: 4 },
             borderRadius: 3,
             boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
             border: `1px solid ${SECTION_BORDER_COLOR}`,
           }}
         >
-          <table className="w-full text-sm border-collapse">
-            <thead>
-              <tr className="bg-gray-50">
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">Nome</th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">E-mail</th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">CPF</th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">Nascimento</th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">Telefone</th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">Endereço</th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">Nº</th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">CEP</th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">Estado</th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">Cidade</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {loadingTable && (
-                <tr>
-                  <td colSpan={10} className="py-6 text-center text-gray-500">
-                    Carregando...
-                  </td>
+          <Box sx={{ width: "100%", overflowX: "auto" }}>
+            <table className="min-w-full text-sm border-collapse">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="text-left px-3 md:px-4 py-2 md:py-3 font-semibold text-gray-700">
+                    Nome
+                  </th>
+                  <th className="text-left px-3 md:px-4 py-2 md:py-3 font-semibold text-gray-700">
+                    E-mail
+                  </th>
+                  <th className="text-left px-3 md:px-4 py-2 md:py-3 font-semibold text-gray-700">
+                    CPF
+                  </th>
+                  <th className="text-left px-3 md:px-4 py-2 md:py-3 font-semibold text-gray-700">
+                    Nascimento
+                  </th>
+                  <th className="text-left px-3 md:px-4 py-2 md:py-3 font-semibold text-gray-700">
+                    Telefone
+                  </th>
+                  <th className="text-left px-3 md:px-4 py-2 md:py-3 font-semibold text-gray-700">
+                    Endereço
+                  </th>
+                  <th className="text-left px-3 md:px-4 py-2 md:py-3 font-semibold text-gray-700">
+                    Nº
+                  </th>
+                  <th className="text-left px-3 md:px-4 py-2 md:py-3 font-semibold text-gray-700">
+                    CEP
+                  </th>
+                  <th className="text-left px-3 md:px-4 py-2 md:py-3 font-semibold text-gray-700">
+                    Estado
+                  </th>
+                  <th className="text-left px-3 md:px-4 py-2 md:py-3 font-semibold text-gray-700">
+                    Cidade
+                  </th>
                 </tr>
-              )}
+              </thead>
 
-              {!loadingTable &&
-                persons.map((p) => {
-                  const city = cities.find((c) => c.id === p.cityId);
-                  const state = states.find((s) => s.id === city?.stateId);
-
-                  return (
-                    <tr
-                      key={p.id}
-                      className="border-b hover:bg-gray-100 cursor-pointer transition"
-                      onClick={() => openEditModal(p)}
+              <tbody>
+                {loadingTable ? (
+                  <tr>
+                    <td
+                      colSpan={10}
+                      className="py-6 text-center text-gray-500"
                     >
-                      <td className="px-4 py-3">{p.name}</td>
-                      <td className="px-4 py-3">{p.email}</td>
-                      <td className="px-4 py-3">{formatCpf(p.cpf || "")}</td>
-                      <td className="px-4 py-3">{p.birthDate ? p.birthDate : "-"}</td>
-                      <td className="px-4 py-3">
-                        {p.phone ? formatPhone(p.phone) : "-"}
-                      </td>
-                      <td className="px-4 py-3">{p.address || "-"}</td>
-                      <td className="px-4 py-3">{p.addressNumber || "-"}</td>
-                      <td className="px-4 py-3">
-                        {p.zipCode ? formatCep(p.zipCode) : "-"}
-                      </td>
-                      <td className="px-4 py-3">{state?.name || "-"}</td>
-                      <td className="px-4 py-3">{city?.name || "-"}</td>
-                    </tr>
-                  );
-                })}
-            </tbody>
-          </table>
+                      Carregando...
+                    </td>
+                  </tr>
+                ) : persons.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={10}
+                      className="py-6 text-center text-gray-500"
+                    >
+                      Nenhuma pessoa encontrada.
+                    </td>
+                  </tr>
+                ) : (
+                  persons.map((p) => {
+                    const city = cityMap[p.cityId];
+                    const state = city ? stateMap[city.stateId] : undefined;
+
+                    return (
+                      <tr
+                        key={p.id}
+                        className="border-b hover:bg-gray-100 cursor-pointer transition"
+                        onClick={() => openEditModal(p)}
+                      >
+                        <td className="px-3 md:px-4 py-2 md:py-3">
+                          {p.name}
+                        </td>
+                        <td className="px-3 md:px-4 py-2 md:py-3">
+                          {p.email}
+                        </td>
+                        <td className="px-3 md:px-4 py-2 md:py-3">
+                          {formatCpf(p.cpf || "")}
+                        </td>
+                        <td className="px-3 md:px-4 py-2 md:py-3">
+                          {p.birthDate ? p.birthDate : "-"}
+                        </td>
+                        <td className="px-3 md:px-4 py-2 md:py-3">
+                          {p.phone ? formatPhone(p.phone) : "-"}
+                        </td>
+                        <td className="px-3 md:px-4 py-2 md:py-3">
+                          {p.address || "-"}
+                        </td>
+                        <td className="px-3 md:px-4 py-2 md:py-3">
+                          {p.addressNumber || "-"}
+                        </td>
+                        <td className="px-3 md:px-4 py-2 md:py-3">
+                          {p.zipCode ? formatCep(p.zipCode) : "-"}
+                        </td>
+                        <td className="px-3 md:px-4 py-2 md:py-3">
+                          {state?.name || "-"}
+                        </td>
+                        <td className="px-3 md:px-4 py-2 md:py-3">
+                          {city?.name || "-"}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </Box>
 
           {/* PAGINATION */}
-          <Box display="flex" justifyContent="space-between" alignItems="center" mt={3}>
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems={{ xs: "flex-start", sm: "center" }}
+            mt={3}
+            sx={{ flexDirection: { xs: "column", sm: "row" }, gap: 1.5 }}
+          >
             <Typography variant="body2">
-              Página {page} de {pageCount || 1}
+              Página {page} de {pageCount}
             </Typography>
 
             <Box display="flex" gap={2}>
@@ -471,7 +672,7 @@ export default function Persons() {
           title="Cadastrar Pessoa"
           description="Preencha os dados para cadastrar."
           footer={
-            <div className="flex justify-end gap-2">
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 w-full">
               <Button
                 variant="outlined"
                 sx={{
@@ -480,6 +681,7 @@ export default function Persons() {
                   color: PRIMARY_COLOR,
                   textTransform: "none",
                   fontWeight: 600,
+                  width: { xs: "100%", sm: "auto" },
                   "&:hover": {
                     borderColor: PRIMARY_COLOR,
                     backgroundColor: PRIMARY_LIGHT_BG,
@@ -491,8 +693,18 @@ export default function Persons() {
               </Button>
 
               <Button
-                sx={primaryButtonSx}
-                disabled={!name || !email || !cpf || !cityId || !birthDate}
+                sx={{
+                  ...primaryButtonSx,
+                  width: { xs: "100%", sm: "auto" },
+                }}
+                disabled={
+                  !name ||
+                  !email ||
+                  !cpf ||
+                  !cityId ||
+                  !birthDate ||
+                  !selectedCompanyId
+                }
                 onClick={handleCreate}
               >
                 Criar
@@ -552,7 +764,11 @@ export default function Persons() {
               onChange={(e) => setZipCode(onlyDigits(e.target.value))}
             />
 
-            <Box display="flex" gap={3}>
+            <Box
+              display="flex"
+              flexDirection={{ xs: "column", sm: "row" }}
+              gap={2}
+            >
               <FormControl size="small" sx={{ flex: 1 }}>
                 <InputLabel>Estado</InputLabel>
                 <Select
@@ -572,12 +788,15 @@ export default function Persons() {
                 </Select>
               </FormControl>
 
-              <FormControl size="small" sx={{ flex: 1 }}>
+              <FormControl
+                size="small"
+                sx={{ flex: 1 }}
+                disabled={!stateId}
+              >
                 <InputLabel>Cidade</InputLabel>
                 <Select
                   label="Cidade"
                   value={cityId}
-                  disabled={!stateId}
                   onChange={(e) => setCityId(e.target.value)}
                 >
                   <MenuItem value="">Selecione</MenuItem>
@@ -589,6 +808,21 @@ export default function Persons() {
                 </Select>
               </FormControl>
             </Box>
+
+            <FormControl size="small">
+              <InputLabel>Empresa</InputLabel>
+              <Select
+                label="Empresa"
+                value={selectedCompanyId}
+                onChange={(e) => setSelectedCompanyId(e.target.value)}
+              >
+                {companies.map((c) => (
+                  <MenuItem key={c.id} value={c.id}>
+                    {c.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
           </div>
         </BaseModal>
 
@@ -599,14 +833,20 @@ export default function Persons() {
           title="Editar Pessoa"
           description="Atualize ou remova o registro."
           footer={
-            <div className="flex justify-between w-full">
-              <Button variant="outlined" color="error" onClick={handleDelete}>
+            <div className="flex flex-col sm:flex-row justify-between w-full gap-2">
+              <Button
+                variant="outlined"
+                color="error"
+                onClick={handleDelete}
+                sx={{ width: { xs: "100%", sm: "auto" } }}
+              >
                 Excluir
               </Button>
               <Button
                 sx={{
                   backgroundColor: PRIMARY_COLOR,
                   color: "white",
+                  width: { xs: "100%", sm: "auto" },
                   "&:hover": {
                     backgroundColor: PRIMARY_LIGHT,
                   },
@@ -684,7 +924,10 @@ export default function Persons() {
               label="Número"
               value={editData.addressNumber || ""}
               onChange={(e) =>
-                setEditData({ ...editData, addressNumber: e.target.value })
+                setEditData({
+                  ...editData,
+                  addressNumber: e.target.value,
+                })
               }
             />
 
@@ -700,7 +943,11 @@ export default function Persons() {
               }
             />
 
-            <Box display="flex" gap={3}>
+            <Box
+              display="flex"
+              flexDirection={{ xs: "column", sm: "row" }}
+              gap={2}
+            >
               <FormControl size="small" sx={{ flex: 1 }}>
                 <InputLabel>Estado</InputLabel>
                 <Select
@@ -709,7 +956,9 @@ export default function Persons() {
                   onChange={(e) => {
                     const newStateId = e.target.value;
                     setEditStateId(newStateId);
-                    setEditCities(cities.filter((c) => c.stateId === newStateId));
+                    setEditCities(
+                      cities.filter((c) => c.stateId === newStateId)
+                    );
                     setEditData({ ...editData, cityId: "" });
                   }}
                 >
@@ -722,14 +971,20 @@ export default function Persons() {
                 </Select>
               </FormControl>
 
-              <FormControl size="small" sx={{ flex: 1 }}>
+              <FormControl
+                size="small"
+                sx={{ flex: 1 }}
+                disabled={!editStateId}
+              >
                 <InputLabel>Cidade</InputLabel>
                 <Select
                   label="Cidade"
                   value={(editData.cityId as string) || ""}
-                  disabled={!editStateId}
                   onChange={(e) =>
-                    setEditData({ ...editData, cityId: e.target.value })
+                    setEditData({
+                      ...editData,
+                      cityId: e.target.value,
+                    })
                   }
                 >
                   <MenuItem value="">Selecione</MenuItem>
@@ -741,6 +996,21 @@ export default function Persons() {
                 </Select>
               </FormControl>
             </Box>
+
+            <FormControl size="small">
+              <InputLabel>Empresa</InputLabel>
+              <Select
+                label="Empresa"
+                value={editCompanyId}
+                onChange={(e) => setEditCompanyId(e.target.value)}
+              >
+                {companies.map((c) => (
+                  <MenuItem key={c.id} value={c.id}>
+                    {c.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
           </div>
         </BaseModal>
       </main>

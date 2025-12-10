@@ -13,6 +13,7 @@ import Users from "@/pages/admin/Users";
 import { useUsers } from "@/hooks/user/useUsers";
 import { useUserRoles } from "@/hooks/user/useUserRoles";
 import { usePersons } from "@/hooks/person/usePersons";
+import { useCompanies } from "@/hooks/company/useCompanies";
 
 // mock do useAuth pro Sidebar
 vi.mock("@/auth/useAuth", () => ({
@@ -25,6 +26,7 @@ vi.mock("@/auth/useAuth", () => ({
 vi.mock("@/hooks/user/useUsers");
 vi.mock("@/hooks/user/useUserRoles");
 vi.mock("@/hooks/person/usePersons");
+vi.mock("@/hooks/company/useCompanies");
 
 const renderWithRouter = () =>
   render(
@@ -37,6 +39,7 @@ describe("UsersPage", () => {
   let mockUsersHook: any;
   let mockUserRolesHook: any;
   let mockPersonsHook: any;
+  let mockCompaniesHook: any;
 
   beforeEach(() => {
     // garante companyId no localStorage
@@ -106,6 +109,28 @@ describe("UsersPage", () => {
       }),
     };
     (usePersons as any).mockReturnValue(mockPersonsHook);
+
+    mockCompaniesHook = {
+      listCompanies: vi.fn().mockResolvedValue({
+        data: [
+          {
+            id: "company-1",
+            name: "Empresa 1",
+            cnpj: "00000000000000",
+            zipCode: "00000000",
+            address: "Rua X",
+            addressNumber: "123",
+            cityId: "city-1",
+            createdAt: "2025-01-01T00:00:00.000Z",
+          },
+        ],
+        total: 1,
+        page: 1,
+        limit: 10,
+        pageCount: 1,
+      }),
+    };
+    (useCompanies as any).mockReturnValue(mockCompaniesHook);
   });
 
   afterEach(() => {
@@ -272,7 +297,7 @@ describe("UsersPage", () => {
       within(dialog).getByText("Selecionar Pessoa")
     ).toBeInTheDocument();
 
-    // select de perfil dentro do modal (pode estar 'hidden' pro testing-library)
+    // selects de perfil/empresa dentro do modal (podem estar 'hidden')
     const comboBoxes = within(dialog).getAllByRole("combobox", {
       hidden: true,
     });
@@ -308,8 +333,12 @@ describe("UsersPage", () => {
     });
 
     // filtros de nome/email
-    const nomeInput = within(dialogPersons).getByLabelText("Nome") as HTMLInputElement;
-    const emailInput = within(dialogPersons).getByLabelText("Email") as HTMLInputElement;
+    const nomeInput = within(dialogPersons).getByLabelText(
+      "Nome"
+    ) as HTMLInputElement;
+    const emailInput = within(dialogPersons).getByLabelText(
+      "Email"
+    ) as HTMLInputElement;
 
     fireEvent.change(nomeInput, { target: { value: "Pessoa" } });
     fireEvent.change(emailInput, { target: { value: "@example.com" } });
@@ -324,7 +353,9 @@ describe("UsersPage", () => {
     });
 
     // paginação Próxima
-    const nextBtn = within(dialogPersons).getByRole("button", { name: "Próxima" });
+    const nextBtn = within(dialogPersons).getByRole("button", {
+      name: "Próxima",
+    });
     fireEvent.click(nextBtn);
 
     await waitFor(() => {
@@ -337,13 +368,18 @@ describe("UsersPage", () => {
     });
   });
 
-  it("cria usuário ao selecionar pessoa, definir perfil e senha", async () => {
+  it("cria usuário ao selecionar pessoa, definir perfil, empresa e senha", async () => {
     renderWithRouter();
 
     const openCreateBtn = screen.getByText("Criar Usuário");
     fireEvent.click(openCreateBtn);
 
     const dialogCreate = await screen.findByRole("dialog");
+
+    // garante que empresas foram carregadas
+    await waitFor(() => {
+      expect(mockCompaniesHook.listCompanies).toHaveBeenCalled();
+    });
 
     // abre seletor de pessoa
     const selectPersonBtn = within(dialogCreate).getByText("Selecionar Pessoa");
@@ -364,14 +400,24 @@ describe("UsersPage", () => {
     );
     expect(personButtonAfterSelect).toBeInTheDocument();
 
-    // seleciona perfil (combobox 'hidden' do MUI)
-    const perfilSelect = await within(dialogCreate).findByRole("combobox", {
+    // selects (Perfil e Empresa) - ambos hidden
+    const comboBoxes = within(dialogCreate).getAllByRole("combobox", {
       hidden: true,
     });
+    const perfilSelect = comboBoxes[0];
+    const empresaSelect = comboBoxes[1];
 
+    // seleciona perfil
     fireEvent.mouseDown(perfilSelect);
     const adminOption = await screen.findByRole("option", { name: "Admin" });
     fireEvent.click(adminOption);
+
+    // seleciona empresa
+    fireEvent.mouseDown(empresaSelect);
+    const empresaOption = await screen.findByRole("option", {
+      name: "Empresa 1",
+    });
+    fireEvent.click(empresaOption);
 
     // senha
     const passwordInput = within(dialogCreate).getByLabelText(
@@ -440,10 +486,14 @@ describe("UsersPage", () => {
     fireEvent.click(saveBtn);
 
     await waitFor(() => {
-      expect(mockUsersHook.updateUser).toHaveBeenCalledWith("u1", {
-        userRoleId: "role-basic",
-        companyId: "company-1",
-      });
+      expect(mockUsersHook.updateUser).toHaveBeenCalledWith(
+        "company-1",
+        "u1",
+        {
+          userRoleId: "role-basic",
+          companyId: "company-1",
+        }
+      );
     });
 
     expect(mockUsersHook.listUsers).toHaveBeenCalled();
@@ -464,7 +514,10 @@ describe("UsersPage", () => {
     fireEvent.click(deleteBtn);
 
     await waitFor(() => {
-      expect(mockUsersHook.deleteUser).toHaveBeenCalledWith("u1");
+      expect(mockUsersHook.deleteUser).toHaveBeenCalledWith(
+        "company-1",
+        "u1"
+      );
     });
 
     expect(mockUsersHook.listUsers).toHaveBeenCalled();

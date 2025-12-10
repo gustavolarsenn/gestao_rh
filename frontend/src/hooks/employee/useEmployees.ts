@@ -13,6 +13,7 @@ export type Employee = {
   hiringDate: string;
   departureDate?: string;
   wage: number;
+  companyId?: string;
 
   person?: { name: string; email: string };
   role?: { name: string };
@@ -46,12 +47,12 @@ export function useEmployees() {
     }
   }
 
-  async function updateEmployee(id: string, payload: Partial<Employee>) {
+  async function updateEmployee(companyId: string, id: string, payload: Partial<Employee>) {
     const { data } = await api.patch(`/employees/${id}?companyId=${companyId}`, payload);
     return data;
   }
 
-  async function deleteEmployee(id: string) {
+  async function deleteEmployee(companyId: string, id: string) {
     await api.delete(`/employees/${id}?companyId=${companyId}`);
   }
 

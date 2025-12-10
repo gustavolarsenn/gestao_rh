@@ -16,16 +16,21 @@ export default function KpiReview() {
   const [tab, setTab] = useState(0);
 
   return (
-    <div className="flex min-h-screen bg-[#f7f7f9]">
+    <div className="flex flex-col md:flex-row min-h-screen bg-[#f7f7f9]">
       <Sidebar />
 
-      <main className="flex-1 p-8">
+      <main className="flex-1 p-4 md:p-8 w-full">
         {/* TÍTULO */}
         <Typography
           variant="h4"
           fontWeight={700}
           color="#1e293b"
-          sx={{ mb: 4 }}
+          align="center"
+          sx={{
+            mb: 4,
+            mt: { xs: 2, md: 0 },
+            fontSize: { xs: "1.5rem", md: "2.125rem" },
+          }}
         >
           Revisão de KPIs
         </Typography>
@@ -34,7 +39,8 @@ export default function KpiReview() {
         <Paper
           elevation={0}
           sx={{
-            p: 2,
+            width: "100%",
+            p: { xs: 1.5, md: 2 },
             borderRadius: 3,
             backgroundColor: "#ffffff",
             boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
@@ -42,47 +48,59 @@ export default function KpiReview() {
             mb: 4,
           }}
         >
-          <Tabs
-            value={tab}
-            onChange={(_, newValue) => setTab(newValue)}
-            sx={{
-              "& .MuiTabs-indicator": {
-                backgroundColor: PRIMARY_COLOR,
-                height: 3,
-                borderRadius: 999,
-              },
-            }}
-            textColor="inherit"
-          >
-            <Tab
-              label="KPIs de Funcionários"
+          <Box sx={{ width: "100%", overflowX: "auto" }}>
+            <Tabs
+              value={tab}
+              onChange={(_, newValue) => setTab(newValue)}
+              variant="scrollable"
+              scrollButtons="auto"
               sx={{
-                fontWeight: 600,
-                textTransform: "none",
-                color: "#64748b",
-                "&.Mui-selected": {
-                  color: PRIMARY_COLOR,
+                minHeight: 0,
+                "& .MuiTabs-flexContainer": {
+                  gap: { xs: 0.5, md: 1 },
                 },
-                "&:hover": {
-                  backgroundColor: PRIMARY_LIGHT_BG,
+                "& .MuiTabs-indicator": {
+                  backgroundColor: PRIMARY_COLOR,
+                  height: 3,
+                  borderRadius: 999,
                 },
               }}
-            />
-            <Tab
-              label="KPIs de Times"
-              sx={{
-                fontWeight: 600,
-                textTransform: "none",
-                color: "#64748b",
-                "&.Mui-selected": {
-                  color: PRIMARY_COLOR,
-                },
-                "&:hover": {
-                  backgroundColor: PRIMARY_LIGHT_BG,
-                },
-              }}
-            />
-          </Tabs>
+              textColor="inherit"
+            >
+              <Tab
+                label="KPIs de Funcionários"
+                sx={{
+                  fontWeight: 600,
+                  textTransform: "none",
+                  color: "#64748b",
+                  minHeight: 0,
+                  paddingY: 1,
+                  "&.Mui-selected": {
+                    color: PRIMARY_COLOR,
+                  },
+                  "&:hover": {
+                    backgroundColor: PRIMARY_LIGHT_BG,
+                  },
+                }}
+              />
+              <Tab
+                label="KPIs de Times"
+                sx={{
+                  fontWeight: 600,
+                  textTransform: "none",
+                  color: "#64748b",
+                  minHeight: 0,
+                  paddingY: 1,
+                  "&.Mui-selected": {
+                    color: PRIMARY_COLOR,
+                  },
+                  "&:hover": {
+                    backgroundColor: PRIMARY_LIGHT_BG,
+                  },
+                }}
+              />
+            </Tabs>
+          </Box>
         </Paper>
 
         {/* CONTEÚDO DAS ABAS */}

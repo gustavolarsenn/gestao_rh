@@ -9,6 +9,7 @@ import {
   ParseUUIDPipe,
   UsePipes,
   ValidationPipe,
+  Req,
 } from '@nestjs/common';
 import { CreateUserRoleDto } from './dto/create-user-role.dto';
 import { UpdateUserRoleDto } from './dto/update-user-role.dto';
@@ -26,8 +27,10 @@ export class UserRolesController {
   }
 
   @Get()
-  findAll(): Promise<UserRole[]> {
-    return this.service.findAll();
+  findAll(
+    @Req() req: any
+  ): Promise<UserRole[]> {
+    return this.service.findAll(req.user);
   }
 
   @Get(':id')

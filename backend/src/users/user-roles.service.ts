@@ -1,7 +1,7 @@
 // src/auth/users/users.service.ts
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { LessThanOrEqual, Repository } from 'typeorm';
 import { CreateUserRoleDto } from './dto/create-user-role.dto';
 import { UpdateUserRoleDto } from './dto/update-user-role.dto';
 import { UserRole } from './entities/user-role.entity';
@@ -15,8 +15,15 @@ export class UserRolesService {
     return this.repo.save(entity);
   }
 
-  async findAll(): Promise<UserRole[]> {
-    return this.repo.find();
+  async findAll(user: any): Promise<UserRole[]> {
+    const where = {} as any;
+
+    if (user.level <= 3) {
+      where['level'] = LessThanOrEqual(3)
+    } else {
+      where['level'] = LessThanOrEqual(4)
+    }
+    return this.repo.find({ where });
   }
 
   async findOne(id: string): Promise<UserRole> {

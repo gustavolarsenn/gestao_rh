@@ -21,8 +21,8 @@ import { useCities } from "@/hooks/geo/useCities";
 import { onlyDigits, formatCnpj, formatCep } from "@/utils/format";
 
 // mesmas cores usadas na tela de Filiais / sidebar
-const PRIMARY_COLOR = "#0369a1";    // azul mais escuro
-const PRIMARY_LIGHT = "#0ea5e9";    // azul claro
+const PRIMARY_COLOR = "#0369a1"; // azul mais escuro
+const PRIMARY_LIGHT = "#0ea5e9"; // azul claro
 const PRIMARY_LIGHT_BG = "#e0f2ff"; // azul clarinho para hover
 // borda igual aos cards/sidebar (border-slate-200)
 const SECTION_BORDER_COLOR = "#e2e8f0";
@@ -47,7 +47,7 @@ export default function CompanyPage() {
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const [total, setTotal] = useState(0);
-  const pageCount = Math.ceil(total / limit);
+  const pageCount = Math.ceil(total / limit) || 1;
 
   const [filterName, setFilterName] = useState("");
   const [filterCnpj, setFilterCnpj] = useState(""); // só dígitos
@@ -60,6 +60,7 @@ export default function CompanyPage() {
       setCities(all);
     }
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const filteredCities = filterState
@@ -72,6 +73,7 @@ export default function CompanyPage() {
       setStates(data);
     }
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function loadCompanies() {
@@ -129,6 +131,7 @@ export default function CompanyPage() {
     setNewAddressNumber("");
     setNewStateId("");
     setNewCityId("");
+    setPage(1);
     loadCompanies();
   };
 
@@ -197,11 +200,21 @@ export default function CompanyPage() {
   }, [editStateId, cities]);
 
   return (
-    <div className="flex min-h-screen bg-[#f7f7f9]">
+    <div className="flex flex-col md:flex-row min-h-screen bg-[#f7f7f9]">
       <Sidebar />
 
-      <main className="flex-1 p-8">
-        <Typography variant="h4" fontWeight={700} color="#1e293b" sx={{ mb: 4 }}>
+      <main className="flex-1 p-4 md:p-8 w-full">
+        <Typography
+          variant="h4"
+          fontWeight={700}
+          color="#1e293b"
+          align="center"
+          sx={{
+            mb: 4,
+            mt: { xs: 2, md: 0 },
+            fontSize: { xs: "1.5rem", md: "2.125rem" },
+          }}
+        >
           Empresas
         </Typography>
 
@@ -210,7 +223,7 @@ export default function CompanyPage() {
           elevation={0}
           sx={{
             width: "100%",
-            p: 4,
+            p: { xs: 2, md: 4 },
             mb: 4,
             borderRadius: 3,
             backgroundColor: "#ffffff",
@@ -218,20 +231,38 @@ export default function CompanyPage() {
             border: `1px solid ${SECTION_BORDER_COLOR}`,
           }}
         >
-          <Typography variant="h6" fontWeight={600} mb={3}>
+          <Typography
+            variant="h6"
+            fontWeight={600}
+            mb={3}
+            sx={{ fontSize: { xs: "1rem", md: "1.25rem" } }}
+          >
             Filtros
           </Typography>
 
-          <Box display="flex" gap={3} flexWrap="wrap" alignItems="flex-end">
+          <Box
+            display="flex"
+            gap={2}
+            flexWrap="wrap"
+            sx={{
+              flexDirection: { xs: "column", md: "row" },
+              alignItems: { xs: "stretch", md: "flex-end" },
+            }}
+          >
             <TextField
+              fullWidth
               size="small"
               label="Nome"
               value={filterName}
-              onChange={(e) => setFilterName(e.target.value)}
-              sx={{ flex: "1 1 220px" }}
+              onChange={(e) => {
+                setFilterName(e.target.value);
+                setPage(1);
+              }}
+              sx={{ flex: { md: "1 1 220px" } }}
             />
 
             <TextField
+              fullWidth
               size="small"
               label="CNPJ"
               value={formatCnpj(filterCnpj)}
@@ -240,10 +271,14 @@ export default function CompanyPage() {
                 setFilterCnpj(digits);
                 setPage(1);
               }}
-              sx={{ flex: "1 1 200px" }}
+              sx={{ flex: { md: "1 1 200px" } }}
             />
 
-            <FormControl size="small" sx={{ flex: "1 1 200px" }}>
+            <FormControl
+              fullWidth
+              size="small"
+              sx={{ flex: { md: "1 1 200px" } }}
+            >
               <InputLabel>Estado</InputLabel>
               <Select
                 label="Estado"
@@ -251,6 +286,7 @@ export default function CompanyPage() {
                 onChange={(e) => {
                   setFilterState(e.target.value);
                   setFilterCity("");
+                  setPage(1);
                 }}
               >
                 <MenuItem value="">Todos</MenuItem>
@@ -262,13 +298,20 @@ export default function CompanyPage() {
               </Select>
             </FormControl>
 
-            <FormControl size="small" sx={{ flex: "1 1 200px" }}>
+            <FormControl
+              fullWidth
+              size="small"
+              sx={{ flex: { md: "1 1 200px" } }}
+              disabled={!filterState}
+            >
               <InputLabel>Cidade</InputLabel>
               <Select
                 label="Cidade"
                 value={filterCity}
-                disabled={!filterState}
-                onChange={(e) => setFilterCity(e.target.value)}
+                onChange={(e) => {
+                  setFilterCity(e.target.value);
+                  setPage(1);
+                }}
               >
                 <MenuItem value="">Todas</MenuItem>
                 {filteredCities.map((c) => (
@@ -279,119 +322,147 @@ export default function CompanyPage() {
               </Select>
             </FormControl>
 
-            <Button
-              size="large"
+            {/* Botões */}
+            <Box
               sx={{
-                px: 4,
-                borderColor: PRIMARY_COLOR,
-                color: PRIMARY_COLOR,
-                textTransform: "none",
-                fontWeight: 600,
-                "&:hover": {
+                display: "flex",
+                flexDirection: { xs: "column-reverse", md: "row" },
+                gap: 1.5,
+                width: { xs: "100%", md: "auto" },
+                mt: { xs: 1, md: 0 },
+                ml: { md: "auto" },
+              }}
+            >
+              <Button
+                size="large"
+                sx={{
+                  px: 4,
                   borderColor: PRIMARY_COLOR,
-                  backgroundColor: PRIMARY_LIGHT_BG,
-                },
-              }}
-              variant="outlined"
-              onClick={() => {
-                setFilterName("");
-                setFilterCnpj("");
-                setFilterState("");
-                setFilterCity("");
-              }}
-            >
-              Limpar
-            </Button>
+                  color: PRIMARY_COLOR,
+                  textTransform: "none",
+                  fontWeight: 600,
+                  width: { xs: "100%", md: "auto" },
+                  "&:hover": {
+                    borderColor: PRIMARY_COLOR,
+                    backgroundColor: PRIMARY_LIGHT_BG,
+                  },
+                }}
+                variant="outlined"
+                onClick={() => {
+                  setFilterName("");
+                  setFilterCnpj("");
+                  setFilterState("");
+                  setFilterCity("");
+                  setPage(1);
+                }}
+              >
+                Limpar
+              </Button>
 
-            <Button
-              size="large"
-              onClick={() => setCreateModalOpen(true)}
-              sx={{
-                px: 4,
-                ml: "auto",
-                backgroundColor: PRIMARY_COLOR,
-                color: "white",
-                textTransform: "none",
-                fontWeight: 600,
-                "&:hover": {
-                  backgroundColor: PRIMARY_LIGHT,
-                },
-              }}
-            >
-              Adicionar Empresa
-            </Button>
+              <Button
+                size="large"
+                onClick={() => setCreateModalOpen(true)}
+                sx={{
+                  px: 4,
+                  backgroundColor: PRIMARY_COLOR,
+                  color: "white",
+                  textTransform: "none",
+                  fontWeight: 600,
+                  width: { xs: "100%", md: "auto" },
+                  "&:hover": {
+                    backgroundColor: PRIMARY_LIGHT,
+                  },
+                }}
+              >
+                Adicionar Empresa
+              </Button>
+            </Box>
           </Box>
         </Paper>
 
         {/* TABELA */}
         <Paper
           sx={{
-            p: 4,
+            p: { xs: 2, md: 4 },
             borderRadius: 3,
             boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
-            border: `1px solid ${SECTION_BORDER_COLOR}`, // mesma borda
+            border: `1px solid ${SECTION_BORDER_COLOR}`,
           }}
         >
-          <table className="w-full text-sm border-collapse">
-            <thead>
-              <tr className="bg-gray-50">
-                <th className="text-left px-4 py-3 font-semibold text-gray-700 w-1/5">
-                  Nome
-                </th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700 w-1/5">
-                  CNPJ
-                </th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700 w-1/6">
-                  CEP
-                </th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700 w-2/5">
-                  Endereço
-                </th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700 w-1/12">
-                  Nº
-                </th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {loadingTable && (
-                <tr>
-                  <td colSpan={5} className="py-6 text-center text-gray-500">
-                    Carregando...
-                  </td>
+          <Box sx={{ width: "100%", overflowX: "auto" }}>
+            <table className="min-w-full text-sm border-collapse">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="text-left px-3 md:px-4 py-2 md:py-3 font-semibold text-gray-700 w-1/5">
+                    Nome
+                  </th>
+                  <th className="text-left px-3 md:px-4 py-2 md:py-3 font-semibold text-gray-700 w-1/5">
+                    CNPJ
+                  </th>
+                  <th className="text-left px-3 md:px-4 py-2 md:py-3 font-semibold text-gray-700 w-1/6">
+                    CEP
+                  </th>
+                  <th className="text-left px-3 md:px-4 py-2 md:py-3 font-semibold text-gray-700 w-2/5">
+                    Endereço
+                  </th>
+                  <th className="text-left px-3 md:px-4 py-2 md:py-3 font-semibold text-gray-700 w-1/12">
+                    Nº
+                  </th>
                 </tr>
-              )}
+              </thead>
 
-              {!loadingTable &&
-                companies.map((company) => (
-                  <tr
-                    key={company.id}
-                    className="border-b hover:bg-gray-100 cursor-pointer transition"
-                    onClick={() => openEditModal(company)}
-                  >
-                    <td className="px-4 py-3">{company.name}</td>
-                    <td className="px-4 py-3">
-                      {formatCnpj(company.cnpj || "")}
+              <tbody>
+                {loadingTable ? (
+                  <tr>
+                    <td colSpan={5} className="py-6 text-center text-gray-500">
+                      Carregando...
                     </td>
-                    <td className="px-4 py-3">
-                      {formatCep(company.zipCode || "")}
-                    </td>
-                    <td className="px-4 py-3">{company.address}</td>
-                    <td className="px-4 py-3">{company.addressNumber}</td>
                   </tr>
-                ))}
-            </tbody>
-          </table>
+                ) : companies.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-6 text-center text-gray-500">
+                      Nenhuma empresa encontrada.
+                    </td>
+                  </tr>
+                ) : (
+                  companies.map((company) => (
+                    <tr
+                      key={company.id}
+                      className="border-b hover:bg-gray-100 cursor-pointer transition"
+                      onClick={() => openEditModal(company)}
+                    >
+                      <td className="px-3 md:px-4 py-2 md:py-3">
+                        {company.name}
+                      </td>
+                      <td className="px-3 md:px-4 py-2 md:py-3">
+                        {formatCnpj(company.cnpj || "")}
+                      </td>
+                      <td className="px-3 md:px-4 py-2 md:py-3">
+                        {formatCep(company.zipCode || "")}
+                      </td>
+                      <td className="px-3 md:px-4 py-2 md:py-3">
+                        {company.address}
+                      </td>
+                      <td className="px-3 md:px-4 py-2 md:py-3">
+                        {company.addressNumber}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </Box>
 
           {/* PAGINAÇÃO */}
           <Box
             display="flex"
             justifyContent="space-between"
-            alignItems="center"
+            alignItems={{ xs: "flex-start", sm: "center" }}
             mt={3}
+            sx={{ flexDirection: { xs: "column", sm: "row" }, gap: 1.5 }}
           >
             <Typography variant="body2">
-              Página {page} de {pageCount || 1}
+              Página {page} de {pageCount}
             </Typography>
 
             <Box display="flex" gap={2}>
@@ -439,7 +510,7 @@ export default function CompanyPage() {
           title="Cadastrar Empresa"
           description="Preencha os dados para cadastrar."
           footer={
-            <div className="flex justify-end gap-2">
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 w-full">
               <Button
                 variant="outlined"
                 sx={{
@@ -448,6 +519,7 @@ export default function CompanyPage() {
                   color: PRIMARY_COLOR,
                   textTransform: "none",
                   fontWeight: 600,
+                  width: { xs: "100%", sm: "auto" },
                   "&:hover": {
                     borderColor: PRIMARY_COLOR,
                     backgroundColor: PRIMARY_LIGHT_BG,
@@ -459,11 +531,14 @@ export default function CompanyPage() {
               </Button>
               <Button
                 sx={{
-                  backgroundColor: PRIMARY_COLOR,
-                  color: "white",
-                  "&:hover": {
-                    backgroundColor: PRIMARY_LIGHT,
+                  ...{
+                    backgroundColor: PRIMARY_COLOR,
+                    color: "white",
+                    "&:hover": {
+                      backgroundColor: PRIMARY_LIGHT,
+                    },
                   },
+                  width: { xs: "100%", sm: "auto" },
                 }}
                 onClick={handleCreate}
               >
@@ -504,7 +579,11 @@ export default function CompanyPage() {
               onChange={(e) => setNewAddressNumber(e.target.value)}
             />
 
-            <Box display="flex" gap={3}>
+            <Box
+              display="flex"
+              flexDirection={{ xs: "column", sm: "row" }}
+              gap={2}
+            >
               <FormControl size="small" sx={{ flex: 1 }}>
                 <InputLabel>Estado</InputLabel>
                 <Select
@@ -524,12 +603,11 @@ export default function CompanyPage() {
                 </Select>
               </FormControl>
 
-              <FormControl size="small" sx={{ flex: 1 }}>
+              <FormControl size="small" sx={{ flex: 1 }} disabled={!newStateId}>
                 <InputLabel>Cidade</InputLabel>
                 <Select
                   label="Cidade"
                   value={newCityId}
-                  disabled={!newStateId}
                   onChange={(e) => setNewCityId(e.target.value)}
                 >
                   <MenuItem value="">Selecione</MenuItem>
@@ -551,14 +629,20 @@ export default function CompanyPage() {
           title="Editar Empresa"
           description="Atualize os dados."
           footer={
-            <div className="flex justify-between w-full">
-              <Button variant="outlined" color="error" onClick={handleDelete}>
+            <div className="flex flex-col sm:flex-row justify-between w-full gap-2">
+              <Button
+                variant="outlined"
+                color="error"
+                sx={{ width: { xs: "100%", sm: "auto" } }}
+                onClick={handleDelete}
+              >
                 Excluir
               </Button>
               <Button
                 sx={{
                   backgroundColor: PRIMARY_COLOR,
                   color: "white",
+                  width: { xs: "100%", sm: "auto" },
                   "&:hover": {
                     backgroundColor: PRIMARY_LIGHT,
                   },
@@ -602,7 +686,11 @@ export default function CompanyPage() {
               onChange={(e) => setEditAddressNumber(e.target.value)}
             />
 
-            <Box display="flex" gap={3}>
+            <Box
+              display="flex"
+              flexDirection={{ xs: "column", sm: "row" }}
+              gap={2}
+            >
               <FormControl size="small" sx={{ flex: 1 }}>
                 <InputLabel>Estado</InputLabel>
                 <Select
@@ -622,12 +710,11 @@ export default function CompanyPage() {
                 </Select>
               </FormControl>
 
-              <FormControl size="small" sx={{ flex: 1 }}>
+              <FormControl size="small" sx={{ flex: 1 }} disabled={!editStateId}>
                 <InputLabel>Cidade</InputLabel>
                 <Select
                   label="Cidade"
                   value={editCityId}
-                  disabled={!editStateId}
                   onChange={(e) => setEditCityId(e.target.value)}
                 >
                   <MenuItem value="">Selecione</MenuItem>

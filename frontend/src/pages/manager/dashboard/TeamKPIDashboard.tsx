@@ -51,11 +51,13 @@ import CancelRoundedIcon from "@mui/icons-material/CancelRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import RadioButtonUncheckedRoundedIcon from "@mui/icons-material/RadioButtonUncheckedRounded";
 import ScheduleRoundedIcon from "@mui/icons-material/ScheduleRounded";
+import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
 
 import {
   PRIMARY_COLOR,
   PRIMARY_LIGHT_BG,
   SECTION_BORDER_COLOR,
+  primaryButtonSx,
 } from "@/utils/utils";
 
 // 👉 Recharts
@@ -70,6 +72,7 @@ import {
   Tooltip as RechartsTooltip,
   Legend,
 } from "recharts";
+import { useEmployeeKpiEvolutions } from "@/hooks/employee-kpi/useEmployeeKpiEvolutions";
 
 // ==========================
 // 💠 FUNÇÕES DE COR
@@ -103,9 +106,11 @@ function getEvolutionValue(ev: any): number {
 export default function TeamKpisDashboard() {
   const { listTeamKpis } = useTeamKpis();
   const { listTeamKpiEvolutions } = useTeamKpiEvolutions();
+  const { listEmployeeKpiEvolutions } = useEmployeeKpiEvolutions();
   const { listPerformanceReviewsLeader } = usePerformanceReviews();
 
   const [loading, setLoading] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const [teamKpis, setTeamKpis] = useState<any[]>([]);
   const [evolutions, setEvolutions] = useState<any[]>([]);
@@ -113,7 +118,9 @@ export default function TeamKpisDashboard() {
   // ==========================
   // 🔎 FILTROS
   // ==========================
-  const [filterStart, setFilterStart] = useState("");
+  const [filterStart, setFilterStart] = useState(() =>
+  format(new Date(), "yyyy-MM-dd")
+  );
   const [filterEnd, setFilterEnd] = useState("");
   const [filterType, setFilterType] = useState("");
   const [filterKpi, setFilterKpi] = useState("");
@@ -161,7 +168,6 @@ export default function TeamKpisDashboard() {
       );
 
       setEvolutions(evApproved);
-
       if (teamOnlyKpis.length) setSelectedKpiId(teamOnlyKpis[0].id);
 
       setLoading(false);
@@ -265,8 +271,6 @@ export default function TeamKpisDashboard() {
 
   // ==========================
   // 🔢 VALOR AGREGADO POR KPI
-  //  - *_SUM => soma das evoluções
-  //  - demais => último valor; se não houver, usa achievedValue
   // ==========================
 
   const kpiAggregatedAchieved = useMemo<Record<string, number>>(() => {
@@ -329,9 +333,6 @@ export default function TeamKpisDashboard() {
 
   // ==========================
   // 📈 AGGREGATED EVOLUTIONS
-  //  - *_SUM  => soma diária + ACUMULADO
-  //  - *_PCT  => histórico bruto (sem média)
-  //  - demais => último valor do dia
   // ==========================
 
   const aggregatedEvolutions = useMemo(() => {
@@ -371,7 +372,6 @@ export default function TeamKpisDashboard() {
 
     let daily = Object.entries(grouped).map(([date, list]) => {
       if (isSum) {
-        // *_SUM -> soma diária das evoluções
         const dayTotal = (list as any[]).reduce(
           (acc, e) => acc + getEvolutionValue(e),
           0
@@ -379,7 +379,6 @@ export default function TeamKpisDashboard() {
         return { date, value: dayTotal };
       }
 
-      // Demais tipos -> último valor do dia
       const latest = (list as any[])
         .slice()
         .sort(
@@ -399,14 +398,12 @@ export default function TeamKpisDashboard() {
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
     );
 
-    // *_SUM -> transforma em acumulado
-    if (isSum) {
-      let running = 0;
-      daily = daily.map((d) => {
-        running += d.value;
-        return { date: d.date, value: running };
-      });
-    }
+    // Transforma em acumulado para TODOS os tipos não-percentuais
+    let running = 0;
+    daily = daily.map((d) => {
+      running += d.value;
+      return { date: d.date, value: running };
+    });
 
     return daily;
   }, [selectedEvols, selectedKpi]);
@@ -529,8 +526,36 @@ export default function TeamKpisDashboard() {
       });
     }
 
+    // remove duplicates by employeeKpiId (keep all entries where employeeKpiId is null/undefined)
+    {
+      const seen = new Set<string>();
+      const dedup: any[] = [];
+      for (const ev of evs) {
+        const eid = ev?.employeeKpiId;
+        if (eid == null) {
+          // keep all null/undefined employeeKpiId entries
+          dedup.push(ev);
+        } else {
+          const key = String(eid);
+          if (!seen.has(key)) {
+            seen.add(key);
+            dedup.push(ev);
+          }
+        }
+      }
+      evs = dedup;
+    }
+
     return evs;
-  }, [evolutions, teamKpis, filterTeam, filterType, filterKpi, filterStart, filterEnd]);
+  }, [
+    evolutions,
+    teamKpis,
+    filterTeam,
+    filterType,
+    filterKpi,
+    filterStart,
+    filterEnd,
+  ]);
 
   const start = startOfMonth(subMonths(new Date(), 2));
   const end = endOfMonth(new Date());
@@ -585,7 +610,6 @@ export default function TeamKpisDashboard() {
     filteredKpis.forEach((k) => {
       const achieved =
         kpiAggregatedAchieved[k.id] ?? Number(k.achievedValue ?? 0);
-
       const goal = Number(k.goal) || 0;
       const pct = goal > 0 ? Math.min((achieved / goal) * 100, 100) : 0;
       sumProgress += pct;
@@ -646,6 +670,95 @@ export default function TeamKpisDashboard() {
   }
 
   // ==========================
+  // 📌 EXPORTAR PDF (mesmo comportamento do outro dashboard)
+  // ==========================
+
+  const handleExportPDF = async () => {
+    setIsExporting(true);
+
+    const sidebar = document.querySelector("aside") as HTMLElement | null;
+    const filters = document.getElementById(
+      "team-dashboard-filters"
+    ) as HTMLElement | null;
+    const exportBtn = document.getElementById(
+      "team-dashboard-export-btn"
+    ) as HTMLElement | null;
+
+    const originalSidebarDisplay = sidebar?.style.display ?? "";
+    const originalFiltersDisplay = filters?.style.display ?? "";
+    const originalExportBtnDisplay = exportBtn?.style.display ?? "";
+
+    try {
+      const html2canvas = (await import("html2canvas")).default;
+      const jsPDF = (await import("jspdf")).default;
+
+      if (sidebar) sidebar.style.display = "none";
+      if (filters) filters.style.display = "none";
+      if (exportBtn) exportBtn.style.display = "none";
+
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      const mainElement =
+        (document.querySelector("main") as HTMLElement | null) ||
+        (document.body as HTMLElement);
+
+      mainElement.scrollTop = 0;
+      window.scrollTo(0, 0);
+
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      const canvas = await html2canvas(mainElement, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: "#f7f7f9",
+        windowWidth: mainElement.scrollWidth,
+        windowHeight: mainElement.scrollHeight,
+        x: 0,
+        y: 0,
+      });
+
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
+
+      const imgWidth = 210;
+      const pageHeight = 297;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      const fileName = `dashboard-kpis-time-${format(
+        new Date(),
+        "yyyy-MM-dd"
+      )}.pdf`;
+      pdf.save(fileName);
+    } catch (error) {
+      console.error("Erro ao exportar PDF:", error);
+      alert("Erro ao exportar o dashboard. Por favor, tente novamente.");
+    } finally {
+      if (sidebar) sidebar.style.display = originalSidebarDisplay;
+      if (filters) filters.style.display = originalFiltersDisplay;
+      if (exportBtn) exportBtn.style.display = originalExportBtnDisplay;
+      setIsExporting(false);
+    }
+  };
+
+  // ==========================
   // LISTA DE TIMES DISTINCT PARA O SELECT
   // ==========================
 
@@ -677,6 +790,54 @@ export default function TeamKpisDashboard() {
 
   return (
     <Box className="min-h-screen bg-[#f7f7f9]">
+      {/* Título + botão de exportar */}
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
+        mb={4}
+        sx={{
+          flexDirection: { xs: "column", md: "row" },
+          gap: { xs: 2, md: 0 },
+        }}
+      >
+        <Typography
+          variant="h4"
+          fontWeight={700}
+          color="#1e293b"
+          sx={{
+            textAlign: { xs: "center", md: "left" },
+            fontSize: { xs: "1.5rem", md: "2.125rem" },
+          }}
+        >
+          Dashboard de KPIs de Time
+        </Typography>
+
+        <Button
+          id="team-dashboard-export-btn"
+          variant="contained"
+          startIcon={
+            isExporting ? (
+              <CircularProgress size={18} color="inherit" />
+            ) : (
+              <DownloadRoundedIcon />
+            )
+          }
+          onClick={handleExportPDF}
+          disabled={isExporting}
+          sx={{
+            ...primaryButtonSx,
+            textTransform: "none",
+            fontWeight: 600,
+            px: 3,
+            py: 1,
+            borderRadius: 2,
+          }}
+        >
+          {isExporting ? "Exportando..." : "Exportar PDF"}
+        </Button>
+      </Box>
+
       {/* ===================== CARDS RESUMO ===================== */}
       <Box
         display="grid"
@@ -855,6 +1016,7 @@ export default function TeamKpisDashboard() {
 
       {/* ================= FILTROS ================= */}
       <Paper
+        id="team-dashboard-filters"
         elevation={0}
         sx={{
           width: "100%",
@@ -966,12 +1128,19 @@ export default function TeamKpisDashboard() {
       </Paper>
 
       {/* ===================== LINHA 1: METAS + COLUNA DIREITA ===================== */}
-      <Box display="flex" gap={3} flexWrap="nowrap" mb={4} alignItems="stretch">
+      <Box
+        display="flex"
+        gap={3}
+        flexWrap={{ xs: "wrap", lg: "nowrap" }}
+        mb={4}
+        alignItems="stretch"
+      >
         {/* METAS / PROGRESSO POR KPI DE TIME */}
         <Paper
           elevation={0}
           sx={{
-            flex: "0 0 50%",
+            flex: { xs: "1 1 100%", lg: "1 1 0" },
+            minWidth: 0,
             p: 4,
             borderRadius: 3,
             backgroundColor: "#ffffff",
@@ -1004,12 +1173,24 @@ export default function TeamKpisDashboard() {
                 flex: 1,
                 maxHeight: 420,
                 overflowY: "auto",
+                scrollbarWidth: "thin",
+                scrollbarColor: `${PRIMARY_COLOR} transparent`,
+                "&::-webkit-scrollbar": {
+                  width: "8px",
+                },
+                "&::-webkit-scrollbar-track": {
+                  background: "transparent",
+                },
+                "&::-webkit-scrollbar-thumb": {
+                  backgroundColor: PRIMARY_COLOR,
+                  borderRadius: "4px",
+                },
                 pr: 1,
               }}
             >
               {filteredKpis.map((k) => {
-                const achieved =
-                  kpiAggregatedAchieved[k.id] ?? Number(k.achievedValue ?? 0);
+                const type = k.kpi?.evaluationType?.code || "";
+                const achieved = Number(k.achievedValue ?? 0);
                 const goal = Number(k.goal) || 0;
                 const pct =
                   goal > 0 ? Math.min((achieved / goal) * 100, 100) : 0;
@@ -1024,7 +1205,11 @@ export default function TeamKpisDashboard() {
                 let StatusIcon: any = RadioButtonUncheckedRoundedIcon;
                 let iconColor = "#9CA3AF";
 
-                if (pct < 100 && new Date() > new Date(k.periodEnd)) {
+                if (
+                  pct < 100 &&
+                  k.periodEnd &&
+                  new Date() > new Date(k.periodEnd)
+                ) {
                   statusLabel = "Expirada";
                   statusBg = "#c52d2250";
                   statusColor = "#c52d22ff";
@@ -1053,6 +1238,7 @@ export default function TeamKpisDashboard() {
                 } else {
                   statusLabel = "Pendente";
                 }
+
                 return (
                   <Box
                     key={k.id}
@@ -1141,7 +1327,11 @@ export default function TeamKpisDashboard() {
                           color="text.secondary"
                           fontWeight={600}
                         >
-                          {`${achieved} / ${goal} (${pct.toFixed(0)}%)`}
+                          {`${
+                            type.includes("_PCT")
+                              ? achieved.toFixed(1)
+                              : achieved
+                          } / ${goal} (${pct.toFixed(0)}%)`}
                         </Typography>
                       </Box>
 
@@ -1169,7 +1359,8 @@ export default function TeamKpisDashboard() {
         {/* COLUNA DIREITA: HEATMAP + FEEDBACKS */}
         <Box
           sx={{
-            flex: "calc(50% - 16px)",
+            flex: { xs: "1 1 100%", lg: "1 1 0" },
+            minWidth: 0,
             display: "flex",
             flexDirection: "column",
             gap: 3,
@@ -1179,24 +1370,26 @@ export default function TeamKpisDashboard() {
           <Paper
             elevation={0}
             sx={{
-              flex: 1,
-              p: 4,
+              width: "100%",
+              flex: "0 0 auto",
+              p: 3,
               borderRadius: 3,
               backgroundColor: "#ffffff",
               boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+              overflowX: "auto",
             }}
           >
-            <Typography variant="h6" fontWeight={600} mb={4}>
+            <Typography variant="h6" fontWeight={600} mb={2}>
               Atividade (3 meses)
             </Typography>
 
-            <Box display="flex" justifyContent="center" mb={2}>
+            <Box display="flex" justifyContent="center" mb={1.5}>
               {monthsLabels.map((m, i) => (
                 <Typography
                   key={`${m}-${i}`}
                   variant="caption"
                   fontWeight={600}
-                  sx={{ mx: 2 }}
+                  sx={{ mx: 1.5 }}
                 >
                   {m}
                 </Typography>
@@ -1204,12 +1397,12 @@ export default function TeamKpisDashboard() {
             </Box>
 
             <Box display="flex" justifyContent="center">
-              <Box display="flex" gap={1} sx={{ mx: "auto" }}>
+              <Box display="flex" gap={0.75} sx={{ mx: "auto" }}>
                 <Box
                   display="flex"
                   flexDirection="column"
                   justifyContent="space-between"
-                  mr={1}
+                  mr={0.75}
                 >
                   {["D", "S", "T", "Qa", "Qi", "Sx", "Sa"].map((d, index) => (
                     <Typography
@@ -1222,13 +1415,13 @@ export default function TeamKpisDashboard() {
                   ))}
                 </Box>
 
-                <Box display="flex" gap={0.75}>
+                <Box display="flex" gap={0.5}>
                   {weeks.map((week, wi) => (
                     <Box
                       key={wi}
                       display="flex"
                       flexDirection="column"
-                      gap={0.75}
+                      gap={0.5}
                     >
                       {week.map((d, di) => (
                         <Tooltip
@@ -1242,8 +1435,8 @@ export default function TeamKpisDashboard() {
                         >
                           <Box
                             sx={{
-                              width: 22,
-                              height: 22,
+                              width: 18,
+                              height: 18,
                               borderRadius: 4,
                               backgroundColor: getHeatColor(d.count),
                               opacity: isSameMonth(d.day, new Date())
@@ -1269,8 +1462,9 @@ export default function TeamKpisDashboard() {
           <Paper
             elevation={0}
             sx={{
-              flex: "0 0 auto",
-              p: 4,
+              width: "100%",
+              flex: "0 0 calc(50% - 20px)",
+              p: 3,
               borderRadius: 3,
               backgroundColor: "#ffffff",
               boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
@@ -1298,6 +1492,7 @@ export default function TeamKpisDashboard() {
                 overflow: "hidden",
                 display: "flex",
                 flexDirection: "column",
+                maxHeight: 260,
               }}
             >
               <div style={{ flex: 1, overflowY: "auto" }}>
@@ -1403,7 +1598,13 @@ export default function TeamKpisDashboard() {
           Evolução das KPIs de time
         </Typography>
 
-        <Box display="flex" flexWrap="wrap" gap={1.5} mb={3}>
+        <Box
+          display="flex"
+          flexWrap="wrap"
+          gap={1.5}
+          mb={3}
+          sx={{ maxHeight: 120, overflowY: "auto" }}
+        >
           {filteredKpis.map((k) => (
             <Button
               key={k.id}
@@ -1508,6 +1709,58 @@ export default function TeamKpisDashboard() {
           </Typography>
         )}
       </Paper>
+
+      {/* Modal de review (se quiser usar depois) */}
+      <BaseModal
+        open={reviewModalOpen}
+        onClose={() => setReviewModalOpen(false)}
+        title="Novo Feedback do Time"
+        description="Registre um feedback geral sobre o desempenho do time."
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outlined"
+              sx={{
+                borderColor: PRIMARY_COLOR,
+                color: PRIMARY_COLOR,
+                textTransform: "none",
+              }}
+              onClick={() => setReviewModalOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              sx={{
+                backgroundColor: PRIMARY_COLOR,
+                color: "white",
+                textTransform: "none",
+                "&:hover": { backgroundColor: "#0ea5e9" },
+              }}
+            >
+              Salvar
+            </Button>
+          </div>
+        }
+      >
+        <Box display="flex" flexDirection="column" gap={2}>
+          <TextField
+            label="Data"
+            type="date"
+            size="small"
+            value={reviewDate}
+            onChange={(e) => setReviewDate(e.target.value)}
+            InputLabelProps={{ shrink: true }}
+          />
+          <TextField
+            label="Observação"
+            size="small"
+            multiline
+            minRows={3}
+            value={reviewObservation}
+            onChange={(e) => setReviewObservation(e.target.value)}
+          />
+        </Box>
+      </BaseModal>
     </Box>
   );
 }

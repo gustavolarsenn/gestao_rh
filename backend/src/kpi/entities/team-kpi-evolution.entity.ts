@@ -6,6 +6,7 @@ import { User } from '../../users/entities/user.entity';
 import { KpiStatus } from './kpi.enums';
 import { Company } from '../../org/entities/company.entity';
 import { TeamKPI } from './team-kpi.entity';
+import { EmployeeKPI } from './employee-kpi.entity';
 
 @Entity('team_kpi_evolutions')
 @Unique('uq_team_kpi_ev_period', ['companyId','teamId','teamKpiId','submittedDate'])
@@ -15,6 +16,9 @@ export class TeamKPIEvolution extends TenantBaseEntity {
 
   @Column('uuid') teamKpiId!: string;
   @ManyToOne(() => TeamKPI, { onDelete: 'RESTRICT' }) @JoinColumn({ name: 'teamKpiId' }) teamKpi!: TeamKPI;
+
+  @Column('uuid') employeeKpiId?: string;
+  @ManyToOne(() => EmployeeKPI, { onDelete: 'RESTRICT' }) @JoinColumn({ name: 'employeeKpiId' }) employeeKpi?: EmployeeKPI;
 
   @Column({ nullable: true }) achievedValueEvolution?: string;
 

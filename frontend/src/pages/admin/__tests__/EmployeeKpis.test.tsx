@@ -166,9 +166,9 @@ describe("EmployeeKpis Page", () => {
     const row = rowCell.closest("tr")!;
     fireEvent.click(row);
 
-    const metaInput = await screen.findByLabelText("Meta");
+    const metaInput = (await screen.findByLabelText(/Meta/)) as HTMLInputElement;
     expect(metaInput).toBeInTheDocument();
-    expect(metaInput).toHaveValue("100");
+    expect(metaInput.value).toBe("100");
   });
 
   it("salva alterações de meta (mantendo status atual)", async () => {
@@ -181,24 +181,29 @@ describe("EmployeeKpis Page", () => {
     const row = rowCell.closest("tr")!;
     fireEvent.click(row);
 
-    // altera meta
-    const metaInput = (await screen.findByLabelText(
-      "Meta"
-    )) as HTMLInputElement;
-    fireEvent.change(metaInput, { target: { value: "200" } });
+    // altera meta para um valor válido no range 0–100
+    const metaInput = (await screen.findByLabelText(/Meta/)) as HTMLInputElement;
+    fireEvent.change(metaInput, { target: { value: "90" } });
+
+    // garante que o input realmente foi atualizado para "90"
+    await waitFor(() => {
+      expect(metaInput.value).toBe("90");
+    });
 
     const saveBtn = screen.getByText("Salvar alterações");
     fireEvent.click(saveBtn);
 
+    // garante que o mock foi chamado
     await waitFor(() => {
-      expect(mockEmployeeKpiHook.updateEmployeeKpi).toHaveBeenCalledWith(
-        "ek1",
-        {
-          goal: "200",
-          status: "DRAFT", // status original, já que não mexemos no Select
-        }
-      );
+      expect(mockEmployeeKpiHook.updateEmployeeKpi).toHaveBeenCalled();
     });
+
+    const [idArg, payloadArg] =
+      mockEmployeeKpiHook.updateEmployeeKpi.mock.calls[0];
+
+    expect(idArg).toBe("ek1");
+    expect(payloadArg.goal).toBe("90");
+    expect(payloadArg.status).toBe("DRAFT"); // status original
 
     expect(mockEmployeeKpiHook.listEmployeeKpis).toHaveBeenCalled();
   });

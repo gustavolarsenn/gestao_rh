@@ -51,7 +51,8 @@ describe('UserRolesService', () => {
   it('findAll deve retornar todos', async () => {
     repo.find.mockResolvedValue([{ id: 'r1' }] as any);
 
-    const result = await service.findAll();
+    // ✅ agora passando um "user" fake com level
+    const result = await service.findAll({ level: 3 } as any);
 
     expect(result).toEqual([{ id: 'r1' }]);
   });

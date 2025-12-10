@@ -45,6 +45,12 @@ describe('CompaniesController', () => {
   // FIND ALL
   it('GET findAll', async () => {
     const query: any = {};
+    const req: any = {
+      user: {
+        level: 4,
+        companyId: 'company-1',
+      },
+    };
 
     service.findAll.mockResolvedValue({
       data: [],
@@ -54,9 +60,11 @@ describe('CompaniesController', () => {
       pageCount: 0,
     });
 
-    const result = await controller.findAll(query);
+    // ✅ agora passamos req e query, como está definido no controller
+    const result = await controller.findAll(req, query);
 
-    expect(service.findAll).toHaveBeenCalledWith(query);
+    // ✅ o controller faz this.service.findAll(req.user, query);
+    expect(service.findAll).toHaveBeenCalledWith(req.user, query);
     expect(result).toEqual({
       data: [],
       total: 0,

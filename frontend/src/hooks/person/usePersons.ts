@@ -13,6 +13,7 @@ export type Person = {
   zipCode?: string;
   cpf: string;
   cityId: string;
+  companyId: string;
   city?: { id: string; name: string; state?: { name: string; uf: string } };
 };
 
@@ -30,7 +31,7 @@ export function usePersons() {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await api.post("/persons", {...payload, companyId});
+      const { data } = await api.post("/persons", {...payload });
       return data;
     } catch (err: any) {
       setError(err?.response?.data?.message || "Erro ao criar pessoa.");
@@ -40,12 +41,12 @@ export function usePersons() {
     }
   }
 
-  async function updatePerson(id: string, payload: Partial<Person>) {
+  async function updatePerson(companyId: string, id: string, payload: Partial<Person>) {
     const { data } = await api.patch(`/persons/${id}?companyId=${companyId}`, payload);
     return data;
   }
 
-  async function deletePerson(id: string) {
+  async function deletePerson(companyId: string, id: string) {
     await api.delete(`/persons/${id}?companyId=${companyId}`);
   }
 

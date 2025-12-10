@@ -181,6 +181,12 @@ export default function EmployeeKpis() {
     if (selectedKpiObj) setEvaluationTypeId(selectedKpiObj.evaluationTypeId);
   }, [kpiId, kpis]);
 
+  const getKPIEvaluationType = (kpiId: string) => {
+    const selectedKpiObj = kpis.find((k) => k.id === kpiId);
+    if (selectedKpiObj) return selectedKpiObj.evaluationTypeId;
+    return "";
+  };
+
   const handleCreate = async () => {
     setMessage("");
 
@@ -259,12 +265,22 @@ export default function EmployeeKpis() {
   // UI
   // ======================================================
   return (
-    <div className="flex min-h-screen bg-[#f7f7f9]">
+    <div className="flex flex-col md:flex-row min-h-screen bg-[#f7f7f9]">
       <Sidebar />
 
-      <main className="flex-1 p-8">
+      <main className="flex-1 p-4 md:p-8 w-full">
         {/* TITLE */}
-        <Typography variant="h4" fontWeight={700} color="#1e293b" sx={{ mb: 4 }}>
+        <Typography
+          variant="h4"
+          fontWeight={700}
+          color="#1e293b"
+          align="center"
+          sx={{
+            mb: 4,
+            mt: { xs: 2, md: 0 },
+            fontSize: { xs: "1.5rem", md: "2.125rem" },
+          }}
+        >
           KPIs de Colaboradores
         </Typography>
 
@@ -285,7 +301,7 @@ export default function EmployeeKpis() {
           elevation={0}
           sx={{
             width: "100%",
-            p: 4,
+            p: { xs: 2, md: 4 },
             mb: 4,
             borderRadius: 3,
             backgroundColor: "#ffffff",
@@ -293,12 +309,29 @@ export default function EmployeeKpis() {
             border: `1px solid ${SECTION_BORDER_COLOR}`,
           }}
         >
-          <Typography variant="h6" fontWeight={600} mb={3}>
+          <Typography
+            variant="h6"
+            fontWeight={600}
+            mb={3}
+            sx={{ fontSize: { xs: "1rem", md: "1.25rem" } }}
+          >
             Filtros
           </Typography>
 
-          <Box display="flex" gap={3} flexWrap="wrap" alignItems="flex-end">
-            <FormControl size="small" sx={{ flex: "1 1 220px" }}>
+          <Box
+            display="flex"
+            gap={2}
+            flexWrap="wrap"
+            sx={{
+              flexDirection: { xs: "column", md: "row" },
+              alignItems: { xs: "stretch", md: "flex-end" },
+            }}
+          >
+            <FormControl
+              size="small"
+              fullWidth
+              sx={{ flex: { md: "1 1 220px" } }}
+            >
               <InputLabel>Colaborador</InputLabel>
               <Select
                 label="Colaborador"
@@ -317,7 +350,11 @@ export default function EmployeeKpis() {
               </Select>
             </FormControl>
 
-            <FormControl size="small" sx={{ flex: "1 1 220px" }}>
+            <FormControl
+              size="small"
+              fullWidth
+              sx={{ flex: { md: "1 1 220px" } }}
+            >
               <InputLabel>KPI</InputLabel>
               <Select
                 label="KPI"
@@ -336,7 +373,11 @@ export default function EmployeeKpis() {
               </Select>
             </FormControl>
 
-            <FormControl size="small" sx={{ flex: "1 1 180px" }}>
+            <FormControl
+              size="small"
+              fullWidth
+              sx={{ flex: { md: "1 1 180px" } }}
+            >
               <InputLabel>Status</InputLabel>
               <Select
                 label="Status"
@@ -355,7 +396,6 @@ export default function EmployeeKpis() {
               </Select>
             </FormControl>
 
-            {/* Filtros de Período */}
             <TextField
               size="small"
               label="Período início"
@@ -365,7 +405,8 @@ export default function EmployeeKpis() {
                 setFilterPeriodStart(e.target.value);
                 setPage(1);
               }}
-              sx={{ flex: "1 1 180px" }}
+              fullWidth
+              sx={{ flex: { md: "1 1 180px" } }}
               InputLabelProps={{ shrink: true }}
             />
             <TextField
@@ -377,141 +418,157 @@ export default function EmployeeKpis() {
                 setFilterPeriodEnd(e.target.value);
                 setPage(1);
               }}
-              sx={{ flex: "1 1 180px" }}
+              fullWidth
+              sx={{ flex: { md: "1 1 180px" } }}
               InputLabelProps={{ shrink: true }}
             />
 
-            <Button
-              size="large"
-              variant="outlined"
+            {/* Botões */}
+            <Box
               sx={{
-                px: 4,
-                borderColor: PRIMARY_COLOR,
-                color: PRIMARY_COLOR,
-                textTransform: "none",
-                fontWeight: 600,
-                "&:hover": {
+                display: "flex",
+                flexDirection: { xs: "column-reverse", md: "row" },
+                gap: 1.5,
+                width: { xs: "100%", md: "auto" },
+                mt: { xs: 1, md: 0 },
+                ml: { md: "auto" },
+              }}
+            >
+              <Button
+                size="large"
+                variant="outlined"
+                sx={{
+                  px: 4,
                   borderColor: PRIMARY_COLOR,
-                  backgroundColor: PRIMARY_LIGHT_BG,
-                },
-              }}
-              onClick={() => {
-                setFilterEmployeeId("");
-                setFilterKpiId("");
-                setFilterStatus("");
-                setFilterPeriodStart("");
-                setFilterPeriodEnd("");
-                setPage(1);
-              }}
-            >
-              Limpar
-            </Button>
+                  color: PRIMARY_COLOR,
+                  textTransform: "none",
+                  fontWeight: 600,
+                  width: { xs: "100%", md: "auto" },
+                  "&:hover": {
+                    borderColor: PRIMARY_COLOR,
+                    backgroundColor: PRIMARY_LIGHT_BG,
+                  },
+                }}
+                onClick={() => {
+                  setFilterEmployeeId("");
+                  setFilterKpiId("");
+                  setFilterStatus("");
+                  setFilterPeriodStart("");
+                  setFilterPeriodEnd("");
+                  setPage(1);
+                }}
+              >
+                Limpar
+              </Button>
 
-            <Button
-              size="large"
-              onClick={() => setCreateModalOpen(true)}
-              sx={{
-                px: 4,
-                ml: "auto",
-                backgroundColor: PRIMARY_COLOR,
-                color: "white",
-                textTransform: "none",
-                fontWeight: 600,
-                "&:hover": {
-                  backgroundColor: PRIMARY_LIGHT,
-                },
-              }}
-            >
-              Designar KPI
-            </Button>
+              <Button
+                size="large"
+                onClick={() => setCreateModalOpen(true)}
+                sx={{
+                  px: 4,
+                  backgroundColor: PRIMARY_COLOR,
+                  color: "white",
+                  textTransform: "none",
+                  fontWeight: 600,
+                  width: { xs: "100%", md: "auto" },
+                  "&:hover": {
+                    backgroundColor: PRIMARY_LIGHT,
+                  },
+                }}
+              >
+                Designar KPI
+              </Button>
+            </Box>
           </Box>
         </Paper>
 
         {/* TABLE */}
         <Paper
           sx={{
-            p: 4,
+            p: { xs: 2, md: 4 },
             borderRadius: 3,
             boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
             border: `1px solid ${SECTION_BORDER_COLOR}`,
           }}
         >
-          <table className="w-full text-sm border-collapse">
-            <thead>
-              <tr className="bg-gray-50">
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">
-                  Colaborador
-                </th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">
-                  KPI
-                </th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">
-                  Meta
-                </th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">
-                  Status
-                </th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">
-                  Período
-                </th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {loadingTable ? (
-                <tr>
-                  <td colSpan={5} className="py-6 text-center text-gray-500">
-                    Carregando...
-                  </td>
+          <Box sx={{ width: "100%", overflowX: "auto" }}>
+            <table className="min-w-full text-sm border-collapse">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="text-left px-4 py-3 font-semibold text-gray-700">
+                    Colaborador
+                  </th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-700">
+                    KPI
+                  </th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-700">
+                    Meta
+                  </th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-700">
+                    Status
+                  </th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-700">
+                    Período
+                  </th>
                 </tr>
-              ) : employeeKpis.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="py-6 text-center text-gray-500">
-                    Nenhuma KPI atribuída encontrada.
-                  </td>
-                </tr>
-              ) : (
-                employeeKpis.map((ek) => {
-                  const employeeName =
-                    ek.employee?.person?.name ||
-                    employees.find((e) => e.id === ek.employeeId)?.person
-                      ?.name ||
-                    ek.employeeId;
+              </thead>
 
-                  const kpiName =
-                    ek.kpi?.name ||
-                    kpis.find((k) => k.id === ek.kpiId)?.name ||
-                    ek.kpiId;
+              <tbody>
+                {loadingTable ? (
+                  <tr>
+                    <td colSpan={5} className="py-6 text-center text-gray-500">
+                      Carregando...
+                    </td>
+                  </tr>
+                ) : employeeKpis.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-6 text-center text-gray-500">
+                      Nenhuma KPI atribuída encontrada.
+                    </td>
+                  </tr>
+                ) : (
+                  employeeKpis.map((ek) => {
+                    const employeeName =
+                      ek.employee?.person?.name ||
+                      employees.find((e) => e.id === ek.employeeId)?.person?.name ||
+                      ek.employeeId;
 
-                  return (
-                    <tr
-                      key={ek.id}
-                      className="border-b hover:bg-gray-100 cursor-pointer transition"
-                      onClick={() => openEditModal(ek)}
-                    >
-                      <td className="px-4 py-3">{employeeName}</td>
-                      <td className="px-4 py-3 text-slate-700">{kpiName}</td>
-                      <td className="px-4 py-3 text-slate-700">{ek.goal}</td>
-                      <td className="px-4 py-3 text-slate-700">
-                        {statusLabelMap[ek.status] || ek.status}
-                      </td>
-                      <td className="px-4 py-3 text-slate-700">
-                        {new Date(ek.periodStart).toLocaleDateString()} -{" "}
-                        {new Date(ek.periodEnd).toLocaleDateString()}
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+                    const kpiName =
+                      ek.kpi?.name ||
+                      kpis.find((k) => k.id === ek.kpiId)?.name ||
+                      ek.kpiId;
+
+                    return (
+                      <tr
+                        key={ek.id}
+                        className="border-b hover:bg-gray-100 cursor-pointer transition"
+                        onClick={() => openEditModal(ek)}
+                      >
+                        <td className="px-4 py-3">{employeeName}</td>
+                        <td className="px-4 py-3 text-slate-700">{kpiName}</td>
+                        <td className="px-4 py-3 text-slate-700">{ek.goal}</td>
+                        <td className="px-4 py-3 text-slate-700">
+                          {statusLabelMap[ek.status] || ek.status}
+                        </td>
+                        <td className="px-4 py-3 text-slate-700">
+                          {new Date(ek.periodStart).toLocaleDateString()} -{" "}
+                          {new Date(ek.periodEnd).toLocaleDateString()}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </Box>
 
           {/* PAGINATION */}
           <Box
             display="flex"
             justifyContent="space-between"
-            alignItems="center"
+            alignItems={{ xs: "flex-start", sm: "center" }}
             mt={3}
+            sx={{ flexDirection: { xs: "column", sm: "row" }, gap: 1.5 }}
           >
             <Typography variant="body2">
               Página {page} de {pageCount}
@@ -563,7 +620,7 @@ export default function EmployeeKpis() {
         title="Designar KPI a Colaborador"
         description="Preencha os dados para atribuir a KPI ao colaborador."
         footer={
-          <div className="flex justify-end gap-2">
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 w-full">
             <Button
               variant="outlined"
               onClick={() => setCreateModalOpen(false)}
@@ -572,6 +629,7 @@ export default function EmployeeKpis() {
                 color: PRIMARY_COLOR,
                 textTransform: "none",
                 fontWeight: 600,
+                width: { xs: "100%", sm: "auto" },
                 "&:hover": {
                   borderColor: PRIMARY_COLOR,
                   backgroundColor: PRIMARY_LIGHT_BG,
@@ -583,7 +641,10 @@ export default function EmployeeKpis() {
             <Button
               onClick={handleCreate}
               disabled={!employeeId || !kpiId || !periodStart || !goal}
-              sx={primaryButtonSx}
+              sx={{
+                ...primaryButtonSx,
+                width: { xs: "100%", sm: "auto" },
+              }}
             >
               Designar
             </Button>
@@ -621,7 +682,11 @@ export default function EmployeeKpis() {
             </Select>
           </FormControl>
 
-          <Box display="flex" gap={2}>
+          <Box
+            display="flex"
+            flexDirection={{ xs: "column", sm: "row" }}
+            gap={2}
+          >
             <TextField
               size="small"
               label="Início do Período"
@@ -638,16 +703,49 @@ export default function EmployeeKpis() {
               inputProps={{ min: 1, max: 12 }}
               value={deltaMonths}
               onChange={(e) => setDeltaMonths(Number(e.target.value))}
-              sx={{ width: 140 }}
+              sx={{ width: { xs: "100%", sm: 140 } }}
             />
           </Box>
 
-          <TextField
-            size="small"
-            label="Meta (goal)"
-            value={goal}
-            onChange={(e) => setGoal(e.target.value)}
-          />
+          {(() => {
+            const selectedEvalId = getKPIEvaluationType(kpiId);
+            const selectedEvalType = evaluationTypes.find(
+              (et) => et.id === selectedEvalId
+            );
+            const evalCode = selectedEvalType?.code || "";
+
+            const isBinary = evalCode.includes("BINARY");
+            const isPct = evalCode.includes("PCT");
+            // const isSum = evalCode.includes("SUM"); // kept for clarity if needed
+
+            return (
+              <TextField
+                size="small"
+                label="Meta (goal)"
+                value={goal}
+                type={isBinary ? "text" : "number"}
+                inputProps={isPct ? { min: 0, max: 100 } : undefined}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (isPct) {
+                    if (val === "") {
+                      setGoal("");
+                      return;
+                    }
+                    const num = Number(val);
+                    if (Number.isNaN(num)) {
+                      setGoal(val);
+                      return;
+                    }
+                    const clamped = Math.min(100, Math.max(0, num));
+                    setGoal(String(clamped));
+                  } else {
+                    setGoal(val);
+                  }
+                }}
+              />
+            );
+          })()}
 
           <FormControl size="small" fullWidth>
             <InputLabel>Status</InputLabel>
@@ -673,12 +771,16 @@ export default function EmployeeKpis() {
         title="Editar KPI Designada"
         description="Atualize a meta ou status da KPI."
         footer={
-          <div className="flex justify-between w-full">
+          <div className="flex flex-col sm:flex-row justify-between w-full gap-2">
             <Button
               color="error"
               variant="outlined"
               onClick={handleDelete}
-              sx={{ textTransform: "none", fontWeight: 600 }}
+              sx={{
+                textTransform: "none",
+                fontWeight: 600,
+                width: { xs: "100%", sm: "auto" },
+              }}
             >
               Excluir
             </Button>
@@ -690,6 +792,7 @@ export default function EmployeeKpis() {
                 color: "white",
                 textTransform: "none",
                 fontWeight: 600,
+                width: { xs: "100%", sm: "auto" },
                 "&:hover": {
                   backgroundColor: PRIMARY_LIGHT,
                 },
@@ -701,12 +804,59 @@ export default function EmployeeKpis() {
         }
       >
         <div className="flex flex-col gap-4">
-          <TextField
-            size="small"
-            label="Meta"
-            value={editGoal}
-            onChange={(e) => setEditGoal(e.target.value)}
-          />
+          {(() => {
+            if (!selectedKpi) {
+              return (
+                <TextField
+                  size="small"
+                  label="Meta"
+                  value={editGoal}
+                  onChange={(e) => setEditGoal(e.target.value)}
+                />
+              );
+            }
+
+            const selectedEvalId = getKPIEvaluationType(selectedKpi.kpiId);
+            const selectedEvalType = evaluationTypes.find(
+              (et) => et.id === selectedEvalId
+            );
+            const evalCode = selectedEvalType?.code || "";
+
+            const isBinary = evalCode.includes("BINARY");
+            const isPct = evalCode.includes("PCT");
+            // const isSum = evalCode.includes("SUM"); // se quiser usar depois
+
+            return (
+              <TextField
+                size="small"
+                label="Meta (goal)"
+                value={editGoal}
+                type={isBinary ? "text" : "number"}
+                inputProps={isPct ? { min: 0, max: 100 } : undefined}
+                onChange={(e) => {
+                  const val = e.target.value;
+
+                  if (isPct) {
+                    if (val === "") {
+                      setEditGoal("");
+                      return;
+                    }
+
+                    const num = Number(val);
+                    if (Number.isNaN(num)) {
+                      setEditGoal(val);
+                      return;
+                    }
+
+                    const clamped = Math.min(100, Math.max(0, num));
+                    setEditGoal(String(clamped));
+                  } else {
+                    setEditGoal(val);
+                  }
+                }}
+              />
+            );
+          })()}
 
           <FormControl size="small" fullWidth>
             <InputLabel>Status</InputLabel>

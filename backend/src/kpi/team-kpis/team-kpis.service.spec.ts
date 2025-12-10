@@ -168,7 +168,7 @@ describe('TeamKpisService', () => {
     repo.findAndCount.mockResolvedValue([[{ id: 'tk1' } as any], 1]);
 
     const result = await service.findAll(
-      { role: 'admin', companyId: 'c1', teamId: 't1' } as any,
+      { role: 'admin', companyId: 'c1', teamId: 't1', level: 1 } as any,
       { page: 1, limit: 10 } as any,
     );
 
@@ -193,7 +193,12 @@ describe('TeamKpisService', () => {
     repo.findAndCount.mockResolvedValue([[{ id: 'tk2' } as any], 1]);
 
     const result = await service.findAll(
-      { role: 'admin', companyId: 'c1', teamId: 't1' } as any,
+      {
+        role: 'admin',
+        companyId: 'c1',
+        teamId: 't1',
+        level: 1,
+      } as any,
       {
         page: 2,
         limit: 5,
@@ -222,7 +227,12 @@ describe('TeamKpisService', () => {
     repo.findAndCount.mockResolvedValue([[{ id: 'tk3' } as any], 1]);
 
     const result = await service.findAll(
-      { role: 'admin', companyId: 'c1', teamId: 't1' } as any,
+      {
+        role: 'admin',
+        companyId: 'c1',
+        teamId: 't1',
+        level: 1,
+      } as any,
       {
         page: 1,
         limit: 10,

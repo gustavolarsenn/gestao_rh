@@ -43,18 +43,21 @@ export class TeamKpisService {
     // const childTeams = await this.teamRepo.find({ where: { parentTeamId: user.teamId, companyId: user.companyId } });
     const team = await this.teamRepo.findOne({ where: { id: user.teamId, companyId: user.companyId } });
     const allChildTeams = await this.teamsService.findLowerTeamsRecursive(user.companyId, team!);
-
     if (query.showExpired === false) {
       where.periodEnd = MoreThan(new Date());
-      where.teamId = In([...allChildTeams.map(t => t.id)]);
       if (query?.kpiId) where.kpiId = query.kpiId;
       if (query?.status) where.status = query.status;
+      if (user.level <= 2) {
+        where.teamId = In([...allChildTeams.map(t => t.id)]);
+      }
       if (query?.teamId) where.teamId = query.teamId;
     } else {
       if (query.periodStart && query.periodEnd) {
         where.periodStart = Between(query.periodStart, query.periodEnd);
       }
-      where.teamId = In([...allChildTeams.map(t => t.id), user.teamId]);
+      if (user.level <= 2) {
+        where.teamId = In([...allChildTeams.map(t => t.id), user.teamId]);
+      }
       if (query?.kpiId) where.kpiId = query.kpiId;
       if (query?.status) where.status = query.status;
       if (query?.teamId) where.teamId = query.teamId;
@@ -64,7 +67,7 @@ export class TeamKpisService {
     const limit = Math.max(1, Number(query.limit ?? 10));
     const skip = (page - 1) * limit;
 
-    const [data, total] = await this.repo.findAndCount({ where, relations: ['team', 'kpi'], skip, take: limit });
+    const [data, total] = await this.repo.findAndCount({ where, relations: ['team', 'kpi', 'kpi.evaluationType'], skip, take: limit });
     return { page, limit, total, data };
   }
 

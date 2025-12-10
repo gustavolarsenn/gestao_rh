@@ -37,12 +37,12 @@ export function useDepartments() {
     }
   }
 
-  async function updateDepartment(id: string, dept: Partial<Department>) {
+  async function updateDepartment(companyId: string, id: string, dept: Partial<Department>) {
     const { data } = await api.patch(`/departments/${id}?companyId=${companyId}`, dept);
     return data;
   }
 
-  async function deleteDepartment(id: string) {
+  async function deleteDepartment(companyId: string, id: string) {
     await api.delete(`/departments/${id}?companyId=${companyId}`);
   }
 

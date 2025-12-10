@@ -5,6 +5,7 @@ export class CreateTeamKpiEvolutionDto {
   @IsUUID() companyId!: string;
   @IsUUID() teamId!: string;
   @IsUUID() teamKpiId!: string;
+  @IsUUID() employeeKpiId!: string;
 
   @IsOptional() achievedValueEvolution?: string;
 

@@ -37,7 +37,7 @@ export class KpisService {
     const limit = Math.max(1, Number(query.limit ?? 10));
     const skip = (page - 1) * limit;
 
-    const [data, total] = await this.repo.findAndCount({ where, skip, take: limit });
+    const [data, total] = await this.repo.findAndCount({ where, relations: ['evaluationType'], skip, take: limit });
     return { page, limit, total, data };
   }
 

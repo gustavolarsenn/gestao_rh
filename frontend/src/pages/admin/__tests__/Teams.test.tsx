@@ -41,12 +41,14 @@ describe("TeamsPage", () => {
         name: "Operações Santarém",
         description: "Time de operações no porto de Santarém",
         parentTeamId: null,
+        companyId: "company-1",
       },
       {
         id: "team2",
         name: "Operações Barcarena",
         description: "",
         parentTeamId: "team1",
+        companyId: "company-1",
       },
     ];
 
@@ -56,18 +58,21 @@ describe("TeamsPage", () => {
         name: "Operações Santarém",
         description: "",
         parentTeamId: null,
+        companyId: "company-1",
       },
       {
         id: "team2",
         name: "Operações Barcarena",
         description: "",
         parentTeamId: "team1",
+        companyId: "company-1",
       },
       {
         id: "team3",
         name: "Backoffice",
         description: "",
         parentTeamId: null,
+        companyId: "company-1",
       },
     ];
 
@@ -109,12 +114,14 @@ describe("TeamsPage", () => {
         name: "Novo Time",
         description: "Descrição",
         parentTeamId: "team1",
+        companyId: "company-1",
       }),
       updateTeam: vi.fn().mockResolvedValue({
         id: "team1",
         name: "Operações Santarém Editado",
         description: "Editado",
         parentTeamId: "team3",
+        companyId: "company-1",
       }),
       deleteTeam: vi.fn().mockResolvedValue({}),
 
@@ -260,7 +267,8 @@ describe("TeamsPage", () => {
 
     // Nome no modal (último "Nome do Time" na tela)
     const nomeInputs = await screen.findAllByLabelText(/Nome do Time/i);
-    const modalNameInput = nomeInputs[nomeInputs.length - 1] as HTMLInputElement;
+    const modalNameInput =
+      nomeInputs[nomeInputs.length - 1] as HTMLInputElement;
     fireEvent.change(modalNameInput, {
       target: { value: "Novo Time" },
     });
@@ -312,7 +320,8 @@ describe("TeamsPage", () => {
 
     // Depois de abrir o modal, pega o último "Nome do Time" (campo do modal)
     const nomeInputs = await screen.findAllByLabelText(/Nome do Time/i);
-    const editNameInput = nomeInputs[nomeInputs.length - 1] as HTMLInputElement;
+    const editNameInput =
+      nomeInputs[nomeInputs.length - 1] as HTMLInputElement;
 
     expect(editNameInput.value).toBe("Operações Santarém");
 
@@ -335,7 +344,8 @@ describe("TeamsPage", () => {
 
     // Nome no modal
     const nomeInputs = await screen.findAllByLabelText(/Nome do Time/i);
-    const editNameInput = nomeInputs[nomeInputs.length - 1] as HTMLInputElement;
+    const editNameInput =
+      nomeInputs[nomeInputs.length - 1] as HTMLInputElement;
 
     fireEvent.change(editNameInput, {
       target: { value: "Operações Santarém Editado" },
@@ -351,6 +361,7 @@ describe("TeamsPage", () => {
 
     await waitFor(() => {
       expect(mockTeamsHook.updateTeam).toHaveBeenCalledWith(
+        "company-1",
         "team1",
         expect.objectContaining({
           name: "Operações Santarém Editado",
@@ -377,7 +388,10 @@ describe("TeamsPage", () => {
     fireEvent.click(deleteBtn);
 
     await waitFor(() => {
-      expect(mockTeamsHook.deleteTeam).toHaveBeenCalledWith("team1");
+      expect(mockTeamsHook.deleteTeam).toHaveBeenCalledWith(
+        "company-1",
+        "team1"
+      );
     });
 
     expect(mockTeamsHook.listTeams).toHaveBeenCalled();
@@ -407,7 +421,8 @@ describe("TeamsPage", () => {
       expect(mockTeamMembersHook.updateTeamMember).toHaveBeenCalledWith("m1", {
         isLeader: true,
       });
-      expect(mockTeamMembersHook.listTeamMembers).toHaveBeenCalledWith("team1");
+      // depois de promover, o componente chama listTeamMembers() sem args
+      expect(mockTeamMembersHook.listTeamMembers).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -419,6 +434,7 @@ describe("TeamsPage", () => {
         id: `team-${i}`,
         name: `Time ${i}`,
         parentTeamId: undefined,
+        companyId: "company-1",
       })),
       total: 25,
     });

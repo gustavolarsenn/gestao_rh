@@ -19,7 +19,13 @@ import { useCities } from "@/hooks/geo/useCities";
 
 // utils de formatação
 import { onlyDigits, formatCnpj, formatCep } from "@/utils/format";
-import { PRIMARY_COLOR, PRIMARY_LIGHT, PRIMARY_LIGHT_BG, SECTION_BORDER_COLOR, primaryButtonSx } from '@/utils/utils';
+import {
+  PRIMARY_COLOR,
+  PRIMARY_LIGHT,
+  PRIMARY_LIGHT_BG,
+  SECTION_BORDER_COLOR,
+  primaryButtonSx,
+} from "@/utils/utils";
 
 export default function Branch() {
   const { createBranch, listBranches, updateBranch, deleteBranch, loading, error } =
@@ -30,6 +36,7 @@ export default function Branch() {
   useEffect(() => {
     document.title = "Filiais";
   }, []);
+
   // ======================================================
   // DATA
   // ======================================================
@@ -83,6 +90,7 @@ export default function Branch() {
       setAllCities(ct || []);
     }
     loadStatic();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -96,7 +104,7 @@ export default function Branch() {
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
   const [branchName, setBranchName] = useState("");
-  const [cnpj, setCnpj] = useState("");       // só dígitos
+  const [cnpj, setCnpj] = useState(""); // só dígitos
   const [zipCode, setZipCode] = useState(""); // só dígitos
   const [address, setAddress] = useState("");
   const [addressNumber, setAddressNumber] = useState("");
@@ -112,8 +120,8 @@ export default function Branch() {
 
     await createBranch({
       name: branchName,
-      cnpj,      // limpo
-      zipCode,   // limpo
+      cnpj, // limpo
+      zipCode, // limpo
       address,
       addressNumber,
       cityId,
@@ -141,7 +149,7 @@ export default function Branch() {
   const [editModalOpen, setEditModalOpen] = useState(false);
 
   const [editName, setEditName] = useState("");
-  const [editCnpj, setEditCnpj] = useState("");       // só dígitos
+  const [editCnpj, setEditCnpj] = useState(""); // só dígitos
   const [editZipCode, setEditZipCode] = useState(""); // só dígitos
   const [editAddress, setEditAddress] = useState("");
   const [editAddressNumber, setEditAddressNumber] = useState("");
@@ -173,8 +181,8 @@ export default function Branch() {
 
     const updated = await updateBranch(selectedBranch.id, {
       name: editName,
-      cnpj: editCnpj,          // limpo
-      zipCode: editZipCode,    // limpo
+      cnpj: editCnpj, // limpo
+      zipCode: editZipCode, // limpo
       address: editAddress,
       addressNumber: editAddressNumber,
       cityId: editCityId,
@@ -199,12 +207,22 @@ export default function Branch() {
   // UI
   // ======================================================
   return (
-    <div className="flex min-h-screen bg-[#f7f7f9]">
+    <div className="flex flex-col md:flex-row min-h-screen bg-[#f7f7f9]">
       <Sidebar />
 
-      <main className="flex-1 p-8">
+      <main className="flex-1 p-4 md:p-8 w-full">
         {/* TITLE */}
-        <Typography variant="h4" fontWeight={700} color="#1e293b" sx={{ mb: 4 }}>
+        <Typography
+          variant="h4"
+          fontWeight={700}
+          color="#1e293b"
+          align="center"
+          sx={{
+            mb: 4,
+            mt: { xs: 2, md: 0 },
+            fontSize: { xs: "1.5rem", md: "2.125rem" },
+          }}
+        >
           Filiais
         </Typography>
 
@@ -225,20 +243,34 @@ export default function Branch() {
           elevation={0}
           sx={{
             width: "100%",
-            p: 4,
+            p: { xs: 2, md: 4 },
             mb: 4,
             borderRadius: 3,
             backgroundColor: "#ffffff",
             boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
-            border: `1px solid ${SECTION_BORDER_COLOR}`, // igual aos cards/sidebar
+            border: `1px solid ${SECTION_BORDER_COLOR}`,
           }}
         >
-          <Typography variant="h6" fontWeight={600} mb={3}>
+          <Typography
+            variant="h6"
+            fontWeight={600}
+            mb={3}
+            sx={{ fontSize: { xs: "1rem", md: "1.25rem" } }}
+          >
             Filtros
           </Typography>
 
-          <Box display="flex" gap={3} flexWrap="wrap" alignItems="flex-end">
+          <Box
+            display="flex"
+            gap={2}
+            flexWrap="wrap"
+            sx={{
+              flexDirection: { xs: "column", md: "row" },
+              alignItems: { xs: "stretch", md: "flex-end" },
+            }}
+          >
             <TextField
+              fullWidth
               size="small"
               label="Nome"
               value={filterName}
@@ -246,10 +278,15 @@ export default function Branch() {
                 setFilterName(e.target.value);
                 setPage(1);
               }}
-              sx={{ flex: "1 1 200px" }}
+              sx={{
+                flex: {
+                  md: "1 1 220px",
+                },
+              }}
             />
 
             <TextField
+              fullWidth
               size="small"
               label="CNPJ"
               value={formatCnpj(filterCnpj)}
@@ -257,10 +294,22 @@ export default function Branch() {
                 setFilterCnpj(onlyDigits(e.target.value));
                 setPage(1);
               }}
-              sx={{ flex: "1 1 200px" }}
+              sx={{
+                flex: {
+                  md: "1 1 220px",
+                },
+              }}
             />
 
-            <FormControl size="small" sx={{ flex: "1 1 160px" }}>
+            <FormControl
+              fullWidth
+              size="small"
+              sx={{
+                flex: {
+                  md: "1 1 180px",
+                },
+              }}
+            >
               <InputLabel>Estado</InputLabel>
               <Select
                 label="Estado"
@@ -281,9 +330,14 @@ export default function Branch() {
             </FormControl>
 
             <FormControl
+              fullWidth
               size="small"
-              sx={{ flex: "1 1 160px" }}
               disabled={!filterStateId}
+              sx={{
+                flex: {
+                  md: "1 1 180px",
+                },
+              }}
             >
               <InputLabel>Cidade</InputLabel>
               <Select
@@ -303,108 +357,126 @@ export default function Branch() {
               </Select>
             </FormControl>
 
-            <Button
-              size="large"
-              variant="outlined"
+            {/* Botões */}
+            <Box
               sx={{
-                px: 4,
-                borderColor: PRIMARY_COLOR,
-                color: PRIMARY_COLOR,
-                textTransform: "none",
-                fontWeight: 600,
-                "&:hover": {
+                display: "flex",
+                flexDirection: { xs: "column-reverse", md: "row" },
+                gap: 1.5,
+                width: { xs: "100%", md: "auto" },
+                mt: { xs: 1, md: 0 },
+                ml: { md: "auto" },
+              }}
+            >
+              <Button
+                size="large"
+                variant="outlined"
+                sx={{
+                  px: 4,
                   borderColor: PRIMARY_COLOR,
-                  backgroundColor: PRIMARY_LIGHT_BG,
-                },
-              }}
-              onClick={() => {
-                setFilterName("");
-                setFilterCnpj("");
-                setFilterStateId("");
-                setFilterCityId("");
-                setPage(1);
-              }}
-            >
-              Limpar
-            </Button>
+                  color: PRIMARY_COLOR,
+                  textTransform: "none",
+                  fontWeight: 600,
+                  width: { xs: "100%", md: "auto" },
+                  "&:hover": {
+                    borderColor: PRIMARY_COLOR,
+                    backgroundColor: PRIMARY_LIGHT_BG,
+                  },
+                }}
+                onClick={() => {
+                  setFilterName("");
+                  setFilterCnpj("");
+                  setFilterStateId("");
+                  setFilterCityId("");
+                  setPage(1);
+                }}
+              >
+                Limpar
+              </Button>
 
-            <Button
-              size="large"
-              onClick={() => setCreateModalOpen(true)}
-              sx={{
-                px: 4,
-                ml: "auto",
-                backgroundColor: PRIMARY_COLOR,
-                color: "white",
-                textTransform: "none",
-                fontWeight: 600,
-                "&:hover": {
-                  backgroundColor: PRIMARY_LIGHT,
-                },
-              }}
-            >
-              Criar Filial
-            </Button>
+              <Button
+                size="large"
+                onClick={() => setCreateModalOpen(true)}
+                sx={{
+                  px: 4,
+                  backgroundColor: PRIMARY_COLOR,
+                  color: "white",
+                  textTransform: "none",
+                  fontWeight: 600,
+                  width: { xs: "100%", md: "auto" },
+                  "&:hover": {
+                    backgroundColor: PRIMARY_LIGHT,
+                  },
+                }}
+              >
+                Criar Filial
+              </Button>
+            </Box>
           </Box>
         </Paper>
 
         {/* TABLE */}
         <Paper
           sx={{
-            p: 4,
+            p: { xs: 2, md: 4 },
             borderRadius: 3,
             boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
-            border: `1px solid ${SECTION_BORDER_COLOR}`, // igual aos cards/sidebar
+            border: `1px solid ${SECTION_BORDER_COLOR}`,
           }}
         >
-          <table className="w-full text-sm border-collapse">
-            <thead>
-              <tr className="bg-gray-50">
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">
-                  Nome
-                </th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">
-                  CNPJ
-                </th>
-              </tr>
-            </thead>
+          <Box sx={{ width: "100%", overflowX: "auto" }}>
+            <table className="min-w-full text-sm border-collapse">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="text-left px-3 md:px-4 py-2 md:py-3 font-semibold text-gray-700">
+                    Nome
+                  </th>
+                  <th className="text-left px-3 md:px-4 py-2 md:py-3 font-semibold text-gray-700">
+                    CNPJ
+                  </th>
+                </tr>
+              </thead>
 
-            <tbody>
-              {loadingTable ? (
-                <tr>
-                  <td colSpan={2} className="py-6 text-center text-gray-500">
-                    Carregando...
-                  </td>
-                </tr>
-              ) : branches.length === 0 ? (
-                <tr>
-                  <td colSpan={2} className="py-6 text-center text-gray-500">
-                    Nenhuma filial encontrada.
-                  </td>
-                </tr>
-              ) : (
-                branches.map((branch) => (
-                  <tr
-                    key={branch.id}
-                    className="border-b hover:bg-gray-100 cursor-pointer transition"
-                    onClick={() => openEditModal(branch)}
-                  >
-                    <td className="px-4 py-3">{branch.name}</td>
-                    <td className="px-4 py-3">
-                      {formatCnpj(branch.cnpj || "")}
+              <tbody>
+                {loadingTable ? (
+                  <tr>
+                    <td colSpan={2} className="py-6 text-center text-gray-500">
+                      Carregando...
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : branches.length === 0 ? (
+                  <tr>
+                    <td colSpan={2} className="py-6 text-center text-gray-500">
+                      Nenhuma filial encontrada.
+                    </td>
+                  </tr>
+                ) : (
+                  branches.map((branch) => (
+                    <tr
+                      key={branch.id}
+                      className="border-b hover:bg-gray-100 cursor-pointer transition"
+                      onClick={() => openEditModal(branch)}
+                    >
+                      <td className="px-3 md:px-4 py-2 md:py-3">
+                        {branch.name}
+                      </td>
+                      <td className="px-3 md:px-4 py-2 md:py-3">
+                        {formatCnpj(branch.cnpj || "")}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </Box>
 
           {/* PAGINATION */}
           <Box
             display="flex"
             justifyContent="space-between"
-            alignItems="center"
+            alignItems={{ xs: "flex-start", sm: "center" }}
             mt={3}
+            sx={{ flexDirection: { xs: "column", sm: "row" }, gap: 1.5 }}
           >
             <Typography variant="body2">
               Página {page} de {pageCount}
@@ -456,10 +528,13 @@ export default function Branch() {
         title="Criar Filial"
         description="Preencha os dados da nova filial."
         footer={
-          <div className="flex justify-end gap-2">
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 w-full">
             <Button
               variant="outlined"
               onClick={() => setCreateModalOpen(false)}
+              sx={{
+                width: { xs: "100%", sm: "auto" },
+              }}
             >
               Cancelar
             </Button>
@@ -474,7 +549,10 @@ export default function Branch() {
                 !stateId ||
                 !cityId
               }
-              sx={primaryButtonSx}
+              sx={{
+                ...primaryButtonSx,
+                width: { xs: "100%", sm: "auto" },
+              }}
             >
               Criar
             </Button>
@@ -513,7 +591,7 @@ export default function Branch() {
             onChange={(e) => setAddressNumber(e.target.value)}
           />
 
-          <Box display="flex" gap={2}>
+          <Box display="flex" flexDirection={{ xs: "column", sm: "row" }} gap={2}>
             <FormControl size="small" sx={{ flex: 1 }}>
               <InputLabel>Estado</InputLabel>
               <Select
@@ -561,8 +639,13 @@ export default function Branch() {
         title="Editar Filial"
         description="Atualize as informações da filial ou exclua o registro."
         footer={
-          <div className="flex justify-between w-full">
-            <Button color="error" variant="outlined" onClick={handleDeleteBranch}>
+          <div className="flex flex-col sm:flex-row justify-between w-full gap-2">
+            <Button
+              color="error"
+              variant="outlined"
+              onClick={handleDeleteBranch}
+              sx={{ width: { xs: "100%", sm: "auto" } }}
+            >
               Excluir
             </Button>
             <Button
@@ -571,6 +654,7 @@ export default function Branch() {
               sx={{
                 backgroundColor: PRIMARY_COLOR,
                 color: "white",
+                width: { xs: "100%", sm: "auto" },
                 "&:hover": {
                   backgroundColor: PRIMARY_LIGHT,
                 },
@@ -613,7 +697,7 @@ export default function Branch() {
             onChange={(e) => setEditAddressNumber(e.target.value)}
           />
 
-          <Box display="flex" gap={2}>
+          <Box display="flex" flexDirection={{ xs: "column", sm: "row" }} gap={2}>
             <FormControl size="small" sx={{ flex: 1 }}>
               <InputLabel>Estado</InputLabel>
               <Select
