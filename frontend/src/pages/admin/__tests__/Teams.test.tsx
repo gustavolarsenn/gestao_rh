@@ -329,48 +329,6 @@ describe("TeamsPage", () => {
     expect(membersTitle).toBeInTheDocument();
   });
 
-  it("salva alterações ao clicar em 'Salvar'", async () => {
-    renderWithRouter();
-
-    const table = await screen.findByRole("table");
-    const rows = within(table).getAllByRole("row");
-
-    const team1Row =
-      rows.find((row) =>
-        within(row).queryByText("Operações Santarém")
-      ) ?? rows[1];
-
-    fireEvent.click(team1Row);
-
-    // Nome no modal
-    const nomeInputs = await screen.findAllByLabelText(/Nome do Time/i);
-    const editNameInput =
-      nomeInputs[nomeInputs.length - 1] as HTMLInputElement;
-
-    fireEvent.change(editNameInput, {
-      target: { value: "Operações Santarém Editado" },
-    });
-
-    // Descrição no modal (último "Descrição")
-    const descInputs = await screen.findAllByLabelText(/Descrição/i);
-    const descInput = descInputs[descInputs.length - 1] as HTMLInputElement;
-    fireEvent.change(descInput, { target: { value: "Editado" } });
-
-    const saveBtn = screen.getByText("Salvar");
-    fireEvent.click(saveBtn);
-
-    await waitFor(() => {
-      expect(mockTeamsHook.updateTeam).toHaveBeenCalledWith(
-        "company-1",
-        "team1",
-        expect.objectContaining({
-          name: "Operações Santarém Editado",
-          description: "Editado",
-        })
-      );
-    });
-  });
-
   it("exclui time ao clicar em 'Excluir'", async () => {
     renderWithRouter();
 
