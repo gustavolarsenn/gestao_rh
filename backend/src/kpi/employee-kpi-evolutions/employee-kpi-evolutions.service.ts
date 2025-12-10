@@ -171,6 +171,10 @@ import { parse } from 'path';
           const currentValue = parseFloat(teamKpi.achievedValue ?? '0');
           const evolutionValue = parseFloat(kpiEvolution.achievedValueEvolution ?? '0');
           newAchievedValue = (currentValue + evolutionValue).toString();
+
+          if (kpiEvolution.employeeKpi.kpi.evaluationType.code === 'HIGHER_BETTER_SUM' && parseFloat(newAchievedValue) > parseFloat(teamKpi.goal!)) {
+            teamKpi.status = KpiStatus.APPROVED;
+          }
         }
         teamKpi.achievedValue = newAchievedValue!;
         await this.teamKpiEvolutionRepo.save({
@@ -210,6 +214,9 @@ import { parse } from 'path';
       
         if (['BINARY'].includes(row.employeeKpi.kpi.evaluationType.code)) {
           approvedExists.achievedValue = row.achievedValueEvolution!;
+          if (approvedExists.achievedValue === approvedExists.goal) {
+            approvedExists.status = KpiStatus.APPROVED;
+          }
         }
         if (['LOWER_BETTER_PCT', 'HIGHER_BETTER_PCT'].includes(row.employeeKpi.kpi.evaluationType.code)) {
           const latestEvolutions = await this.teamKpiEvolutionRepo.find({
@@ -229,6 +236,10 @@ import { parse } from 'path';
         const currentValue = parseFloat(approvedExists.achievedValue ?? '0');
         const evolutionValue = parseFloat(row.achievedValueEvolution ?? '0');
         approvedExists.achievedValue = (currentValue + evolutionValue).toString();
+
+        if (row.employeeKpi.kpi.evaluationType.code === 'HIGHER_BETTER_SUM' && parseFloat(approvedExists.achievedValue) > parseFloat(approvedExists.goal!)) {
+          approvedExists.status = KpiStatus.APPROVED;
+        }
       }
 
       await this.employeeKpiRepo.save(approvedExists);
@@ -253,6 +264,10 @@ import { parse } from 'path';
         const currentValue = parseFloat(approvedTeamKpiExists.achievedValue ?? '0');
         const evolutionValue = parseFloat(row.achievedValueEvolution ?? '0');
         approvedTeamKpiExists.achievedValue = (currentValue + evolutionValue).toString();
+
+        if (row.employeeKpi.kpi.evaluationType.code === 'HIGHER_BETTER_SUM' && parseFloat(approvedTeamKpiExists.achievedValue) > parseFloat(approvedTeamKpiExists.goal!)) {
+          approvedTeamKpiExists.status = KpiStatus.APPROVED;
+        }
       }
       
       await this.teamKpiEvolutionRepo.save({

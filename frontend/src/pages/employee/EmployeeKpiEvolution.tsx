@@ -303,7 +303,7 @@ export default function EmployeeKpiEvolution() {
             </FormControl>
 
             <Button
-              size="small"
+              size="large"
               variant="outlined"
               sx={{
                 px: 4,

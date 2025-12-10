@@ -1001,7 +1001,7 @@ export default function EmployeeDashboard() {
             </FormControl>
 
             <Button
-              size="small"
+              size="large"
               variant="outlined"
               onClick={() => {
                 setFilterStart("");
@@ -1041,6 +1041,7 @@ export default function EmployeeDashboard() {
             elevation={0}
             sx={{
               flex: { xs: "1 1 100%", lg: "0 0 50%" },
+              minHeight: 600,
               p: 4,
               borderRadius: 3,
               backgroundColor: "#ffffff",
@@ -1099,7 +1100,8 @@ export default function EmployeeDashboard() {
                   let achieved = Number(k.achievedValue ?? 0);
                   let goal = Number(k.goal) || 0;
                   let pct =
-                    goal > 0 ? Math.min((achieved / goal) * 100, 100) : 0;
+                    goal > 0 ? ((achieved / goal) * 100) : 0;
+                  let pctLower = pct;
 
                   const deadline = k.periodEnd
                     ? format(parseISO(k.periodEnd), "dd/MM/yyyy")
@@ -1115,6 +1117,7 @@ export default function EmployeeDashboard() {
                     goal = 1;
                     if (
                       (k.achievedValue != "Sim" &&
+                        k.periodEnd &&
                         new Date() > new Date(k.periodEnd)) ||
                       k.achievedValue == "Não"
                     ) {
@@ -1136,16 +1139,21 @@ export default function EmployeeDashboard() {
                     }
                   }
 
-                  if (type.endsWith("_SUM") || type.endsWith("_PCT")) {
-                    if (pct < 100 && new Date() > new Date(k.periodEnd)) {
+                  if ((type.startsWith('HIGHER')) && (type.endsWith("_SUM") || type.endsWith("_PCT"))) {
+                    if (type.endsWith("_PCT")) {
+                      console.log(k.achievedValue, achieved, goal, pct);
+                    }
+                    if (
+                      pct < 100 &&
+                      k.periodEnd &&  
+                      new Date() > new Date(k.periodEnd)
+                    ) {
                       statusLabel = "Expirada";
                       statusBg = "#c52d2250";
                       statusColor = "#c52d22ff";
                       StatusIcon = CancelRoundedIcon;
                       iconColor = "#c52d22ff";
                     } else if (
-                      k.achievedValue !== null &&
-                      k.achievedValue !== undefined &&
                       pct >= 100
                     ) {
                       statusLabel = "Concluída";
@@ -1157,6 +1165,41 @@ export default function EmployeeDashboard() {
                       k.achievedValue !== null &&
                       k.achievedValue !== undefined &&
                       pct < 100
+                    ) {
+                      statusLabel = "Em andamento";
+                      statusBg = "#E0ECFF";
+                      statusColor = "#1D4ED8";
+                      StatusIcon = ScheduleRoundedIcon;
+                      iconColor = PRIMARY_COLOR;
+                    } else {
+                      statusLabel = "Pendente";
+                    }
+                  } else if ((type.startsWith('LOWER')) && (type.endsWith("_SUM") || type.endsWith("_PCT"))) {
+                    if (
+                      pct <=   100 &&
+                      k.periodEnd &&  
+                      new Date() > new Date(k.periodEnd)
+                    ) {
+                      statusLabel = "Concluída";
+                      statusBg = "#22c55e2a";
+                      statusColor = "#22C55E";
+                      StatusIcon = CheckCircleRoundedIcon;
+                      iconColor = "#22C55E";
+                    } else if (
+                      k.achievedValue !== null &&
+                      k.achievedValue !== undefined &&
+                      pct > 100
+                    ) {
+                      statusLabel = "Não atingida";
+                      statusBg = "#c52d2250";
+                      statusColor = "#c52d22ff";
+                      StatusIcon = CancelRoundedIcon;
+                      iconColor = "#c52d22ff";
+                      pct = 100
+                    } else if (
+                      k.achievedValue !== null &&
+                      k.achievedValue !== undefined &&
+                      pct <= 100
                     ) {
                       statusLabel = "Em andamento";
                       statusBg = "#E0ECFF";
@@ -1264,14 +1307,16 @@ export default function EmployeeDashboard() {
 
                         <LinearProgress
                           variant="determinate"
-                          value={pct}
+                          value={Math.min(pct, 100)}
                           sx={{
                             height: 8,
                             borderRadius: 999,
                             backgroundColor: "#edf2f7",
                             "& .MuiLinearProgress-bar": {
                               backgroundColor:
-                                pct < 100 ? PRIMARY_COLOR : "#22c55e",
+                                type.startsWith('HIGHER') || type === 'BINARY'
+                                ? pct < 100 ? PRIMARY_COLOR : "#22c55e"
+                                : type.startsWith('LOWER') ? pctLower <= 100 ? PRIMARY_COLOR : "#c52d22" : PRIMARY_COLOR,
                               borderRadius: 999,
                             },
                           }}
